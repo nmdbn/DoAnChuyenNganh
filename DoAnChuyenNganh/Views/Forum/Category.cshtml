@@ -1,0 +1,196 @@
+@model DoAnChuyenNganh.ViewModels.Forum.ForumCategoryDetailViewModel
+@{
+    ViewData["Title"] = Model.Category.CategoryName;
+}
+
+<link rel="stylesheet" href="~/css/forum.css" />
+
+<div class="forum-container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Forum")">Forum</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Category.CategoryName</li>
+        </ol>
+    </nav>
+
+    <!-- Category Header -->
+    <div class="category-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1>@Model.Category.CategoryName</h1>
+                <p class="text-muted">@Model.Category.Description</p>
+            </div>
+            <div>
+                <a href="@Url.Action("CreatePost", "Forum", new { categoryId = Model.Category.CategoryId })" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> New Post
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sorting and Filtering -->
+    <div class="forum-controls">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-secondary @(Model.SortBy == "latest" ? "active" : "")" 
+                            onclick="location.href='@Url.Action("Category", new { id = Model.Category.CategoryId, sortBy = "latest", filterBy = Model.FilterBy })'">
+                        <i class="bi bi-clock"></i> Latest
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary @(Model.SortBy == "popular" ? "active" : "")" 
+                            onclick="location.href='@Url.Action("Category", new { id = Model.Category.CategoryId, sortBy = "popular", filterBy = Model.FilterBy })'">
+                        <i class="bi bi-fire"></i> Popular
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary @(Model.SortBy == "trending" ? "active" : "")" 
+                            onclick="location.href='@Url.Action("Category", new { id = Model.Category.CategoryId, sortBy = "trending", filterBy = Model.FilterBy })'">
+                        <i class="bi bi-graph-up"></i> Trending
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary @(Model.SortBy == "mostReplied" ? "active" : "")" 
+                            onclick="location.href='@Url.Action("Category", new { id = Model.Category.CategoryId, sortBy = "mostReplied", filterBy = Model.FilterBy })'">
+                        <i class="bi bi-chat-dots"></i> Most Replied
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-secondary @(Model.FilterBy == "all" ? "active" : "")" 
+                            onclick="location.href='@Url.Action("Category", new { id = Model.Category.CategoryId, sortBy = Model.SortBy, filterBy = "all" })'">
+                        All
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary @(Model.FilterBy == "sticky" ? "active" : "")" 
+                            onclick="location.href='@Url.Action("Category", new { id = Model.Category.CategoryId, sortBy = Model.SortBy, filterBy = "sticky" })'">
+                        <i class="bi bi-pin-angle"></i> Sticky
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary @(Model.FilterBy == "unanswered" ? "active" : "")" 
+                            onclick="location.href='@Url.Action("Category", new { id = Model.Category.CategoryId, sortBy = Model.SortBy, filterBy = "unanswered" })'">
+                        <i class="bi bi-question-circle"></i> Unanswered
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Posts List -->
+    <div class="posts-list">
+        @if (Model.Posts.Any())
+        {
+            @foreach (var post in Model.Posts)
+            {
+                <div class="post-card @(post.IsSticky ? "sticky-post" : "")">
+                    <div class="post-avatar">
+                        @if (!string.IsNullOrEmpty(post.UserAvatarUrl))
+                        {
+                            <img src="@post.UserAvatarUrl" alt="@post.Username" />
+                        }
+                        else
+                        {
+                            <div class="avatar-placeholder">
+                                <i class="bi bi-person-circle"></i>
+                            </div>
+                        }
+                    </div>
+                    <div class="post-content">
+                        <div class="post-title-row">
+                            <h3>
+                                @if (post.IsSticky)
+                                {
+                                    <i class="bi bi-pin-angle-fill text-warning" title="Sticky"></i>
+                                }
+                                @if (post.IsLocked)
+                                {
+                                    <i class="bi bi-lock-fill text-danger" title="Locked"></i>
+                                }
+                                <a href="@Url.Action("Post", "Forum", new { id = post.PostId })">
+                                    @post.Title
+                                </a>
+                            </h3>
+                        </div>
+                        <div class="post-meta">
+                            <span class="post-author">
+                                <i class="bi bi-person"></i>
+                                <a href="@Url.Action("UserActivity", "Forum", new { id = post.UserId })">@post.Username</a>
+                            </span>
+                            <span class="post-date">
+                                <i class="bi bi-clock"></i>
+                                @post.CreatedAt?.ToString("MMM dd, yyyy HH:mm")
+                            </span>
+                        </div>
+                    </div>
+                    <div class="post-stats">
+                        <div class="stat-item">
+                            <i class="bi bi-eye"></i>
+                            <span>@post.ViewCount</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="bi bi-chat-left-text"></i>
+                            <span>@post.ReplyCount</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="bi bi-heart-fill"></i>
+                            <span>@post.LikeCount</span>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(post.LastReplyUsername))
+                    {
+                        <div class="post-last-reply">
+                            <small class="text-muted">
+                                Last reply by <strong>@post.LastReplyUsername</strong>
+                                @if (post.LastReplyAt.HasValue)
+                                {
+                                    <span>@post.LastReplyAt.Value.ToString("MMM dd, yyyy")</span>
+                                }
+                            </small>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Pagination -->
+            @if (Model.Pagination.TotalPages > 1)
+            {
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        @if (Model.Pagination.HasPreviousPage)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@Url.Action("Category", new { id = Model.Category.CategoryId, page = Model.Pagination.CurrentPage - 1, sortBy = Model.SortBy, filterBy = Model.FilterBy })">
+                                    Previous
+                                </a>
+                            </li>
+                        }
+
+                        @foreach (var pageNum in Model.Pagination.GetPageNumbers())
+                        {
+                            <li class="page-item @(pageNum == Model.Pagination.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="@Url.Action("Category", new { id = Model.Category.CategoryId, page = pageNum, sortBy = Model.SortBy, filterBy = Model.FilterBy })">
+                                    @pageNum
+                                </a>
+                            </li>
+                        }
+
+                        @if (Model.Pagination.HasNextPage)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@Url.Action("Category", new { id = Model.Category.CategoryId, page = Model.Pagination.CurrentPage + 1, sortBy = Model.SortBy, filterBy = Model.FilterBy })">
+                                    Next
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No posts in this category yet. Be the first to create one!
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/forum.js"></script>
+}
+

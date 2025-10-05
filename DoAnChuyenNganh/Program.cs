@@ -25,6 +25,9 @@ builder.Services.AddSession(options =>
 // Add Authentication Service
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+// Add Forum Service
+builder.Services.AddScoped<IForumService, ForumService>();
+
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 

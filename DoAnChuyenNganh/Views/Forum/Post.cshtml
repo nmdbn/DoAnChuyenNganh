@@ -1,0 +1,251 @@
+@model DoAnChuyenNganh.ViewModels.Forum.ForumPostDetailViewModel
+@{
+    ViewData["Title"] = Model.Post.Title;
+}
+
+<link rel="stylesheet" href="~/css/forum.css" />
+
+<div class="forum-container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Forum")">Forum</a></li>
+            <li class="breadcrumb-item"><a href="@Url.Action("Category", "Forum", new { id = Model.CategoryId })">@Model.CategoryName</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Post.Title</li>
+        </ol>
+    </nav>
+
+    <!-- Post Detail -->
+    <div class="post-detail-card">
+        <div class="post-header">
+            <h1>
+                @if (Model.Post.IsSticky)
+                {
+                    <i class="bi bi-pin-angle-fill text-warning" title="Sticky"></i>
+                }
+                @if (Model.Post.IsLocked)
+                {
+                    <i class="bi bi-lock-fill text-danger" title="Locked"></i>
+                }
+                @Model.Post.Title
+            </h1>
+            <div class="post-actions">
+                @if (Model.Post.CanEdit)
+                {
+                    <a href="@Url.Action("EditPost", "Forum", new { id = Model.Post.PostId })" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                }
+                @if (Model.Post.CanDelete)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deletePost(@Model.Post.PostId)">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                }
+                @if (Model.Post.CanModerate)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="toggleSticky(@Model.Post.PostId)">
+                        <i class="bi bi-pin-angle"></i> @(Model.Post.IsSticky ? "Unpin" : "Pin")
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="toggleLock(@Model.Post.PostId)">
+                        <i class="bi bi-lock"></i> @(Model.Post.IsLocked ? "Unlock" : "Lock")
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="post-author-info">
+            <div class="author-avatar">
+                @if (!string.IsNullOrEmpty(Model.Post.UserAvatarUrl))
+                {
+                    <img src="@Model.Post.UserAvatarUrl" alt="@Model.Post.Username" />
+                }
+                else
+                {
+                    <div class="avatar-placeholder-large">
+                        <i class="bi bi-person-circle"></i>
+                    </div>
+                }
+            </div>
+            <div class="author-details">
+                <h4><a href="@Url.Action("UserActivity", "Forum", new { id = Model.Post.UserId })">@Model.Post.Username</a></h4>
+                <p class="text-muted">Posted on @Model.Post.CreatedAt?.ToString("MMMM dd, yyyy 'at' HH:mm")</p>
+                @if (Model.Post.UpdatedAt.HasValue && Model.Post.UpdatedAt != Model.Post.CreatedAt)
+                {
+                    <p class="text-muted"><small>Last edited: @Model.Post.UpdatedAt?.ToString("MMM dd, yyyy HH:mm")</small></p>
+                }
+            </div>
+        </div>
+
+        <div class="post-content-body">
+            @Html.Raw(Model.Post.Content.Replace("\n", "<br />"))
+        </div>
+
+        <div class="post-footer">
+            <div class="post-stats-detail">
+                <span><i class="bi bi-eye"></i> @Model.Post.ViewCount views</span>
+                <span><i class="bi bi-chat-left-text"></i> @Model.Post.ReplyCount replies</span>
+                <span><i class="bi bi-heart-fill"></i> @Model.Post.LikeCount likes</span>
+            </div>
+            <div class="post-actions-buttons">
+                <button type="button" class="btn btn-sm @(Model.Post.IsLikedByCurrentUser ? "btn-danger" : "btn-outline-danger")" 
+                        onclick="likePost(@Model.Post.PostId)" id="like-post-btn">
+                    <i class="bi bi-heart-fill"></i> <span id="like-count">@Model.Post.LikeCount</span>
+                </button>
+                <button type="button" class="btn btn-sm @(Model.Post.IsBookmarkedByCurrentUser ? "btn-warning" : "btn-outline-warning")" 
+                        onclick="bookmarkPost(@Model.Post.PostId, '@Model.Post.Title')" id="bookmark-post-btn">
+                    <i class="bi bi-bookmark-fill"></i> @(Model.Post.IsBookmarkedByCurrentUser ? "Bookmarked" : "Bookmark")
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Replies Section -->
+    <div class="replies-section">
+        <h3><i class="bi bi-chat-dots"></i> Replies (@Model.Post.ReplyCount)</h3>
+
+        @if (!Model.Post.IsLocked)
+        {
+            <!-- Reply Form -->
+            <div class="reply-form-container">
+                <h4>Post a Reply</h4>
+                <form id="reply-form" asp-action="CreateReply" asp-controller="Forum" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="PostId" value="@Model.Post.PostId" />
+                    <input type="hidden" name="ParentReplyId" id="parent-reply-id" value="" />
+                    
+                    <div class="mb-3">
+                        <label for="reply-content" class="form-label">Your Reply</label>
+                        <textarea class="form-control" id="reply-content" name="Content" rows="5" required></textarea>
+                        <div id="reply-to-info" class="alert alert-info mt-2" style="display: none;">
+                            Replying to <strong id="reply-to-username"></strong>
+                            <button type="button" class="btn-close float-end" onclick="cancelReplyTo()"></button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i> Post Reply
+                    </button>
+                </form>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                <i class="bi bi-lock-fill"></i> This post is locked. No new replies can be added.
+            </div>
+        }
+
+        <!-- Replies List -->
+        <div class="replies-list">
+            @if (Model.Replies.Any())
+            {
+                @foreach (var reply in Model.Replies)
+                {
+                    @await Html.PartialAsync("_ReplyPartial", reply)
+                }
+
+                <!-- Pagination -->
+                @if (Model.Pagination.TotalPages > 1)
+                {
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            @if (Model.Pagination.HasPreviousPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Post", new { id = Model.Post.PostId, page = Model.Pagination.CurrentPage - 1 })">
+                                        Previous
+                                    </a>
+                                </li>
+                            }
+
+                            @foreach (var pageNum in Model.Pagination.GetPageNumbers())
+                            {
+                                <li class="page-item @(pageNum == Model.Pagination.CurrentPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Post", new { id = Model.Post.PostId, page = pageNum })">
+                                        @pageNum
+                                    </a>
+                                </li>
+                            }
+
+                            @if (Model.Pagination.HasNextPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Post", new { id = Model.Post.PostId, page = Model.Pagination.CurrentPage + 1 })">
+                                        Next
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No replies yet. Be the first to reply!
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Related Posts Sidebar -->
+    @if (Model.RelatedPosts.Any())
+    {
+        <div class="related-posts-section">
+            <h4><i class="bi bi-link-45deg"></i> Related Posts</h4>
+            <div class="related-posts-list">
+                @foreach (var relatedPost in Model.RelatedPosts)
+                {
+                    <div class="related-post-item">
+                        <a href="@Url.Action("Post", "Forum", new { id = relatedPost.PostId })">
+                            @relatedPost.Title
+                        </a>
+                        <small class="text-muted">
+                            <i class="bi bi-chat-left-text"></i> @relatedPost.ReplyCount
+                            <i class="bi bi-heart-fill ms-2"></i> @relatedPost.LikeCount
+                        </small>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/forum.js"></script>
+    <script>
+        // Initialize reply form
+        document.getElementById('reply-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const response = await fetch(this.action, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert(result.message);
+            }
+        });
+
+        function replyTo(replyId, username) {
+            document.getElementById('parent-reply-id').value = replyId;
+            document.getElementById('reply-to-username').textContent = username;
+            document.getElementById('reply-to-info').style.display = 'block';
+            document.getElementById('reply-content').focus();
+        }
+
+        function cancelReplyTo() {
+            document.getElementById('parent-reply-id').value = '';
+            document.getElementById('reply-to-info').style.display = 'none';
+        }
+    </script>
+}
+

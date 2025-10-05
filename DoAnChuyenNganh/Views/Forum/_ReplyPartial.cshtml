@@ -1,0 +1,83 @@
+@model DoAnChuyenNganh.ViewModels.Forum.ForumReplyViewModel
+
+<div class="reply-card" style="margin-left: @(Model.Level * 40)px;" id="reply-@Model.ReplyId">
+    <div class="reply-avatar">
+        @if (!string.IsNullOrEmpty(Model.UserAvatarUrl))
+        {
+            <img src="@Model.UserAvatarUrl" alt="@Model.Username" />
+        }
+        else
+        {
+            <div class="avatar-placeholder-small">
+                <i class="bi bi-person-circle"></i>
+            </div>
+        }
+    </div>
+    <div class="reply-content">
+        <div class="reply-header">
+            <div class="reply-author">
+                <strong><a href="@Url.Action("UserActivity", "Forum", new { id = Model.UserId })">@Model.Username</a></strong>
+                <span class="text-muted">@Model.CreatedAt?.ToString("MMM dd, yyyy HH:mm")</span>
+                @if (Model.UpdatedAt.HasValue && Model.UpdatedAt != Model.CreatedAt)
+                {
+                    <small class="text-muted">(edited)</small>
+                }
+            </div>
+            <div class="reply-actions">
+                <button type="button" class="btn btn-sm @(Model.IsLikedByCurrentUser ? "btn-danger" : "btn-outline-danger")" 
+                        onclick="likeReply(@Model.ReplyId)" id="like-reply-@Model.ReplyId-btn">
+                    <i class="bi bi-heart-fill"></i> <span id="like-reply-@Model.ReplyId-count">@Model.LikeCount</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="replyTo(@Model.ReplyId, '@Model.Username')">
+                    <i class="bi bi-reply"></i> Reply
+                </button>
+                @if (Model.CanEdit)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="editReply(@Model.ReplyId)">
+                        <i class="bi bi-pencil"></i> Edit
+                    </button>
+                }
+                @if (Model.CanDelete)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteReply(@Model.ReplyId)">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                }
+            </div>
+        </div>
+
+        @if (Model.ParentReplyId.HasValue && !string.IsNullOrEmpty(Model.ParentReplyUsername))
+        {
+            <div class="reply-to-info">
+                <small class="text-muted">
+                    <i class="bi bi-reply"></i> Replying to <strong>@Model.ParentReplyUsername</strong>
+                </small>
+            </div>
+        }
+
+        <div class="reply-body" id="reply-body-@Model.ReplyId">
+            @Html.Raw(Model.Content.Replace("\n", "<br />"))
+        </div>
+
+        <!-- Edit Form (hidden by default) -->
+        <div class="reply-edit-form" id="reply-edit-form-@Model.ReplyId" style="display: none;">
+            <textarea class="form-control mb-2" id="reply-edit-content-@Model.ReplyId" rows="3">@Model.Content</textarea>
+            <button type="button" class="btn btn-sm btn-primary" onclick="saveReplyEdit(@Model.ReplyId)">
+                <i class="bi bi-check"></i> Save
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="cancelReplyEdit(@Model.ReplyId)">
+                <i class="bi bi-x"></i> Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+@* Render child replies recursively *@
+@if (Model.ChildReplies.Any())
+{
+    foreach (var childReply in Model.ChildReplies)
+    {
+        @await Html.PartialAsync("_ReplyPartial", childReply)
+    }
+}
+

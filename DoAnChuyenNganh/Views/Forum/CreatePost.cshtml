@@ -1,0 +1,87 @@
+@model DoAnChuyenNganh.ViewModels.Forum.ForumPostViewModel
+@{
+    ViewData["Title"] = "Create New Post";
+}
+
+<link rel="stylesheet" href="~/css/forum.css" />
+
+<div class="forum-container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Forum")">Forum</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Create New Post</li>
+        </ol>
+    </nav>
+
+    <div class="form-container">
+        <h1><i class="bi bi-plus-circle"></i> Create New Post</h1>
+
+        <form asp-action="CreatePost" asp-controller="Forum" method="post">
+            @Html.AntiForgeryToken()
+            
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="CategoryId" class="form-label">Category *</label>
+                <select asp-for="CategoryId" class="form-select" required>
+                    <option value="">-- Select a Category --</option>
+                    @foreach (var category in ViewBag.Categories as List<DoAnChuyenNganh.ViewModels.Forum.ForumCategoryViewModel>)
+                    {
+                        <option value="@category.CategoryId" selected="@(category.CategoryId == Model.CategoryId)">
+                            @category.CategoryName
+                        </option>
+                    }
+                </select>
+                <span asp-validation-for="CategoryId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Title" class="form-label">Title *</label>
+                <input asp-for="Title" class="form-control" placeholder="Enter a descriptive title for your post" required />
+                <span asp-validation-for="Title" class="text-danger"></span>
+                <small class="form-text text-muted">
+                    A clear, descriptive title helps others find and understand your post.
+                </small>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Content" class="form-label">Content *</label>
+                <textarea asp-for="Content" class="form-control" id="post-content" rows="15" 
+                          placeholder="Write your post content here..." required></textarea>
+                <span asp-validation-for="Content" class="text-danger"></span>
+                <small class="form-text text-muted">
+                    Be clear and provide as much detail as possible. You can use line breaks for formatting.
+                </small>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-send"></i> Create Post
+                </button>
+                <a href="@Url.Action("Index", "Forum")" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+            </div>
+        </form>
+
+        <!-- Posting Guidelines -->
+        <div class="posting-guidelines mt-4">
+            <h4><i class="bi bi-info-circle"></i> Posting Guidelines</h4>
+            <ul>
+                <li>Be respectful and courteous to other members</li>
+                <li>Stay on topic and post in the appropriate category</li>
+                <li>Use clear and descriptive titles</li>
+                <li>Provide detailed information in your post</li>
+                <li>Search before posting to avoid duplicates</li>
+                <li>Follow community rules and guidelines</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/forum.js"></script>
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+
