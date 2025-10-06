@@ -10,13 +10,15 @@ namespace DoAnChuyenNganh.Services
     {
         private readonly DoAnChuyenNganhContext _context;
         private readonly ILogger<AuthService> _logger;
+        private readonly IFileUploadService _fileUploadService;
         private const int MaxLoginAttempts = 5;
         private const int LockoutMinutes = 30;
 
-        public AuthService(DoAnChuyenNganhContext context, ILogger<AuthService> logger)
+        public AuthService(DoAnChuyenNganhContext context, ILogger<AuthService> logger, IFileUploadService fileUploadService)
         {
             _context = context;
             _logger = logger;
+            _fileUploadService = fileUploadService;
         }
 
         public async Task<(bool Success, User? User, string Message)> AuthenticateAsync(
@@ -332,6 +334,26 @@ namespace DoAnChuyenNganh.Services
                     return (false, "Email already exists");
                 }
 
+                // Handle avatar upload if provided
+                if (model.AvatarFile != null)
+                {
+                    var uploadResult = await _fileUploadService.UploadAvatarAsync(model.AvatarFile);
+                    if (uploadResult.Success && uploadResult.FilePath != null)
+                    {
+                        // Delete old avatar if exists
+                        if (!string.IsNullOrEmpty(user.AvatarUrl))
+                        {
+                            await _fileUploadService.DeleteFileAsync(user.AvatarUrl);
+                        }
+
+                        user.AvatarUrl = uploadResult.FilePath;
+                    }
+                    else
+                    {
+                        return (false, uploadResult.Message);
+                    }
+                }
+
                 // Update user properties
                 user.Username = model.Username;
                 user.Email = model.Email;
@@ -340,7 +362,6 @@ namespace DoAnChuyenNganh.Services
                 user.PhoneNumber = model.PhoneNumber;
                 user.DateOfBirth = model.DateOfBirth;
                 user.Bio = model.Bio;
-                user.AvatarUrl = model.AvatarUrl;
                 user.UpdatedAt = DateTime.Now;
 
                 await _context.SaveChangesAsync();

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace DoAnChuyenNganh.ViewModels.Forum
 {
@@ -66,6 +67,16 @@ namespace DoAnChuyenNganh.ViewModels.Forum
         public string? LastReplyUsername { get; set; }
         public DateTime? LastReplyAt { get; set; }
         public List<string> Tags { get; set; } = new List<string>();
+
+        // File upload properties
+        [Display(Name = "Upload Images")]
+        public List<IFormFile>? UploadedImages { get; set; }
+
+        [Display(Name = "Upload Files")]
+        public List<IFormFile>? UploadedFiles { get; set; }
+
+        // Attachments
+        public List<ForumAttachmentViewModel> Attachments { get; set; } = new List<ForumAttachmentViewModel>();
     }
 }
 

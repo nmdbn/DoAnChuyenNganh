@@ -35,6 +35,8 @@ public partial class ForumPost
 
     public virtual ForumCategory Category { get; set; } = null!;
 
+    public virtual ICollection<ForumAttachment> ForumAttachments { get; set; } = new List<ForumAttachment>();
+
     public virtual ICollection<ForumReply> ForumReplies { get; set; } = new List<ForumReply>();
 
     public virtual User? UpdatedByNavigation { get; set; }

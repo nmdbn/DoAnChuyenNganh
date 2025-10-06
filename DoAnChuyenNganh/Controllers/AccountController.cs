@@ -334,12 +334,15 @@ namespace DoAnChuyenNganh.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Profile(UserProfileViewModel model)
+        public async Task<IActionResult> Profile(UserProfileViewModel model, IFormFile? AvatarFile)
         {
             if (!IsAuthenticated())
             {
                 return RedirectToAction(nameof(Login));
             }
+
+            // Attach avatar file to model
+            model.AvatarFile = AvatarFile;
 
             if (!ModelState.IsValid)
             {

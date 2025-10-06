@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace DoAnChuyenNganh.ViewModels.Auth
 {
@@ -44,6 +45,9 @@ namespace DoAnChuyenNganh.ViewModels.Auth
         [Display(Name = "Avatar URL")]
         [StringLength(400, ErrorMessage = "Avatar URL cannot exceed 400 characters")]
         public string? AvatarUrl { get; set; }
+
+        [Display(Name = "Upload Avatar")]
+        public IFormFile? AvatarFile { get; set; }
 
         [Display(Name = "Email Verified")]
         public bool IsEmailVerified { get; set; }

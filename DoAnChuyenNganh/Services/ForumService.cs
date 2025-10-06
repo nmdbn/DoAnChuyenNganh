@@ -8,11 +8,13 @@ namespace DoAnChuyenNganh.Services
     {
         private readonly DoAnChuyenNganhContext _context;
         private readonly ILogger<ForumService> _logger;
+        private readonly IFileUploadService _fileUploadService;
 
-        public ForumService(DoAnChuyenNganhContext context, ILogger<ForumService> logger)
+        public ForumService(DoAnChuyenNganhContext context, ILogger<ForumService> logger, IFileUploadService fileUploadService)
         {
             _context = context;
             _logger = logger;
+            _fileUploadService = fileUploadService;
         }
 
         #region Category Operations
@@ -253,6 +255,7 @@ namespace DoAnChuyenNganh.Services
                     .Include(p => p.User)
                     .Include(p => p.Category)
                     .Include(p => p.UpdatedByNavigation)
+                    .Include(p => p.ForumAttachments)
                     .FirstOrDefaultAsync(p => p.PostId == postId);
 
                 if (post == null) return null;
@@ -467,6 +470,58 @@ namespace DoAnChuyenNganh.Services
                 _context.ForumPosts.Add(post);
                 await _context.SaveChangesAsync();
 
+                // Handle image uploads
+                if (model.UploadedImages != null && model.UploadedImages.Any())
+                {
+                    foreach (var image in model.UploadedImages)
+                    {
+                        var uploadResult = await _fileUploadService.UploadImageAsync(image, "uploads/forum/images");
+                        if (uploadResult.Success && uploadResult.FilePath != null)
+                        {
+                            var attachment = new ForumAttachment
+                            {
+                                PostId = post.PostId,
+                                FileName = Path.GetFileName(uploadResult.FilePath),
+                                OriginalFileName = image.FileName,
+                                FilePath = uploadResult.FilePath,
+                                FileType = "image",
+                                MimeType = image.ContentType,
+                                FileSize = image.Length,
+                                UploadedBy = userId,
+                                CreatedAt = DateTime.Now
+                            };
+                            _context.ForumAttachments.Add(attachment);
+                        }
+                    }
+                }
+
+                // Handle file uploads
+                if (model.UploadedFiles != null && model.UploadedFiles.Any())
+                {
+                    foreach (var file in model.UploadedFiles)
+                    {
+                        var uploadResult = await _fileUploadService.UploadFileAsync(file, "uploads/forum/files");
+                        if (uploadResult.Success && uploadResult.FilePath != null)
+                        {
+                            var attachment = new ForumAttachment
+                            {
+                                PostId = post.PostId,
+                                FileName = Path.GetFileName(uploadResult.FilePath),
+                                OriginalFileName = file.FileName,
+                                FilePath = uploadResult.FilePath,
+                                FileType = "file",
+                                MimeType = file.ContentType,
+                                FileSize = file.Length,
+                                UploadedBy = userId,
+                                CreatedAt = DateTime.Now
+                            };
+                            _context.ForumAttachments.Add(attachment);
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
                 // Update category post count
                 await UpdateCategoryPostCountAsync(model.CategoryId);
 
@@ -611,6 +666,7 @@ namespace DoAnChuyenNganh.Services
                     .Include(r => r.User)
                     .Include(r => r.ParentReply)
                         .ThenInclude(pr => pr.User)
+                    .Include(r => r.ForumAttachments)
                     .Where(r => r.PostId == postId && r.IsApproved == true)
                     .OrderBy(r => r.CreatedAt)
                     .ToListAsync();
@@ -663,6 +719,58 @@ namespace DoAnChuyenNganh.Services
                 };
 
                 _context.ForumReplies.Add(reply);
+                await _context.SaveChangesAsync();
+
+                // Handle image uploads
+                if (model.UploadedImages != null && model.UploadedImages.Any())
+                {
+                    foreach (var image in model.UploadedImages)
+                    {
+                        var uploadResult = await _fileUploadService.UploadImageAsync(image, "uploads/forum/images");
+                        if (uploadResult.Success && uploadResult.FilePath != null)
+                        {
+                            var attachment = new ForumAttachment
+                            {
+                                ReplyId = reply.ReplyId,
+                                FileName = Path.GetFileName(uploadResult.FilePath),
+                                OriginalFileName = image.FileName,
+                                FilePath = uploadResult.FilePath,
+                                FileType = "image",
+                                MimeType = image.ContentType,
+                                FileSize = image.Length,
+                                UploadedBy = userId,
+                                CreatedAt = DateTime.Now
+                            };
+                            _context.ForumAttachments.Add(attachment);
+                        }
+                    }
+                }
+
+                // Handle file uploads
+                if (model.UploadedFiles != null && model.UploadedFiles.Any())
+                {
+                    foreach (var file in model.UploadedFiles)
+                    {
+                        var uploadResult = await _fileUploadService.UploadFileAsync(file, "uploads/forum/files");
+                        if (uploadResult.Success && uploadResult.FilePath != null)
+                        {
+                            var attachment = new ForumAttachment
+                            {
+                                ReplyId = reply.ReplyId,
+                                FileName = Path.GetFileName(uploadResult.FilePath),
+                                OriginalFileName = file.FileName,
+                                FilePath = uploadResult.FilePath,
+                                FileType = "file",
+                                MimeType = file.ContentType,
+                                FileSize = file.Length,
+                                UploadedBy = userId,
+                                CreatedAt = DateTime.Now
+                            };
+                            _context.ForumAttachments.Add(attachment);
+                        }
+                    }
+                }
+
                 await _context.SaveChangesAsync();
 
                 // Update post reply count
@@ -1308,7 +1416,7 @@ namespace DoAnChuyenNganh.Services
 
         private static ForumPostViewModel MapToPostViewModel(ForumPost post, int? currentUserId)
         {
-            return new ForumPostViewModel
+            var viewModel = new ForumPostViewModel
             {
                 PostId = post.PostId,
                 CategoryId = post.CategoryId,
@@ -1328,11 +1436,30 @@ namespace DoAnChuyenNganh.Services
                 UpdatedAt = post.UpdatedAt,
                 UpdatedByUsername = post.UpdatedByNavigation?.Username
             };
+
+            // Map attachments if available
+            if (post.ForumAttachments != null && post.ForumAttachments.Any())
+            {
+                viewModel.Attachments = post.ForumAttachments.Select(a => new ForumAttachmentViewModel
+                {
+                    AttachmentId = a.AttachmentId,
+                    FileName = a.FileName,
+                    OriginalFileName = a.OriginalFileName,
+                    FilePath = a.FilePath,
+                    FileType = a.FileType,
+                    MimeType = a.MimeType,
+                    FileSize = a.FileSize,
+                    FileSizeFormatted = GetFileSizeString(a.FileSize),
+                    CreatedAt = a.CreatedAt
+                }).ToList();
+            }
+
+            return viewModel;
         }
 
         private static ForumReplyViewModel MapToReplyViewModel(ForumReply reply, int? currentUserId)
         {
-            return new ForumReplyViewModel
+            var viewModel = new ForumReplyViewModel
             {
                 ReplyId = reply.ReplyId,
                 PostId = reply.PostId,
@@ -1348,6 +1475,40 @@ namespace DoAnChuyenNganh.Services
                 UpdatedAt = reply.UpdatedAt,
                 UpdatedByUsername = reply.UpdatedByNavigation?.Username
             };
+
+            // Map attachments if available
+            if (reply.ForumAttachments != null && reply.ForumAttachments.Any())
+            {
+                viewModel.Attachments = reply.ForumAttachments.Select(a => new ForumAttachmentViewModel
+                {
+                    AttachmentId = a.AttachmentId,
+                    FileName = a.FileName,
+                    OriginalFileName = a.OriginalFileName,
+                    FilePath = a.FilePath,
+                    FileType = a.FileType,
+                    MimeType = a.MimeType,
+                    FileSize = a.FileSize,
+                    FileSizeFormatted = GetFileSizeString(a.FileSize),
+                    CreatedAt = a.CreatedAt
+                }).ToList();
+            }
+
+            return viewModel;
+        }
+
+        private static string GetFileSizeString(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB" };
+            double len = bytes;
+            int order = 0;
+
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len = len / 1024;
+            }
+
+            return $"{len:0.##} {sizes[order]}";
         }
 
         private async Task SetReplyPermissionsAsync(ForumReplyViewModel reply, int currentUserId)

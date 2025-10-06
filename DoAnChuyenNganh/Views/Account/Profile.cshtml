@@ -64,12 +64,37 @@
             </div>
         }
 
-        <form asp-action="Profile" asp-controller="Account" method="post" class="auth-form">
+        <form asp-action="Profile" asp-controller="Account" method="post" class="auth-form" enctype="multipart/form-data">
             <input type="hidden" asp-for="UserId" />
             <input type="hidden" asp-for="IsEmailVerified" />
             <input type="hidden" asp-for="RoleName" />
             <input type="hidden" asp-for="CreatedAt" />
             <input type="hidden" asp-for="LastLoginAt" />
+
+            <div class="form-group">
+                <label>Profile Avatar</label>
+                <div class="avatar-upload-container">
+                    <div class="avatar-preview" id="avatar-preview">
+                        @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+                        {
+                            <img src="@Model.AvatarUrl" alt="Current Avatar" id="avatar-preview-img" />
+                        }
+                        else
+                        {
+                            <div class="avatar-placeholder" id="avatar-placeholder">
+                                <i class="bi bi-person-circle"></i>
+                            </div>
+                        }
+                    </div>
+                    <div class="avatar-upload-controls">
+                        <input type="file" name="AvatarFile" id="avatar-file-input" class="form-control"
+                               accept=".jpg,.jpeg,.png,.gif" onchange="previewAvatar(this)" />
+                        <small class="form-text text-muted">
+                            Allowed formats: JPG, PNG, GIF. Max 2MB. Image will be resized to 200x200px.
+                        </small>
+                    </div>
+                </div>
+            </div>
 
             <div class="row">
                 <div class="col-md-6">

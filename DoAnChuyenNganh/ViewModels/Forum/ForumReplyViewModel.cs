@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace DoAnChuyenNganh.ViewModels.Forum
 {
@@ -47,6 +48,16 @@ namespace DoAnChuyenNganh.ViewModels.Forum
         public bool CanDelete { get; set; }
         public List<ForumReplyViewModel> ChildReplies { get; set; } = new List<ForumReplyViewModel>();
         public int Level { get; set; } // For nested reply display
+
+        // File upload properties
+        [Display(Name = "Upload Images")]
+        public List<IFormFile>? UploadedImages { get; set; }
+
+        [Display(Name = "Upload Files")]
+        public List<IFormFile>? UploadedFiles { get; set; }
+
+        // Attachments
+        public List<ForumAttachmentViewModel> Attachments { get; set; } = new List<ForumAttachmentViewModel>();
     }
 }
 

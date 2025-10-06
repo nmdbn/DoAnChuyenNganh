@@ -115,12 +115,16 @@ namespace DoAnChuyenNganh.Controllers
         // POST: /Forum/CreatePost
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreatePost(ForumPostViewModel model)
+        public async Task<IActionResult> CreatePost(ForumPostViewModel model, List<IFormFile>? UploadedImages, List<IFormFile>? UploadedFiles)
         {
             if (!IsAuthenticated())
             {
                 return RedirectToAction("Login", "Account");
             }
+
+            // Attach uploaded files to model
+            model.UploadedImages = UploadedImages;
+            model.UploadedFiles = UploadedFiles;
 
             if (!ModelState.IsValid)
             {
@@ -175,12 +179,16 @@ namespace DoAnChuyenNganh.Controllers
         // POST: /Forum/EditPost/123
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditPost(int id, ForumPostViewModel model)
+        public async Task<IActionResult> EditPost(int id, ForumPostViewModel model, List<IFormFile>? UploadedImages, List<IFormFile>? UploadedFiles)
         {
             if (!IsAuthenticated())
             {
                 return RedirectToAction("Login", "Account");
             }
+
+            // Attach uploaded files to model
+            model.UploadedImages = UploadedImages;
+            model.UploadedFiles = UploadedFiles;
 
             if (!ModelState.IsValid)
             {
@@ -242,12 +250,16 @@ namespace DoAnChuyenNganh.Controllers
         // POST: /Forum/CreateReply
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateReply(ForumReplyViewModel model)
+        public async Task<IActionResult> CreateReply(ForumReplyViewModel model, List<IFormFile>? UploadedImages, List<IFormFile>? UploadedFiles)
         {
             if (!IsAuthenticated())
             {
                 return Json(new { success = false, message = "You must be logged in to reply" });
             }
+
+            // Attach uploaded files to model
+            model.UploadedImages = UploadedImages;
+            model.UploadedFiles = UploadedFiles;
 
             if (!ModelState.IsValid)
             {
@@ -268,12 +280,16 @@ namespace DoAnChuyenNganh.Controllers
         // POST: /Forum/EditReply
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditReply(ForumReplyViewModel model)
+        public async Task<IActionResult> EditReply(ForumReplyViewModel model, List<IFormFile>? UploadedImages, List<IFormFile>? UploadedFiles)
         {
             if (!IsAuthenticated())
             {
                 return Json(new { success = false, message = "You must be logged in" });
             }
+
+            // Attach uploaded files to model
+            model.UploadedImages = UploadedImages;
+            model.UploadedFiles = UploadedFiles;
 
             var userId = GetCurrentUserId()!.Value;
             var result = await _forumService.UpdateReplyAsync(model, userId);

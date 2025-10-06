@@ -28,6 +28,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 // Add Forum Service
 builder.Services.AddScoped<IForumService, ForumService>();
 
+// Add File Upload Service
+builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 

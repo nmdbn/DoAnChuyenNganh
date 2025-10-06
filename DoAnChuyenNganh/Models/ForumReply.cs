@@ -25,6 +25,8 @@ public partial class ForumReply
 
     public int? UpdatedBy { get; set; }
 
+    public virtual ICollection<ForumAttachment> ForumAttachments { get; set; } = new List<ForumAttachment>();
+
     public virtual ICollection<ForumReply> InverseParentReply { get; set; } = new List<ForumReply>();
 
     public virtual ForumReply? ParentReply { get; set; }
