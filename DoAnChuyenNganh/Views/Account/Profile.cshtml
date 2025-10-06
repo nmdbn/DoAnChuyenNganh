@@ -87,10 +87,11 @@
                         }
                     </div>
                     <div class="avatar-upload-controls">
-                        <input type="file" name="AvatarFile" id="avatar-file-input" class="form-control"
-                               accept=".jpg,.jpeg,.png,.gif" onchange="previewAvatar(this)" />
+                        <input type="file" id="avatar-file-selector" class="form-control"
+                               accept=".jpg,.jpeg,.png,.gif" onchange="initAvatarCrop(this)" />
+                        <input type="hidden" name="AvatarFile" id="avatar-file-input" />
                         <small class="form-text text-muted">
-                            Allowed formats: JPG, PNG, GIF. Max 2MB. Image will be resized to 200x200px.
+                            Allowed formats: JPG, PNG, GIF. Max 2MB. Image will be cropped to 200x200px.
                         </small>
                     </div>
                 </div>
@@ -174,8 +175,46 @@
     </div>
 </div>
 
+<!-- Avatar Cropping Modal -->
+<div class="modal fade" id="avatarCropModal" tabindex="-1" aria-labelledby="avatarCropModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="avatarCropModalLabel">Crop Avatar Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="crop-container">
+                    <img id="crop-image" src="" alt="Crop preview" style="max-width: 100%;">
+                </div>
+                <div class="crop-controls mt-3">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="cropperZoom(0.1)">
+                        <i class="bi bi-zoom-in"></i> Zoom In
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="cropperZoom(-0.1)">
+                        <i class="bi bi-zoom-out"></i> Zoom Out
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="cropperRotate(90)">
+                        <i class="bi bi-arrow-clockwise"></i> Rotate
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="cropperReset()">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="applyCrop()">Apply Crop</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <!-- Cropper.js CSS and JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <script src="~/js/auth.js" asp-append-version="true"></script>
 }
 

@@ -63,11 +63,34 @@
             @if (Model.Attachments != null && Model.Attachments.Any())
             {
                 <div class="reply-attachments mt-2">
-                    @* Display images inline *@
-                    @foreach (var attachment in Model.Attachments.Where(a => a.FileType == "image"))
+                    @* Display images in gallery *@
+                    @{
+                        var imageAttachments = Model.Attachments.Where(a => a.FileType == "image").ToList();
+                    }
+                    @if (imageAttachments.Any())
                     {
-                        <div class="attachment-image-small">
-                            <img src="@attachment.FilePath" alt="@attachment.OriginalFileName" class="img-fluid rounded" style="max-width: 300px;" />
+                        <div class="image-gallery image-gallery-small" data-gallery-id="reply-@Model.ReplyId">
+                            <div class="gallery-container">
+                                @for (int i = 0; i < imageAttachments.Count; i++)
+                                {
+                                    <div class="gallery-slide @(i == 0 ? "active" : "")" data-slide-index="@i">
+                                        <img src="@imageAttachments[i].FilePath" alt="@imageAttachments[i].OriginalFileName" class="gallery-image" />
+                                    </div>
+                                }
+                            </div>
+
+                            @if (imageAttachments.Count > 1)
+                            {
+                                <button class="gallery-nav gallery-prev" onclick="navigateGallery('reply-@Model.ReplyId', -1)">
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+                                <button class="gallery-nav gallery-next" onclick="navigateGallery('reply-@Model.ReplyId', 1)">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                                <div class="gallery-counter">
+                                    <span class="current-slide">1</span> / <span class="total-slides">@imageAttachments.Count</span>
+                                </div>
+                            }
                         </div>
                     }
 
@@ -93,6 +116,51 @@
         <!-- Edit Form (hidden by default) -->
         <div class="reply-edit-form" id="reply-edit-form-@Model.ReplyId" style="display: none;">
             <textarea class="form-control mb-2" id="reply-edit-content-@Model.ReplyId" rows="3">@Model.Content</textarea>
+
+            @* Show existing attachments *@
+            @if (Model.Attachments.Any())
+            {
+                <div class="mb-2">
+                    <label class="form-label"><small>Current Attachments:</small></label>
+                    <div class="attachment-list">
+                        @foreach (var attachment in Model.Attachments)
+                        {
+                            <div class="attachment-item" id="attachment-@attachment.AttachmentId">
+                                @if (attachment.FileType == "image")
+                                {
+                                    <img src="@attachment.FilePath" alt="@attachment.OriginalFileName" class="attachment-thumbnail" />
+                                }
+                                else
+                                {
+                                    <i class="bi bi-file-earmark"></i>
+                                }
+                                <span>@attachment.OriginalFileName (@attachment.FileSizeFormatted)</span>
+                                <button type="button" class="btn btn-sm btn-danger delete-attachment-btn"
+                                        onclick="deleteAttachment(@attachment.AttachmentId)"
+                                        title="Delete attachment">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @* Add new attachments *@
+            <div class="mb-2">
+                <label class="form-label"><small>Add Images:</small></label>
+                <input type="file" class="form-control form-control-sm" id="reply-edit-images-@Model.ReplyId"
+                       accept=".jpg,.jpeg,.png,.gif,.webp" multiple />
+                <div id="reply-edit-image-preview-@Model.ReplyId" class="mt-1"></div>
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label"><small>Add Files:</small></label>
+                <input type="file" class="form-control form-control-sm" id="reply-edit-files-@Model.ReplyId"
+                       accept=".pdf,.doc,.docx,.zip,.rar" multiple />
+                <div id="reply-edit-file-preview-@Model.ReplyId" class="mt-1"></div>
+            </div>
+
             <button type="button" class="btn btn-sm btn-primary" onclick="saveReplyEdit(@Model.ReplyId)">
                 <i class="bi bi-check"></i> Save
             </button>

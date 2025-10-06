@@ -85,11 +85,34 @@
             @if (Model.Post.Attachments != null && Model.Post.Attachments.Any())
             {
                 <div class="post-attachments mt-3">
-                    @* Display images *@
-                    @foreach (var attachment in Model.Post.Attachments.Where(a => a.FileType == "image"))
+                    @* Display images in gallery *@
+                    @{
+                        var imageAttachments = Model.Post.Attachments.Where(a => a.FileType == "image").ToList();
+                    }
+                    @if (imageAttachments.Any())
                     {
-                        <div class="attachment-image">
-                            <img src="@attachment.FilePath" alt="@attachment.OriginalFileName" class="img-fluid rounded" />
+                        <div class="image-gallery" data-gallery-id="post-@Model.Post.PostId">
+                            <div class="gallery-container">
+                                @for (int i = 0; i < imageAttachments.Count; i++)
+                                {
+                                    <div class="gallery-slide @(i == 0 ? "active" : "")" data-slide-index="@i">
+                                        <img src="@imageAttachments[i].FilePath" alt="@imageAttachments[i].OriginalFileName" class="gallery-image" />
+                                    </div>
+                                }
+                            </div>
+
+                            @if (imageAttachments.Count > 1)
+                            {
+                                <button class="gallery-nav gallery-prev" onclick="navigateGallery('post-@Model.Post.PostId', -1)">
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+                                <button class="gallery-nav gallery-next" onclick="navigateGallery('post-@Model.Post.PostId', 1)">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                                <div class="gallery-counter">
+                                    <span class="current-slide">1</span> / <span class="total-slides">@imageAttachments.Count</span>
+                                </div>
+                            }
                         </div>
                     }
 
@@ -144,11 +167,11 @@
                 <form id="reply-form" asp-action="CreateReply" asp-controller="Forum" method="post" enctype="multipart/form-data">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="PostId" value="@Model.Post.PostId" />
-                    <input type="hidden" name="ParentReplyId" id="parent-reply-id" value="" />
+                    <input type="hidden" name="ParentReplyId" id="parent-reply-id" />
 
                     <div class="mb-3">
                         <label for="reply-content" class="form-label">Your Reply</label>
-                        <textarea class="form-control" id="reply-content" name="Content" rows="5" required></textarea>
+                        <textarea class="form-control" id="reply-content" name="Content" rows="5"></textarea>
                         <div id="reply-to-info" class="alert alert-info mt-2" style="display: none;">
                             Replying to <strong id="reply-to-username"></strong>
                             <button type="button" class="btn-close float-end" onclick="cancelReplyTo()"></button>
@@ -157,16 +180,30 @@
 
                     <div class="mb-3">
                         <label class="form-label">Upload Images (Optional)</label>
-                        <input type="file" name="UploadedImages" class="form-control" multiple
-                               accept=".jpg,.jpeg,.png,.gif,.webp" id="reply-image-upload" />
+                        <div class="drag-drop-zone drag-drop-zone-small" id="reply-image-drop-zone">
+                            <div class="drag-drop-content">
+                                <i class="bi bi-cloud-upload drag-drop-icon-small"></i>
+                                <p class="drag-drop-text-small">Drag images or click to browse</p>
+                                <input type="file" name="UploadedImages" class="form-control drag-drop-input" multiple
+                                       accept=".jpg,.jpeg,.png,.gif,.webp" id="reply-image-upload" />
+                            </div>
+                        </div>
                         <small class="form-text text-muted">Max 5MB per image</small>
+                        <div id="reply-image-preview" class="mt-2"></div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Upload Files (Optional)</label>
-                        <input type="file" name="UploadedFiles" class="form-control" multiple
-                               accept=".pdf,.doc,.docx,.zip,.rar" id="reply-file-upload" />
+                        <div class="drag-drop-zone drag-drop-zone-small" id="reply-file-drop-zone">
+                            <div class="drag-drop-content">
+                                <i class="bi bi-file-earmark-arrow-up drag-drop-icon-small"></i>
+                                <p class="drag-drop-text-small">Drag files or click to browse</p>
+                                <input type="file" name="UploadedFiles" class="form-control drag-drop-input" multiple
+                                       accept=".pdf,.doc,.docx,.zip,.rar" id="reply-file-upload" />
+                            </div>
+                        </div>
                         <small class="form-text text-muted">Max 10MB per file</small>
+                        <div id="reply-file-preview" class="mt-2"></div>
                     </div>
 
                     <button type="submit" class="btn btn-primary">
@@ -259,25 +296,78 @@
 </div>
 
 @section Scripts {
+    <script src="~/lib/tinymce/js/tinymce/tinymce.min.js"></script>
     <script src="~/js/forum.js"></script>
     <script>
+        // Initialize TinyMCE for reply form
+        tinymce.init({
+            selector: '#reply-content',
+            height: 300,
+            menubar: false,
+            license_key: 'gpl',
+            plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'charmap',
+                'searchreplace', 'visualblocks', 'code',
+                'insertdatetime', 'table', 'help', 'wordcount'
+            ],
+            toolbar: 'undo redo | blocks | ' +
+                'bold italic underline | bullist numlist | ' +
+                'link code | removeformat',
+            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px }',
+            branding: false,
+            promotion: false
+        });
+
         // Initialize reply form
         document.getElementById('reply-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            const formData = new FormData(this);
-            const response = await fetch(this.action, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                alert(result.message);
-                location.reload();
-            } else {
-                alert(result.message);
+
+            try {
+                // Get content from TinyMCE and validate
+                let content = '';
+                if (typeof tinymce !== 'undefined' && tinymce.get('reply-content')) {
+                    content = tinymce.get('reply-content').getContent();
+                    // Update textarea value
+                    document.getElementById('reply-content').value = content;
+                } else {
+                    content = document.getElementById('reply-content').value;
+                }
+
+                // Validate content
+                if (!content || content.trim() === '' || content === '<p><br></p>' || content === '<p></p>') {
+                    alert('Please enter your reply content');
+                    return;
+                }
+
+                const formData = new FormData(this);
+
+                // Debug: Log form data
+                console.log('Submitting reply form...');
+                console.log('PostId:', formData.get('PostId'));
+                console.log('Content:', formData.get('Content'));
+                console.log('ParentReplyId:', formData.get('ParentReplyId'));
+
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Reply result:', result);
+
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.message || 'Failed to post reply');
+                }
+            } catch (error) {
+                console.error('Error submitting reply:', error);
+                alert('An error occurred while posting your reply. Please try again.');
             }
         });
 
@@ -285,7 +375,13 @@
             document.getElementById('parent-reply-id').value = replyId;
             document.getElementById('reply-to-username').textContent = username;
             document.getElementById('reply-to-info').style.display = 'block';
-            document.getElementById('reply-content').focus();
+
+            // Focus TinyMCE editor
+            if (typeof tinymce !== 'undefined' && tinymce.get('reply-content')) {
+                tinymce.get('reply-content').focus();
+            } else {
+                document.getElementById('reply-content').focus();
+            }
         }
 
         function cancelReplyTo() {

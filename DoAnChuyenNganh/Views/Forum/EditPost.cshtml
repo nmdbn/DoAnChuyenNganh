@@ -18,10 +18,27 @@
     <div class="form-container">
         <h1><i class="bi bi-pencil"></i> Edit Post</h1>
 
-        <form asp-action="EditPost" asp-controller="Forum" asp-route-id="@Model.PostId" method="post" enctype="multipart/form-data">
+        <form asp-action="EditPost" asp-controller="Forum" asp-route-id="@Model.PostId" method="post" enctype="multipart/form-data" id="edit-post-form">
             @Html.AntiForgeryToken()
-            
+
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <!-- Upload Progress Overlay -->
+            <div class="upload-progress-overlay" id="upload-progress-overlay" style="display: none;">
+                <div class="upload-progress-content">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Uploading...</span>
+                    </div>
+                    <h5 class="mt-3">Uploading files...</h5>
+                    <div class="progress mt-3" style="width: 300px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar"
+                             id="upload-progress-bar"
+                             style="width: 0%">0%</div>
+                    </div>
+                    <p class="mt-2 text-muted" id="upload-status">Preparing upload...</p>
+                </div>
+            </div>
 
             <input type="hidden" asp-for="PostId" />
             <input type="hidden" asp-for="UserId" />
@@ -81,7 +98,7 @@
                     <div class="existing-attachments">
                         @foreach (var attachment in Model.Attachments)
                         {
-                            <div class="attachment-item">
+                            <div class="attachment-item" id="attachment-@attachment.AttachmentId">
                                 @if (attachment.FileType == "image")
                                 {
                                     <img src="@attachment.FilePath" alt="@attachment.OriginalFileName" class="attachment-thumbnail" />
@@ -91,6 +108,11 @@
                                     <i class="bi bi-file-earmark"></i>
                                 }
                                 <span>@attachment.OriginalFileName (@attachment.FileSizeFormatted)</span>
+                                <button type="button" class="btn btn-sm btn-danger delete-attachment-btn"
+                                        onclick="deleteAttachment(@attachment.AttachmentId)"
+                                        title="Delete attachment">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                             </div>
                         }
                     </div>
@@ -99,8 +121,14 @@
 
             <div class="mb-3">
                 <label class="form-label">Upload Additional Images (Optional)</label>
-                <input type="file" name="UploadedImages" class="form-control" multiple
-                       accept=".jpg,.jpeg,.png,.gif,.webp" id="image-upload" />
+                <div class="drag-drop-zone" id="image-drop-zone">
+                    <div class="drag-drop-content">
+                        <i class="bi bi-cloud-upload drag-drop-icon"></i>
+                        <p class="drag-drop-text">Drag and drop images here or click to browse</p>
+                        <input type="file" name="UploadedImages" class="form-control drag-drop-input" multiple
+                               accept=".jpg,.jpeg,.png,.gif,.webp" id="image-upload" />
+                    </div>
+                </div>
                 <small class="form-text text-muted">
                     Allowed formats: JPG, PNG, GIF, WebP. Max 5MB per image.
                 </small>
@@ -109,8 +137,14 @@
 
             <div class="mb-3">
                 <label class="form-label">Upload Additional Files (Optional)</label>
-                <input type="file" name="UploadedFiles" class="form-control" multiple
-                       accept=".pdf,.doc,.docx,.zip,.rar" id="file-upload" />
+                <div class="drag-drop-zone" id="file-drop-zone">
+                    <div class="drag-drop-content">
+                        <i class="bi bi-file-earmark-arrow-up drag-drop-icon"></i>
+                        <p class="drag-drop-text">Drag and drop files here or click to browse</p>
+                        <input type="file" name="UploadedFiles" class="form-control drag-drop-input" multiple
+                               accept=".pdf,.doc,.docx,.zip,.rar" id="file-upload" />
+                    </div>
+                </div>
                 <small class="form-text text-muted">
                     Allowed formats: PDF, DOC, DOCX, ZIP, RAR. Max 10MB per file.
                 </small>
@@ -130,7 +164,36 @@
 </div>
 
 @section Scripts {
+    <script src="~/lib/tinymce/js/tinymce/tinymce.min.js"></script>
     <script src="~/js/forum.js"></script>
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Initialize TinyMCE
+        tinymce.init({
+            selector: '#post-content',
+            height: 400,
+            menubar: false,
+            license_key: 'gpl',
+            plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
+                'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                'insertdatetime', 'table', 'help', 'wordcount'
+            ],
+            toolbar: 'undo redo | blocks | ' +
+                'bold italic underline strikethrough | alignleft aligncenter ' +
+                'alignright alignjustify | bullist numlist outdent indent | ' +
+                'link code | removeformat | help',
+            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px }',
+            branding: false,
+            promotion: false
+        });
+
+        // Sync TinyMCE content before form submission
+        document.getElementById('edit-post-form').addEventListener('submit', function(e) {
+            if (typeof tinymce !== 'undefined' && tinymce.get('post-content')) {
+                tinymce.get('post-content').save();
+            }
+        });
+    </script>
 }
 

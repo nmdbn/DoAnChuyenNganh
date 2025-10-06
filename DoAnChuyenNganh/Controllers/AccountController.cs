@@ -71,6 +71,10 @@ namespace DoAnChuyenNganh.Controllers
             HttpContext.Session.SetString("Email", result.User.Email);
             HttpContext.Session.SetString("FullName", $"{result.User.FirstName} {result.User.LastName}");
             HttpContext.Session.SetString("RoleName", result.User.Role.RoleName);
+            if (!string.IsNullOrEmpty(result.User.AvatarUrl))
+            {
+                HttpContext.Session.SetString("AvatarUrl", result.User.AvatarUrl);
+            }
 
             TempData["SuccessMessage"] = "Login successful!";
 
@@ -367,6 +371,17 @@ namespace DoAnChuyenNganh.Controllers
             HttpContext.Session.SetString("Username", model.Username);
             HttpContext.Session.SetString("Email", model.Email);
             HttpContext.Session.SetString("FullName", $"{model.FirstName} {model.LastName}");
+
+            // Update avatar URL in session
+            var updatedUser = await _authService.GetUserByIdAsync(model.UserId);
+            if (updatedUser != null && !string.IsNullOrEmpty(updatedUser.AvatarUrl))
+            {
+                HttpContext.Session.SetString("AvatarUrl", updatedUser.AvatarUrl);
+            }
+            else
+            {
+                HttpContext.Session.Remove("AvatarUrl");
+            }
 
             TempData["SuccessMessage"] = "Profile updated successfully!";
             return RedirectToAction(nameof(Profile));

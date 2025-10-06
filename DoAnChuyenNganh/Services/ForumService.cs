@@ -555,6 +555,56 @@ namespace DoAnChuyenNganh.Services
                 post.UpdatedAt = DateTime.Now;
                 post.UpdatedBy = userId;
 
+                // Handle new image uploads
+                if (model.UploadedImages != null && model.UploadedImages.Any())
+                {
+                    foreach (var image in model.UploadedImages)
+                    {
+                        var uploadResult = await _fileUploadService.UploadImageAsync(image, "forum/images");
+                        if (uploadResult.Success)
+                        {
+                            var attachment = new ForumAttachment
+                            {
+                                PostId = post.PostId,
+                                FileName = Path.GetFileName(uploadResult.FilePath!),
+                                OriginalFileName = image.FileName,
+                                FilePath = uploadResult.FilePath!,
+                                FileType = "image",
+                                MimeType = image.ContentType,
+                                FileSize = image.Length,
+                                UploadedBy = userId,
+                                CreatedAt = DateTime.Now
+                            };
+                            _context.ForumAttachments.Add(attachment);
+                        }
+                    }
+                }
+
+                // Handle new file uploads
+                if (model.UploadedFiles != null && model.UploadedFiles.Any())
+                {
+                    foreach (var file in model.UploadedFiles)
+                    {
+                        var uploadResult = await _fileUploadService.UploadFileAsync(file, "forum/files");
+                        if (uploadResult.Success)
+                        {
+                            var attachment = new ForumAttachment
+                            {
+                                PostId = post.PostId,
+                                FileName = Path.GetFileName(uploadResult.FilePath!),
+                                OriginalFileName = file.FileName,
+                                FilePath = uploadResult.FilePath!,
+                                FileType = "file",
+                                MimeType = file.ContentType,
+                                FileSize = file.Length,
+                                UploadedBy = userId,
+                                CreatedAt = DateTime.Now
+                            };
+                            _context.ForumAttachments.Add(attachment);
+                        }
+                    }
+                }
+
                 await _context.SaveChangesAsync();
                 return (true, "Post updated successfully");
             }
@@ -809,6 +859,56 @@ namespace DoAnChuyenNganh.Services
                 reply.Content = model.Content;
                 reply.UpdatedAt = DateTime.Now;
                 reply.UpdatedBy = userId;
+
+                // Handle new image uploads
+                if (model.UploadedImages != null && model.UploadedImages.Any())
+                {
+                    foreach (var image in model.UploadedImages)
+                    {
+                        var uploadResult = await _fileUploadService.UploadImageAsync(image, "forum/images");
+                        if (uploadResult.Success)
+                        {
+                            var attachment = new ForumAttachment
+                            {
+                                ReplyId = reply.ReplyId,
+                                FileName = Path.GetFileName(uploadResult.FilePath!),
+                                OriginalFileName = image.FileName,
+                                FilePath = uploadResult.FilePath!,
+                                FileType = "image",
+                                MimeType = image.ContentType,
+                                FileSize = image.Length,
+                                UploadedBy = userId,
+                                CreatedAt = DateTime.Now
+                            };
+                            _context.ForumAttachments.Add(attachment);
+                        }
+                    }
+                }
+
+                // Handle new file uploads
+                if (model.UploadedFiles != null && model.UploadedFiles.Any())
+                {
+                    foreach (var file in model.UploadedFiles)
+                    {
+                        var uploadResult = await _fileUploadService.UploadFileAsync(file, "forum/files");
+                        if (uploadResult.Success)
+                        {
+                            var attachment = new ForumAttachment
+                            {
+                                ReplyId = reply.ReplyId,
+                                FileName = Path.GetFileName(uploadResult.FilePath!),
+                                OriginalFileName = file.FileName,
+                                FilePath = uploadResult.FilePath!,
+                                FileType = "file",
+                                MimeType = file.ContentType,
+                                FileSize = file.Length,
+                                UploadedBy = userId,
+                                CreatedAt = DateTime.Now
+                            };
+                            _context.ForumAttachments.Add(attachment);
+                        }
+                    }
+                }
 
                 await _context.SaveChangesAsync();
                 return (true, "Reply updated successfully");
@@ -1364,6 +1464,15 @@ namespace DoAnChuyenNganh.Services
             return post.UserId == userId || await CanUserModerateAsync(userId);
         }
 
+        private async Task<bool> CanUserEditReplyAsync(int replyId, int userId)
+        {
+            var reply = await _context.ForumReplies.FindAsync(replyId);
+            if (reply == null) return false;
+
+            // User can edit their own reply or if they are a moderator/admin
+            return reply.UserId == userId || await CanUserModerateAsync(userId);
+        }
+
         public async Task<bool> CanUserDeletePostAsync(int postId, int userId)
         {
             var post = await _context.ForumPosts.FindAsync(postId);
@@ -1538,6 +1647,57 @@ namespace DoAnChuyenNganh.Services
             }
         }
 
+        #endregion
+
+        #region Attachment Operations
+
+        public async Task<(bool Success, string Message)> DeleteAttachmentAsync(int attachmentId, int userId)
+        {
+            try
+            {
+                var attachment = await _context.ForumAttachments
+                    .Include(a => a.Post)
+                    .Include(a => a.Reply)
+                    .FirstOrDefaultAsync(a => a.AttachmentId == attachmentId);
+
+                if (attachment == null)
+                {
+                    return (false, "Attachment not found");
+                }
+
+                // Check permission - user must be the uploader or have permission to edit the post/reply
+                bool hasPermission = false;
+
+                if (attachment.PostId.HasValue)
+                {
+                    hasPermission = await CanUserEditPostAsync(attachment.PostId.Value, userId);
+                }
+                else if (attachment.ReplyId.HasValue)
+                {
+                    hasPermission = await CanUserEditReplyAsync(attachment.ReplyId.Value, userId);
+                }
+
+                if (!hasPermission)
+                {
+                    return (false, "You don't have permission to delete this attachment");
+                }
+
+                // Delete physical file
+                await _fileUploadService.DeleteFileAsync(attachment.FilePath);
+
+                // Delete database record
+                _context.ForumAttachments.Remove(attachment);
+                await _context.SaveChangesAsync();
+
+                return (true, "Attachment deleted successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting attachment");
+                return (false, "An error occurred while deleting the attachment");
+            }
+        }
+        
         #endregion
     }
 }

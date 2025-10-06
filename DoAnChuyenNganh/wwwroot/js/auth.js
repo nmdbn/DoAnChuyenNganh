@@ -259,8 +259,11 @@ function previewProfileImage(input) {
   }
 }
 
-// Avatar upload preview
-function previewAvatar(input) {
+// Avatar Cropping with Cropper.js
+let cropper = null;
+let croppedBlob = null;
+
+function initAvatarCrop(input) {
   if (input.files && input.files[0]) {
     const file = input.files[0];
 
@@ -279,26 +282,163 @@ function previewAvatar(input) {
       return;
     }
 
-    // Show preview
+    // Read file and show cropping modal
     const reader = new FileReader();
     reader.onload = function (e) {
-      const previewContainer = document.getElementById("avatar-preview");
-      const existingImg = document.getElementById("avatar-preview-img");
-      const placeholder = document.getElementById("avatar-placeholder");
+      const cropImage = document.getElementById("crop-image");
+      cropImage.src = e.target.result;
 
-      if (existingImg) {
-        existingImg.src = e.target.result;
-      } else if (placeholder) {
-        placeholder.style.display = "none";
-        const newImg = document.createElement("img");
-        newImg.id = "avatar-preview-img";
-        newImg.src = e.target.result;
-        newImg.alt = "Avatar Preview";
-        previewContainer.appendChild(newImg);
-      } else {
-        previewContainer.innerHTML = `<img id="avatar-preview-img" src="${e.target.result}" alt="Avatar Preview" />`;
-      }
+      // Show modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("avatarCropModal")
+      );
+      modal.show();
+
+      // Initialize cropper after modal is shown
+      document
+        .getElementById("avatarCropModal")
+        .addEventListener("shown.bs.modal", function () {
+          if (cropper) {
+            cropper.destroy();
+          }
+
+          cropper = new Cropper(cropImage, {
+            aspectRatio: 1,
+            viewMode: 1,
+            dragMode: "move",
+            autoCropArea: 1,
+            restore: false,
+            guides: true,
+            center: true,
+            highlight: false,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            toggleDragModeOnDblclick: false,
+          });
+        });
     };
     reader.readAsDataURL(file);
   }
+}
+
+function cropperZoom(ratio) {
+  if (cropper) {
+    cropper.zoom(ratio);
+  }
+}
+
+function cropperRotate(degree) {
+  if (cropper) {
+    cropper.rotate(degree);
+  }
+}
+
+function cropperReset() {
+  if (cropper) {
+    cropper.reset();
+  }
+}
+
+function applyCrop() {
+  if (!cropper) return;
+
+  // Get cropped canvas
+  const canvas = cropper.getCroppedCanvas({
+    width: 200,
+    height: 200,
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: "high",
+  });
+
+  // Convert canvas to blob
+  canvas.toBlob(function (blob) {
+    croppedBlob = blob;
+
+    // Create preview
+    const url = URL.createObjectURL(blob);
+    const previewContainer = document.getElementById("avatar-preview");
+    const existingImg = document.getElementById("avatar-preview-img");
+    const placeholder = document.getElementById("avatar-placeholder");
+
+    if (existingImg) {
+      existingImg.src = url;
+    } else if (placeholder) {
+      placeholder.style.display = "none";
+      const newImg = document.createElement("img");
+      newImg.id = "avatar-preview-img";
+      newImg.src = url;
+      newImg.alt = "Avatar Preview";
+      previewContainer.appendChild(newImg);
+    } else {
+      previewContainer.innerHTML = `<img id="avatar-preview-img" src="${url}" alt="Avatar Preview" />`;
+    }
+
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(
+      document.getElementById("avatarCropModal")
+    );
+    modal.hide();
+
+    // Prepare file for upload
+    prepareAvatarForUpload();
+  }, "image/jpeg");
+}
+
+function prepareAvatarForUpload() {
+  if (!croppedBlob) return;
+
+  // Create a new File object from the blob
+  const file = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+
+  // Create a DataTransfer to set the file input
+  const dataTransfer = new DataTransfer();
+  dataTransfer.items.add(file);
+
+  // Set the files to a hidden file input that will be submitted
+  const fileInput = document.getElementById("avatar-file-input");
+  if (fileInput) {
+    // For hidden input, we'll need to handle this differently
+    // Store the blob for form submission
+    window.avatarBlob = croppedBlob;
+  }
+}
+
+// Override form submission to include cropped avatar
+document.addEventListener("DOMContentLoaded", function () {
+  const profileForm = document.querySelector('form[action*="Profile"]');
+  if (profileForm) {
+    profileForm.addEventListener("submit", function (e) {
+      if (window.avatarBlob) {
+        e.preventDefault();
+
+        const formData = new FormData(profileForm);
+
+        // Remove the hidden avatar input and add the blob
+        formData.delete("AvatarFile");
+        formData.append("AvatarFile", window.avatarBlob, "avatar.jpg");
+
+        // Submit via fetch
+        fetch(profileForm.action, {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => {
+            if (response.ok) {
+              window.location.reload();
+            } else {
+              alert("Error updating profile. Please try again.");
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert("Error updating profile. Please try again.");
+          });
+      }
+    });
+  }
+});
+
+// Legacy avatar preview function (kept for compatibility)
+function previewAvatar(input) {
+  initAvatarCrop(input);
 }

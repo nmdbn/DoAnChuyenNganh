@@ -17,10 +17,27 @@
     <div class="form-container">
         <h1><i class="bi bi-plus-circle"></i> Create New Post</h1>
 
-        <form asp-action="CreatePost" asp-controller="Forum" method="post" enctype="multipart/form-data">
+        <form asp-action="CreatePost" asp-controller="Forum" method="post" enctype="multipart/form-data" id="create-post-form">
             @Html.AntiForgeryToken()
-            
+
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <!-- Upload Progress Overlay -->
+            <div class="upload-progress-overlay" id="upload-progress-overlay" style="display: none;">
+                <div class="upload-progress-content">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Uploading...</span>
+                    </div>
+                    <h5 class="mt-3">Uploading files...</h5>
+                    <div class="progress mt-3" style="width: 300px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar"
+                             id="upload-progress-bar"
+                             style="width: 0%">0%</div>
+                    </div>
+                    <p class="mt-2 text-muted" id="upload-status">Preparing upload...</p>
+                </div>
+            </div>
 
             <div class="mb-3">
                 <label asp-for="CategoryId" class="form-label">Category *</label>
@@ -80,8 +97,14 @@
 
             <div class="mb-3">
                 <label class="form-label">Upload Images (Optional)</label>
-                <input type="file" name="UploadedImages" class="form-control" multiple
-                       accept=".jpg,.jpeg,.png,.gif,.webp" id="image-upload" />
+                <div class="drag-drop-zone" id="image-drop-zone">
+                    <div class="drag-drop-content">
+                        <i class="bi bi-cloud-upload drag-drop-icon"></i>
+                        <p class="drag-drop-text">Drag and drop images here or click to browse</p>
+                        <input type="file" name="UploadedImages" class="form-control drag-drop-input" multiple
+                               accept=".jpg,.jpeg,.png,.gif,.webp" id="image-upload" />
+                    </div>
+                </div>
                 <small class="form-text text-muted">
                     Allowed formats: JPG, PNG, GIF, WebP. Max 5MB per image. You can select multiple images.
                 </small>
@@ -90,8 +113,14 @@
 
             <div class="mb-3">
                 <label class="form-label">Upload Files (Optional)</label>
-                <input type="file" name="UploadedFiles" class="form-control" multiple
-                       accept=".pdf,.doc,.docx,.zip,.rar" id="file-upload" />
+                <div class="drag-drop-zone" id="file-drop-zone">
+                    <div class="drag-drop-content">
+                        <i class="bi bi-file-earmark-arrow-up drag-drop-icon"></i>
+                        <p class="drag-drop-text">Drag and drop files here or click to browse</p>
+                        <input type="file" name="UploadedFiles" class="form-control drag-drop-input" multiple
+                               accept=".pdf,.doc,.docx,.zip,.rar" id="file-upload" />
+                    </div>
+                </div>
                 <small class="form-text text-muted">
                     Allowed formats: PDF, DOC, DOCX, ZIP, RAR. Max 10MB per file. You can select multiple files.
                 </small>
@@ -124,7 +153,36 @@
 </div>
 
 @section Scripts {
+    <script src="~/lib/tinymce/js/tinymce/tinymce.min.js"></script>
     <script src="~/js/forum.js"></script>
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Initialize TinyMCE
+        tinymce.init({
+            selector: '#post-content',
+            height: 400,
+            menubar: false,
+            license_key: 'gpl',
+            plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
+                'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                'insertdatetime', 'table', 'help', 'wordcount'
+            ],
+            toolbar: 'undo redo | blocks | ' +
+                'bold italic underline strikethrough | alignleft aligncenter ' +
+                'alignright alignjustify | bullist numlist outdent indent | ' +
+                'link code | removeformat | help',
+            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px }',
+            branding: false,
+            promotion: false
+        });
+
+        // Sync TinyMCE content before form submission
+        document.getElementById('create-post-form').addEventListener('submit', function(e) {
+            if (typeof tinymce !== 'undefined' && tinymce.get('post-content')) {
+                tinymce.get('post-content').save();
+            }
+        });
+    </script>
 }
 

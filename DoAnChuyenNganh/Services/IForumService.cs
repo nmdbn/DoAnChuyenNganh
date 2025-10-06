@@ -62,6 +62,9 @@ namespace DoAnChuyenNganh.Services
         Task<bool> CanUserEditPostAsync(int postId, int userId);
         Task<bool> CanUserDeletePostAsync(int postId, int userId);
         Task<bool> CanUserModerateAsync(int userId);
+
+        // Attachment operations
+        Task<(bool Success, string Message)> DeleteAttachmentAsync(int attachmentId, int userId);
     }
 }
 

@@ -41,22 +41,41 @@
                     <ul class="navbar-nav">
                         @if (Context.Session.GetInt32("UserId").HasValue)
                         {
+                            var avatarUrl = Context.Session.GetString("AvatarUrl");
+                            var username = Context.Session.GetString("Username");
+                            var fullName = Context.Session.GetString("FullName");
+                            var initials = "";
+                            if (!string.IsNullOrEmpty(fullName))
+                            {
+                                var names = fullName.Split(' ');
+                                initials = names.Length >= 2 ? $"{names[0][0]}{names[names.Length - 1][0]}" : names[0][0].ToString();
+                            }
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-dark" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person-circle" viewBox="0 0 16 16" style="vertical-align: middle; margin-right: 5px;">
-                                        <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
-                                        <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
-                                    </svg>
-                                    @Context.Session.GetString("Username")
+                                <a class="nav-link dropdown-toggle d-flex align-items-center text-dark" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    @if (!string.IsNullOrEmpty(avatarUrl))
+                                    {
+                                        <img src="@avatarUrl" alt="@username" class="navbar-avatar" />
+                                    }
+                                    else
+                                    {
+                                        <div class="navbar-avatar-placeholder">
+                                            @initials
+                                        </div>
+                                    }
+                                    <span class="ms-2">@username</span>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">My Profile</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">Change Password</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">
+                                        <i class="bi bi-person"></i> My Profile
+                                    </a></li>
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">
+                                        <i class="bi bi-key"></i> Change Password
+                                    </a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form asp-controller="Account" asp-action="Logout" method="post" style="display: inline;">
                                             <button type="submit" class="dropdown-item" style="border: none; background: none; cursor: pointer; width: 100%; text-align: left;">
-                                                Logout
+                                                <i class="bi bi-box-arrow-right"></i> Logout
                                             </button>
                                         </form>
                                     </li>
@@ -66,10 +85,14 @@
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Account" asp-action="Login">Login</a>
+                                <a class="nav-link text-dark" asp-controller="Account" asp-action="Login">
+                                    <i class="bi bi-box-arrow-in-right"></i> Login
+                                </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Account" asp-action="Register">Register</a>
+                                <a class="nav-link text-dark" asp-controller="Account" asp-action="Register">
+                                    <i class="bi bi-person-plus"></i> Register
+                                </a>
                             </li>
                         }
                     </ul>

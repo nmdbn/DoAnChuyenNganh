@@ -315,6 +315,26 @@ namespace DoAnChuyenNganh.Controllers
 
         #endregion
 
+        #region Attachment Operations
+
+        // POST: /Forum/DeleteAttachment/123
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAttachment(int id)
+        {
+            if (!IsAuthenticated())
+            {
+                return Json(new { success = false, message = "You must be logged in" });
+            }
+
+            var userId = GetCurrentUserId()!.Value;
+            var result = await _forumService.DeleteAttachmentAsync(id, userId);
+
+            return Json(new { success = result.Success, message = result.Message });
+        }
+
+        #endregion
+
         #region Like and Bookmark Operations
 
         // POST: /Forum/LikePost/123
