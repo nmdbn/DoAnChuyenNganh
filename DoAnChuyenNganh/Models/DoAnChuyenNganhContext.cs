@@ -25,6 +25,8 @@ public partial class DoAnChuyenNganhContext : DbContext
 
     public virtual DbSet<Enrollment> Enrollments { get; set; }
 
+    public virtual DbSet<ForumAttachment> ForumAttachments { get; set; }
+
     public virtual DbSet<ForumCategory> ForumCategories { get; set; }
 
     public virtual DbSet<ForumPost> ForumPosts { get; set; }
@@ -284,6 +286,44 @@ public partial class DoAnChuyenNganhContext : DbContext
             entity.HasOne(d => d.LastPostByNavigation).WithMany(p => p.ForumCategoryLastPostByNavigations)
                 .HasForeignKey(d => d.LastPostBy)
                 .HasConstraintName("FK_ForumCategories_LastPostBy");
+        });
+
+        modelBuilder.Entity<ForumAttachment>(entity =>
+        {
+            entity.HasKey(e => e.AttachmentId).HasName("PK__ForumAtt__442C64BE");
+
+            entity.HasIndex(e => e.PostId, "IX_ForumAttachments_PostID");
+
+            entity.HasIndex(e => e.ReplyId, "IX_ForumAttachments_ReplyID");
+
+            entity.HasIndex(e => e.UploadedBy, "IX_ForumAttachments_UploadedBy");
+
+            entity.HasIndex(e => e.CreatedAt, "IX_ForumAttachments_CreatedAt");
+
+            entity.Property(e => e.AttachmentId).HasColumnName("AttachmentID");
+            entity.Property(e => e.PostId).HasColumnName("PostID");
+            entity.Property(e => e.ReplyId).HasColumnName("ReplyID");
+            entity.Property(e => e.FileName).HasMaxLength(255);
+            entity.Property(e => e.OriginalFileName).HasMaxLength(255);
+            entity.Property(e => e.FilePath).HasMaxLength(500);
+            entity.Property(e => e.FileType).HasMaxLength(10);
+            entity.Property(e => e.MimeType).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.Post).WithMany(p => p.ForumAttachments)
+                .HasForeignKey(d => d.PostId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ForumAttachments_Post");
+
+            entity.HasOne(d => d.Reply).WithMany(p => p.ForumAttachments)
+                .HasForeignKey(d => d.ReplyId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ForumAttachments_Reply");
+
+            entity.HasOne(d => d.UploadedByNavigation).WithMany()
+                .HasForeignKey(d => d.UploadedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ForumAttachments_User");
         });
 
         modelBuilder.Entity<ForumPost>(entity =>
