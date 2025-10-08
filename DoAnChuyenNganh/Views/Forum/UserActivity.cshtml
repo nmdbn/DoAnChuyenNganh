@@ -1,0 +1,289 @@
+@model DoAnChuyenNganh.ViewModels.Forum.UserForumActivityViewModel
+@{
+    ViewData["Title"] = $"{Model.Username}'s Forum Activity";
+}
+
+<link rel="stylesheet" href="~/css/forum.css" />
+
+<div class="forum-container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Forum")">Forum</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Username's Activity</li>
+        </ol>
+    </nav>
+
+    <!-- User Profile Header -->
+    <div class="user-activity-header">
+        <div class="user-avatar-large">
+            @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+            {
+                <img src="@Model.AvatarUrl" alt="@Model.Username" />
+            }
+            else
+            {
+                <div class="avatar-placeholder-xlarge">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+            }
+        </div>
+        <div class="user-info">
+            <h1>@Model.Username</h1>
+            <p class="text-muted">
+                Member since @Model.MemberSince?.ToString("MMMM yyyy")
+                @if (Model.LastActive.HasValue)
+                {
+                    <span> • Last active @Model.LastActive.Value.ToString("MMM dd, yyyy")</span>
+                }
+            </p>
+        </div>
+    </div>
+
+    <!-- User Statistics -->
+    <div class="user-stats-grid">
+        <div class="stat-card">
+            <i class="bi bi-file-text"></i>
+            <div class="stat-info">
+                <h3>@Model.TotalPosts</h3>
+                <p>Posts</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="bi bi-chat-left-text"></i>
+            <div class="stat-info">
+                <h3>@Model.TotalReplies</h3>
+                <p>Replies</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="bi bi-heart-fill"></i>
+            <div class="stat-info">
+                <h3>@Model.TotalLikesReceived</h3>
+                <p>Likes Received</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="bi bi-hand-thumbs-up"></i>
+            <div class="stat-info">
+                <h3>@Model.TotalLikesGiven</h3>
+                <p>Likes Given</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Tabs -->
+    <div class="activity-tabs">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link @(Model.ActiveTab == "posts" ? "active" : "")" 
+                   href="@Url.Action("UserActivity", new { id = Model.UserId, tab = "posts" })">
+                    <i class="bi bi-file-text"></i> Posts (@Model.TotalPosts)
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link @(Model.ActiveTab == "replies" ? "active" : "")" 
+                   href="@Url.Action("UserActivity", new { id = Model.UserId, tab = "replies" })">
+                    <i class="bi bi-chat-left-text"></i> Replies (@Model.TotalReplies)
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link @(Model.ActiveTab == "bookmarks" ? "active" : "")" 
+                   href="@Url.Action("UserActivity", new { id = Model.UserId, tab = "bookmarks" })">
+                    <i class="bi bi-bookmark-fill"></i> Bookmarks
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content mt-4">
+            @if (Model.ActiveTab == "posts")
+            {
+                <!-- Posts Tab -->
+                @if (Model.RecentPosts.Any())
+                {
+                    <div class="posts-list">
+                        @foreach (var post in Model.RecentPosts)
+                        {
+                            <div class="post-card">
+                                <div class="post-content">
+                                    <div class="post-title-row">
+                                        <h4>
+                                            <a href="@Url.Action("Post", "Forum", new { id = post.PostId })">
+                                                @post.Title
+                                            </a>
+                                        </h4>
+                                        <span class="badge bg-secondary">@post.CategoryName</span>
+                                    </div>
+                                    <div class="post-meta">
+                                        <span class="post-date">
+                                            <i class="bi bi-clock"></i>
+                                            @post.CreatedAt?.ToString("MMM dd, yyyy HH:mm")
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="post-stats">
+                                    <div class="stat-item">
+                                        <i class="bi bi-eye"></i>
+                                        <span>@post.ViewCount</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="bi bi-chat-left-text"></i>
+                                        <span>@post.ReplyCount</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="bi bi-heart-fill"></i>
+                                        <span>@post.LikeCount</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No posts yet.
+                    </div>
+                }
+            }
+            else if (Model.ActiveTab == "replies")
+            {
+                <!-- Replies Tab -->
+                @if (Model.RecentReplies.Any())
+                {
+                    <div class="replies-list">
+                        @foreach (var reply in Model.RecentReplies)
+                        {
+                            <div class="reply-card-simple">
+                                <div class="reply-content">
+                                    <div class="reply-header">
+                                        <span class="text-muted">
+                                            Replied on 
+                                            <a href="@Url.Action("Post", "Forum", new { id = reply.PostId })">
+                                                a post
+                                            </a>
+                                        </span>
+                                        <span class="text-muted">
+                                            @reply.CreatedAt?.ToString("MMM dd, yyyy HH:mm")
+                                        </span>
+                                    </div>
+                                    <div class="reply-body">
+                                        @{
+                                            var replyExcerpt = reply.Content.Length > 300 ? reply.Content.Substring(0, 300) + "..." : reply.Content;
+                                        }
+                                        @Html.Raw(replyExcerpt.Replace("\n", "<br />"))
+                                    </div>
+                                    <div class="reply-stats">
+                                        <span>
+                                            <i class="bi bi-heart-fill"></i> @reply.LikeCount likes
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No replies yet.
+                    </div>
+                }
+            }
+            else if (Model.ActiveTab == "bookmarks")
+            {
+                <!-- Bookmarks Tab -->
+                @if (Model.BookmarkedPosts.Any())
+                {
+                    <div class="posts-list">
+                        @foreach (var post in Model.BookmarkedPosts)
+                        {
+                            <div class="post-card">
+                                <div class="post-content">
+                                    <div class="post-title-row">
+                                        <h4>
+                                            <a href="@Url.Action("Post", "Forum", new { id = post.PostId })">
+                                                @post.Title
+                                            </a>
+                                        </h4>
+                                        <span class="badge bg-secondary">@post.CategoryName</span>
+                                    </div>
+                                    <div class="post-meta">
+                                        <span class="post-author">
+                                            <i class="bi bi-person"></i>
+                                            @post.Username
+                                        </span>
+                                        <span class="post-date">
+                                            <i class="bi bi-clock"></i>
+                                            @post.CreatedAt?.ToString("MMM dd, yyyy")
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="post-stats">
+                                    <div class="stat-item">
+                                        <i class="bi bi-eye"></i>
+                                        <span>@post.ViewCount</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="bi bi-chat-left-text"></i>
+                                        <span>@post.ReplyCount</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="bi bi-heart-fill"></i>
+                                        <span>@post.LikeCount</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No bookmarked posts yet.
+                    </div>
+                }
+            }
+
+            <!-- Pagination -->
+            @if (Model.Pagination.TotalPages > 1)
+            {
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        @if (Model.Pagination.HasPreviousPage)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@Url.Action("UserActivity", new { id = Model.UserId, tab = Model.ActiveTab, page = Model.Pagination.CurrentPage - 1 })">
+                                    Previous
+                                </a>
+                            </li>
+                        }
+
+                        @foreach (var pageNum in Model.Pagination.GetPageNumbers())
+                        {
+                            <li class="page-item @(pageNum == Model.Pagination.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="@Url.Action("UserActivity", new { id = Model.UserId, tab = Model.ActiveTab, page = pageNum })">
+                                    @pageNum
+                                </a>
+                            </li>
+                        }
+
+                        @if (Model.Pagination.HasNextPage)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@Url.Action("UserActivity", new { id = Model.UserId, tab = Model.ActiveTab, page = Model.Pagination.CurrentPage + 1 })">
+                                    Next
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/forum.js"></script>
+}
+

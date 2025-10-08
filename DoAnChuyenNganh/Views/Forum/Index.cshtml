@@ -1,0 +1,193 @@
+@model DoAnChuyenNganh.ViewModels.Forum.ForumIndexViewModel
+@{
+    ViewData["Title"] = "Forum";
+}
+
+<link rel="stylesheet" href="~/css/forum.css" />
+
+<div class="forum-container">
+    <!-- Forum Header -->
+    <div class="forum-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-chat-dots"></i> Community Forum</h1>
+                <p class="text-muted">Join the discussion and connect with our community</p>
+            </div>
+            <div>
+                <a href="@Url.Action("CreatePost", "Forum")" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> New Post
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forum Statistics -->
+    <div class="forum-stats">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="bi bi-file-text"></i>
+                    <div class="stat-info">
+                        <h3>@Model.Statistics.TotalPosts</h3>
+                        <p>Total Posts</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="bi bi-chat-left-text"></i>
+                    <div class="stat-info">
+                        <h3>@Model.Statistics.TotalReplies</h3>
+                        <p>Total Replies</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="bi bi-people"></i>
+                    <div class="stat-info">
+                        <h3>@Model.Statistics.TotalUsers</h3>
+                        <p>Members</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="bi bi-person-plus"></i>
+                    <div class="stat-info">
+                        <h3>@Model.Statistics.NewestMember</h3>
+                        <p>Newest Member</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories List -->
+    <div class="categories-section">
+        <h2><i class="bi bi-grid"></i> Categories</h2>
+        
+        @if (Model.Categories.Any())
+        {
+            <div class="categories-list">
+                @foreach (var category in Model.Categories)
+                {
+                    <div class="category-card">
+                        <div class="category-icon">
+                            <i class="bi bi-folder"></i>
+                        </div>
+                        <div class="category-info">
+                            <h3>
+                                <a href="@Url.Action("Category", "Forum", new { id = category.CategoryId })">
+                                    @category.CategoryName
+                                </a>
+                            </h3>
+                            <p class="category-description">@category.Description</p>
+                        </div>
+                        <div class="category-stats">
+                            <div class="stat-item">
+                                <i class="bi bi-file-text"></i>
+                                <span>@category.PostCount Posts</span>
+                            </div>
+                        </div>
+                        <div class="category-last-post">
+                            @if (category.LastPostAt.HasValue)
+                            {
+                                <div class="last-post-info">
+                                    <p class="last-post-title">
+                                        <a href="@Url.Action("Post", "Forum", new { id = category.LastPostId })">
+                                            @category.LastPostTitle
+                                        </a>
+                                    </p>
+                                    <p class="last-post-meta">
+                                        by <strong>@category.LastPostByUsername</strong>
+                                        <br />
+                                        <small class="text-muted">@category.LastPostAt.Value.ToString("MMM dd, yyyy")</small>
+                                    </p>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted">No posts yet</p>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No categories available yet.
+            </div>
+        }
+    </div>
+
+    <!-- Recent and Popular Posts -->
+    <div class="row mt-4">
+        <!-- Recent Posts -->
+        <div class="col-md-6">
+            <div class="posts-sidebar">
+                <h3><i class="bi bi-clock-history"></i> Recent Posts</h3>
+                @if (Model.RecentPosts.Any())
+                {
+                    <div class="sidebar-posts-list">
+                        @foreach (var post in Model.RecentPosts)
+                        {
+                            <div class="sidebar-post-item">
+                                <a href="@Url.Action("Post", "Forum", new { id = post.PostId })">
+                                    @post.Title
+                                </a>
+                                <div class="post-meta">
+                                    <span class="badge bg-secondary">@post.CategoryName</span>
+                                    <small class="text-muted">by @post.Username</small>
+                                    <small class="text-muted">@post.CreatedAt?.ToString("MMM dd")</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No recent posts</p>
+                }
+            </div>
+        </div>
+
+        <!-- Popular Posts -->
+        <div class="col-md-6">
+            <div class="posts-sidebar">
+                <h3><i class="bi bi-fire"></i> Popular Posts</h3>
+                @if (Model.PopularPosts.Any())
+                {
+                    <div class="sidebar-posts-list">
+                        @foreach (var post in Model.PopularPosts)
+                        {
+                            <div class="sidebar-post-item">
+                                <a href="@Url.Action("Post", "Forum", new { id = post.PostId })">
+                                    @post.Title
+                                </a>
+                                <div class="post-meta">
+                                    <span class="badge bg-secondary">@post.CategoryName</span>
+                                    <small class="text-muted">
+                                        <i class="bi bi-eye"></i> @post.ViewCount
+                                        <i class="bi bi-heart-fill ms-2"></i> @post.LikeCount
+                                    </small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No popular posts</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/forum.js"></script>
+}
+
