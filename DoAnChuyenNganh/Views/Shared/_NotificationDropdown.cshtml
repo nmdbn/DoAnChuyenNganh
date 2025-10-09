@@ -1,0 +1,57 @@
+@model List<DoAnChuyenNganh.ViewModels.Notification.NotificationViewModel>
+
+<div class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationDropdown">
+    <div class="notification-dropdown-header">
+        <h6 class="mb-0">Notifications</h6>
+        @if (Model.Any(n => !n.IsRead))
+        {
+            <button type="button" class="btn btn-sm btn-link mark-all-read-btn" id="markAllReadBtn">
+                Mark all as read
+            </button>
+        }
+    </div>
+    
+    <div class="notification-dropdown-body">
+        @if (Model.Any())
+        {
+            foreach (var notification in Model)
+            {
+                <div class="notification-dropdown-item @(notification.IsRead ? "read" : "unread")" 
+                     data-notification-id="@notification.NotificationId">
+                    <div class="d-flex align-items-start">
+                        <div class="notification-icon me-2">
+                            <i class="@notification.Icon @notification.IconColor"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="notification-title">@notification.Title</div>
+                            <div class="notification-message">@notification.Message</div>
+                            <div class="notification-time">@notification.TimeAgo</div>
+                        </div>
+                        @if (!notification.IsRead)
+                        {
+                            <div class="unread-indicator"></div>
+                        }
+                    </div>
+                    @if (!string.IsNullOrEmpty(notification.Url))
+                    {
+                        <a href="@notification.Url" class="stretched-link notification-link"></a>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <div class="notification-empty">
+                <i class="bi bi-bell-slash"></i>
+                <p>No notifications</p>
+            </div>
+        }
+    </div>
+    
+    <div class="notification-dropdown-footer">
+        <a href="@Url.Action("Index", "Notification")" class="btn btn-sm btn-link w-100">
+            View all notifications
+        </a>
+    </div>
+</div>
+
