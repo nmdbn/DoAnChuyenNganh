@@ -29,9 +29,9 @@ public partial class Course
 
     public decimal? Price { get; set; }
 
-    public bool? IsPublished { get; set; }
+    public bool IsPublished { get; set; }
 
-    public bool? IsFeatured { get; set; }
+    public bool IsFeatured { get; set; }
 
     public int? ViewCount { get; set; }
 
