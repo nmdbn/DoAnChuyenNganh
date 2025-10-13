@@ -37,6 +37,15 @@
                     <span> • Last active @Model.LastActive.Value.ToString("MMM dd, yyyy")</span>
                 }
             </p>
+            @* Show Send Message button only if viewing another user's profile and current user is logged in *@
+            @if (Context.Session.GetInt32("UserId").HasValue && Context.Session.GetInt32("UserId").Value != Model.UserId)
+            {
+                <div class="mt-3">
+                    <a href="@Url.Action("Conversation", "Chat", new { userId = Model.UserId })" class="btn btn-primary">
+                        <i class="bi bi-chat-dots"></i> Send Message
+                    </a>
+                </div>
+            }
         </div>
     </div>
 

@@ -1,0 +1,513 @@
+@model DoAnChuyenNganh.ViewModels.Chat.ConversationDetailViewModel
+@{
+    ViewData["Title"] = $"Chat with {Model.OtherFullName}";
+    var currentUserId = Context.Session.GetInt32("UserId");
+}
+
+<link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card chat-container">
+                <!-- Chat Header -->
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <a href="@Url.Action("Index", "Chat")" class="btn btn-link text-dark me-2">
+                                <i class="bi bi-arrow-left"></i>
+                            </a>
+                            <div class="position-relative me-3">
+                                @if (!string.IsNullOrEmpty(Model.OtherAvatarUrl))
+                                {
+                                    <img src="@Model.OtherAvatarUrl" alt="@Model.OtherUsername" class="chat-avatar" />
+                                }
+                                else
+                                {
+                                    <div class="chat-avatar-placeholder">
+                                        @Model.OtherInitials
+                                    </div>
+                                }
+                                @if (Model.IsOtherUserOnline)
+                                {
+                                    <span class="online-indicator"></span>
+                                }
+                            </div>
+                            <div>
+                                <h5 class="mb-0">@Model.OtherFullName</h5>
+                                <small class="text-muted" id="userStatus">
+                                    @(Model.IsOtherUserOnline ? "Online" : "Offline")
+                                </small>
+                                <small class="text-muted" id="typingIndicator" style="display: none;">
+                                    <em>typing...</em>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div class="card-body chat-messages" id="chatMessages">
+                    @if (Model.Messages.Any())
+                    {
+                        @foreach (var message in Model.Messages.OrderBy(m => m.CreatedAt))
+                        {
+                            var isSentByCurrentUser = message.SenderId == currentUserId;
+                            <div class="message-wrapper @(isSentByCurrentUser ? "sent" : "received")" data-message-id="@message.MessageId">
+                                @if (!isSentByCurrentUser)
+                                {
+                                    <div class="message-avatar">
+                                        @if (!string.IsNullOrEmpty(message.SenderAvatarUrl))
+                                        {
+                                            <img src="@message.SenderAvatarUrl" alt="@message.SenderUsername" class="chat-avatar-small" />
+                                        }
+                                        else
+                                        {
+                                            <div class="chat-avatar-placeholder-small">
+                                                @message.SenderInitials
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                <div class="message-bubble @(isSentByCurrentUser ? "bg-primary text-white" : "bg-light")">
+                                    <div class="message-content">
+                                        @Html.Raw(message.MessageContent)
+                                    </div>
+                                    @if (message.Attachments.Any())
+                                    {
+                                        <div class="message-attachments mt-2">
+                                            @foreach (var attachment in message.Attachments)
+                                            {
+                                                @if (attachment.IsImage)
+                                                {
+                                                    <div class="attachment-image">
+                                                        <img src="@attachment.FilePath" alt="@attachment.OriginalFileName" class="img-fluid rounded" />
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="attachment-file">
+                                                        <a href="@attachment.FilePath" target="_blank" class="text-decoration-none">
+                                                            <i class="bi @attachment.FileIcon"></i>
+                                                            @attachment.OriginalFileName
+                                                            <small class="text-muted">(@attachment.FileSizeFormatted)</small>
+                                                        </a>
+                                                    </div>
+                                                }
+                                            }
+                                        </div>
+                                    }
+                                    <div class="message-time">
+                                        <small>@message.TimeAgo</small>
+                                        @if (isSentByCurrentUser && message.IsRead)
+                                        {
+                                            <i class="bi bi-check-all text-info" title="Read"></i>
+                                        }
+                                        else if (isSentByCurrentUser)
+                                        {
+                                            <i class="bi bi-check" title="Sent"></i>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-chat-dots" style="font-size: 3rem;"></i>
+                            <p class="mt-3">No messages yet. Start the conversation!</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Message Input Area -->
+                <div class="card-footer bg-white border-top">
+                    <form id="messageForm" class="d-flex align-items-end gap-2">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" id="recipientId" value="@Model.OtherUserId" />
+                        
+                        <div class="flex-grow-1">
+                            <textarea class="form-control" id="messageInput" rows="2" 
+                                      placeholder="Type a message..." maxlength="5000"></textarea>
+                            <div id="attachmentPreview" class="mt-2"></div>
+                        </div>
+                        
+                        <div class="d-flex flex-column gap-2">
+                            <button type="button" class="btn btn-outline-secondary" id="attachImageBtn" title="Attach Image">
+                                <i class="bi bi-image"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="attachFileBtn" title="Attach File">
+                                <i class="bi bi-paperclip"></i>
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="sendBtn">
+                                <i class="bi bi-send"></i>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <input type="file" id="imageInput" accept="image/jpeg,image/png,image/gif,image/webp" 
+                           multiple style="display: none;" />
+                    <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.zip,.rar" 
+                           multiple style="display: none;" />
+                </div>
+            </div>
+
+            @if (Model.HasMoreMessages)
+            {
+                <div class="text-center mt-3">
+                    <button class="btn btn-outline-primary" id="loadMoreBtn" data-page="@(Model.CurrentPage + 1)">
+                        <i class="bi bi-arrow-clockwise"></i> Load More Messages
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/tinymce/js/tinymce/tinymce.min.js"></script>
+    <script>
+        var conversationCurrentUserId = @currentUserId;
+        var conversationOtherUserId = @Model.OtherUserId;
+        var selectedImages = [];
+        var selectedFiles = [];
+
+        // Chat system is already initialized in _Layout.cshtml
+        // Just open the conversation
+        if (typeof ChatManager !== 'undefined') {
+            ChatManager.openConversation(conversationOtherUserId);
+        }
+
+        // Initialize TinyMCE for message input
+        tinymce.init({
+            selector: '#messageInput',
+            menubar: false,
+            statusbar: false,
+            toolbar: 'bold italic underline | link | emoticons',
+            plugins: 'link emoticons',
+            height: 100,
+            license_key: 'gpl',
+            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; }',
+            setup: function(editor) {
+                editor.on('keydown', function(e) {
+                    // Send message on Enter (without Shift)
+                    if (e.keyCode === 13 && !e.shiftKey) {
+                        e.preventDefault();
+                        document.getElementById('messageForm').dispatchEvent(new Event('submit'));
+                    }
+                });
+            }
+        });
+
+        // Scroll to bottom of messages
+        function scrollToBottom() {
+            var messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Initial scroll
+        scrollToBottom();
+
+        // Handle message form submission
+        document.getElementById('messageForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Get content from TinyMCE (wait for it to be ready)
+            var messageContent = '';
+            if (typeof tinymce !== 'undefined' && tinymce.get('messageInput')) {
+                messageContent = tinymce.get('messageInput').getContent();
+            } else {
+                messageContent = document.getElementById('messageInput').value;
+            }
+
+            // Strip HTML tags for validation
+            var textContent = messageContent.replace(/<[^>]*>/g, '').trim();
+
+            if (!textContent && selectedImages.length === 0 && selectedFiles.length === 0) {
+                alert('Please enter a message or attach a file.');
+                return;
+            }
+
+            try {
+                // Prepare form data for file upload
+                var formData = new FormData();
+                formData.append('RecipientId', conversationOtherUserId);
+                formData.append('MessageContent', messageContent);
+
+                // Add anti-forgery token
+                var token = document.querySelector('input[name="__RequestVerificationToken"]');
+                if (token) {
+                    formData.append('__RequestVerificationToken', token.value);
+                }
+
+                // Add images
+                for (var i = 0; i < selectedImages.length; i++) {
+                    formData.append('UploadedImages', selectedImages[i]);
+                }
+
+                // Add files
+                for (var i = 0; i < selectedFiles.length; i++) {
+                    formData.append('UploadedFiles', selectedFiles[i]);
+                }
+
+                console.log('Sending message to user:', conversationOtherUserId);
+
+                // Send via HTTP POST (for file uploads)
+                var response = await fetch('/Chat/SendMessage', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+
+                var result = await response.json();
+                console.log('Send message result:', result);
+
+                if (result.success) {
+                    // Clear form
+                    if (typeof tinymce !== 'undefined' && tinymce.get('messageInput')) {
+                        tinymce.get('messageInput').setContent('');
+                    } else {
+                        document.getElementById('messageInput').value = '';
+                    }
+                    selectedImages = [];
+                    selectedFiles = [];
+                    document.getElementById('imageInput').value = '';
+                    document.getElementById('fileInput').value = '';
+                    document.getElementById('attachmentPreview').innerHTML = '';
+
+                    // Message will be added via SignalR
+                    scrollToBottom();
+                } else {
+                    alert('Failed to send message: ' + (result.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Failed to send message. Please try again.');
+            }
+        });
+
+        // Typing indicator with TinyMCE
+        var typingTimeout;
+        setTimeout(function() {
+            if (tinymce.get('messageInput')) {
+                tinymce.get('messageInput').on('keyup', function() {
+                    if (ChatManager.connection && ChatManager.connection.state === 'Connected') {
+                        ChatManager.sendTypingIndicator(conversationOtherUserId);
+
+                        clearTimeout(typingTimeout);
+                        typingTimeout = setTimeout(function() {
+                            ChatManager.sendStoppedTyping(conversationOtherUserId);
+                        }, 2000);
+                    }
+                });
+            }
+        }, 1000); // Wait for TinyMCE to initialize
+
+        // File attachments
+        document.getElementById('attachImageBtn').addEventListener('click', function() {
+            document.getElementById('imageInput').click();
+        });
+
+        document.getElementById('attachFileBtn').addEventListener('click', function() {
+            document.getElementById('fileInput').click();
+        });
+
+        // Handle image selection with preview
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            var files = Array.from(e.target.files);
+            console.log('Images selected:', files);
+
+            files.forEach(function(file) {
+                // Validate file
+                if (!ChatManager.validateFile(file, 'image')) {
+                    return;
+                }
+
+                selectedImages.push(file);
+            });
+
+            updateAttachmentPreview();
+        });
+
+        // Handle file selection with preview
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            var files = Array.from(e.target.files);
+            console.log('Files selected:', files);
+
+            files.forEach(function(file) {
+                // Validate file
+                if (!ChatManager.validateFile(file, 'file')) {
+                    return;
+                }
+
+                selectedFiles.push(file);
+            });
+
+            updateAttachmentPreview();
+        });
+
+        // Update attachment preview
+        function updateAttachmentPreview() {
+            var previewContainer = document.getElementById('attachmentPreview');
+            var html = '';
+
+            // Show image previews
+            selectedImages.forEach(function(file, index) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var imgHtml = `
+                        <div class="attachment-preview-item d-inline-block position-relative me-2 mb-2">
+                            <img src="${e.target.result}" alt="${file.name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
+                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0"
+                                    onclick="removeImage(${index})" style="padding: 2px 6px; font-size: 12px;">
+                                <i class="bi bi-x"></i>
+                            </button>
+                            <div class="text-center" style="font-size: 10px; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${file.name}
+                            </div>
+                        </div>
+                    `;
+                    previewContainer.innerHTML += imgHtml;
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // Show file previews
+            selectedFiles.forEach(function(file, index) {
+                html += `
+                    <div class="attachment-preview-item d-inline-block position-relative me-2 mb-2 p-2 border rounded">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-file-earmark me-2"></i>
+                            <div style="max-width: 150px;">
+                                <div style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</div>
+                                <div style="font-size: 10px; color: #6c757d;">${ChatManager.formatFileSize(file.size)}</div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-danger ms-2"
+                                    onclick="removeFile(${index})" style="padding: 2px 6px; font-size: 12px;">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (selectedFiles.length > 0) {
+                previewContainer.innerHTML = html;
+            }
+        }
+
+        // Remove image from selection
+        window.removeImage = function(index) {
+            selectedImages.splice(index, 1);
+            document.getElementById('imageInput').value = '';
+            updateAttachmentPreview();
+        };
+
+        // Remove file from selection
+        window.removeFile = function(index) {
+            selectedFiles.splice(index, 1);
+            document.getElementById('fileInput').value = '';
+            updateAttachmentPreview();
+        };
+
+        // Load more messages
+        var loadMoreBtn = document.getElementById('loadMoreBtn');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', async function() {
+                var page = this.dataset.page;
+                var btn = this;
+
+                try {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Loading...';
+
+                    var response = await fetch(`/Chat/GetMessages?otherUserId=${conversationOtherUserId}&page=${page}&pageSize=50`);
+                    var result = await response.json();
+
+                    if (result.success && result.data && result.data.length > 0) {
+                        var messagesContainer = document.getElementById('chatMessages');
+                        var oldScrollHeight = messagesContainer.scrollHeight;
+
+                        // Prepend messages
+                        result.data.reverse().forEach(function(message) {
+                            var messageHtml = createMessageHTML(message);
+                            messagesContainer.insertAdjacentHTML('afterbegin', messageHtml);
+                        });
+
+                        // Maintain scroll position
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight - oldScrollHeight;
+
+                        // Update button
+                        var nextPage = parseInt(page) + 1;
+                        btn.dataset.page = nextPage;
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Load More Messages';
+
+                        // Hide button if no more messages
+                        if (result.data.length < 50) {
+                            btn.style.display = 'none';
+                        }
+                    } else {
+                        btn.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Error loading messages:', error);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Load More Messages';
+                    alert('Failed to load more messages.');
+                }
+            });
+        }
+
+        // Helper function to create message HTML
+        function createMessageHTML(message) {
+            var isSent = message.SenderId === conversationCurrentUserId;
+            var avatarHtml = '';
+
+            if (!isSent) {
+                if (message.SenderAvatarUrl) {
+                    avatarHtml = `<div class="message-avatar"><img src="${message.SenderAvatarUrl}" alt="${message.SenderUsername}" class="chat-avatar-small" /></div>`;
+                } else {
+                    avatarHtml = `<div class="message-avatar"><div class="chat-avatar-placeholder-small">${message.SenderInitials}</div></div>`;
+                }
+            }
+
+            var attachmentsHtml = '';
+            if (message.Attachments && message.Attachments.length > 0) {
+                attachmentsHtml = '<div class="message-attachments mt-2">';
+                message.Attachments.forEach(function(att) {
+                    if (att.IsImage) {
+                        attachmentsHtml += `<div class="attachment-image"><img src="${att.FilePath}" alt="${att.OriginalFileName}" class="img-fluid rounded" /></div>`;
+                    } else {
+                        attachmentsHtml += `<div class="attachment-file"><a href="${att.FilePath}" target="_blank" class="text-decoration-none"><i class="bi ${att.FileIcon}"></i> ${att.OriginalFileName} <small class="text-muted">(${att.FileSizeFormatted})</small></a></div>`;
+                    }
+                });
+                attachmentsHtml += '</div>';
+            }
+
+            var readIcon = '';
+            if (isSent) {
+                readIcon = message.IsRead ? '<i class="bi bi-check-all text-info" title="Read"></i>' : '<i class="bi bi-check" title="Sent"></i>';
+            }
+
+            return `
+                <div class="message-wrapper ${isSent ? 'sent' : 'received'}" data-message-id="${message.MessageId}">
+                    ${avatarHtml}
+                    <div class="message-bubble ${isSent ? 'bg-primary text-white' : 'bg-light'}">
+                        <div class="message-content">${message.MessageContent}</div>
+                        ${attachmentsHtml}
+                        <div class="message-time">
+                            <small>${message.TimeAgo}</small>
+                            ${readIcon}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+}
+
