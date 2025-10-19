@@ -9,12 +9,18 @@ namespace DoAnChuyenNganh.Services
         private readonly DoAnChuyenNganhContext _context;
         private readonly ILogger<ForumService> _logger;
         private readonly IFileUploadService _fileUploadService;
+        private readonly INotificationService _notificationService;
 
-        public ForumService(DoAnChuyenNganhContext context, ILogger<ForumService> logger, IFileUploadService fileUploadService)
+        public ForumService(
+            DoAnChuyenNganhContext context,
+            ILogger<ForumService> logger,
+            IFileUploadService fileUploadService,
+            INotificationService notificationService)
         {
             _context = context;
             _logger = logger;
             _fileUploadService = fileUploadService;
+            _notificationService = notificationService;
         }
 
         #region Category Operations
@@ -831,6 +837,20 @@ namespace DoAnChuyenNganh.Services
                     await _context.SaveChangesAsync();
                 }
 
+                // Create notifications for reply
+                await _notificationService.CreateForumReplyNotificationAsync(
+                    model.PostId,
+                    reply.ReplyId,
+                    userId,
+                    model.ParentReplyId);
+
+                // Create notifications for mentions
+                await _notificationService.CreateMentionNotificationsAsync(
+                    model.Content,
+                    userId,
+                    "reply",
+                    reply.ReplyId);
+
                 return (true, reply.ReplyId, "Reply posted successfully");
             }
             catch (Exception ex)
@@ -1005,6 +1025,10 @@ namespace DoAnChuyenNganh.Services
                     _context.UserLikes.Add(like);
                     post.LikeCount = (post.LikeCount ?? 0) + 1;
                     await _context.SaveChangesAsync();
+
+                    // Create notification for post like
+                    await _notificationService.CreatePostLikeNotificationAsync(postId, userId);
+
                     return (true, true, post.LikeCount ?? 0, "Post liked");
                 }
             }
@@ -1049,6 +1073,10 @@ namespace DoAnChuyenNganh.Services
                     _context.UserLikes.Add(like);
                     reply.LikeCount = (reply.LikeCount ?? 0) + 1;
                     await _context.SaveChangesAsync();
+
+                    // Create notification for reply like
+                    await _notificationService.CreateReplyLikeNotificationAsync(replyId, userId);
+
                     return (true, true, reply.LikeCount ?? 0, "Reply liked");
                 }
             }

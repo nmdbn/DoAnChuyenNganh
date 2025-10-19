@@ -1,5 +1,8 @@
+using DoAnChuyenNganh.Hubs;
 using DoAnChuyenNganh.Models;
+using DoAnChuyenNganh.Providers;
 using DoAnChuyenNganh.Services;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +25,10 @@ builder.Services.AddSession(options =>
     options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
+// Add SignalR for real-time notifications with custom user ID provider
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IUserIdProvider, SessionUserIdProvider>();
+
 // Add Authentication Service
 builder.Services.AddScoped<IAuthService, AuthService>();
 
@@ -30,6 +37,9 @@ builder.Services.AddScoped<IForumService, ForumService>();
 
 // Add File Upload Service
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+
+// Add Notification Service
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
@@ -51,6 +61,9 @@ app.UseSession();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
+// Map SignalR Hub
+app.MapHub<NotificationHub>("/notificationHub");
 
 app.MapControllerRoute(
     name: "default",

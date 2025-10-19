@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notification.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/DoAnChuyenNganh.styles.css" asp-append-version="true" />
 </head>
 <body>
@@ -106,6 +107,25 @@
                                 var names = fullName.Split(' ');
                                 initials = names.Length >= 2 ? $"{names[0][0]}{names[names.Length - 1][0]}" : names[0][0].ToString();
                             }
+                            <!-- Notification Bell -->
+                            <li class="nav-item dropdown me-2">
+                                <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button"
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-bell fs-5"></i>
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                          id="notificationBadge" style="display: none;">
+                                        0
+                                    </span>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end notification-dropdown"
+                                     aria-labelledby="notificationDropdown" id="notificationDropdownMenu">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border spinner-border-sm" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle d-flex align-items-center text-dark" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     @if (!string.IsNullOrEmpty(avatarUrl))
@@ -170,6 +190,21 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @if (Context.Session.GetInt32("UserId").HasValue)
+    {
+        <!-- SignalR for real-time notifications -->
+        <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@7.0.0/dist/browser/signalr.min.js"></script>
+        <script src="~/js/notification.js" asp-append-version="true"></script>
+        <script>
+            // Initialize notification system
+            const userId = @Context.Session.GetInt32("UserId");
+            if (typeof NotificationManager !== 'undefined') {
+                NotificationManager.init(userId);
+            }
+        </script>
+    }
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
