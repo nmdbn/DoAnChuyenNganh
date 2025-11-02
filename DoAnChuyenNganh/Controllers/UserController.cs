@@ -22,6 +22,7 @@ namespace DoAnChuyenNganh.Controllers
         public async Task<IActionResult> Index()
         {
             var doAnChuyenNganhContext = _context.Users.Include(u => u.CreatedByNavigation).Include(u => u.Role).Include(u => u.UpdatedByNavigation);
+            ViewBag.Roles = new SelectList(await _context.Roles.ToListAsync(), "RoleId", "RoleName");
             return View(await doAnChuyenNganhContext.ToListAsync());
         }
 
@@ -50,7 +51,7 @@ namespace DoAnChuyenNganh.Controllers
         public IActionResult Create()
         {
             ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId");
-            ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleId");
+            ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleName");
             ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "UserId");
             return View();
         }
@@ -67,7 +68,7 @@ namespace DoAnChuyenNganh.Controllers
                 return RedirectToAction(nameof(Index));
             }
             ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId", user.CreatedBy);
-            ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleId", user.RoleId);
+            ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleName", user.RoleId);
             ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "UserId", user.UpdatedBy);
             return View(user);
         }
@@ -86,7 +87,7 @@ namespace DoAnChuyenNganh.Controllers
                 return NotFound();
             }
             ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId", user.CreatedBy);
-            ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleId", user.RoleId);
+            ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleName", user.RoleId);
             ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "UserId", user.UpdatedBy);
             return View(user);
         }
@@ -122,7 +123,7 @@ namespace DoAnChuyenNganh.Controllers
                 return RedirectToAction(nameof(Index));
             }
             ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId", user.CreatedBy);
-            ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleId", user.RoleId);
+            ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleName", user.RoleId);
             ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "UserId", user.UpdatedBy);
             return View(user);
         }
@@ -207,6 +208,73 @@ namespace DoAnChuyenNganh.Controllers
             {
                 return Json(new { success = false, message = ex.Message });
             }
+        }
+
+        // POST: Users/ChangeRole - AJAX endpoint
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangeRole(int userId, byte roleId)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "User not found" });
+                }
+
+                var role = await _context.Roles.FindAsync(roleId);
+                if (role == null)
+                {
+                    return Json(new { success = false, message = "Role not found" });
+                }
+
+                user.RoleId = roleId;
+                user.UpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                return Json(new
+                {
+                    success = true,
+                    roleName = role.RoleName,
+                    message = $"User role changed to {role.RoleName}"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // GET: Users/GetRoles - AJAX endpoint to fetch roles
+        [HttpGet]
+        public async Task<IActionResult> GetRoles()
+        {
+            try
+            {
+                var roles = await _context.Roles
+                    .Select(r => new { roleId = r.RoleId, roleName = r.RoleName })
+                    .ToListAsync();
+                return Json(roles);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // GET: Users/Stats
+        public async Task<IActionResult> Stats()
+        {
+            var stats = new
+            {
+                TotalUsers = await _context.Users.CountAsync(),
+                ActiveUsers = await _context.Users.CountAsync(u => u.IsActive == true),
+                LockedUsers = await _context.Users.CountAsync(u => u.IsLocked == true),
+                Administrators = await _context.Users.CountAsync(u => u.RoleId == 4)
+            };
+            return View(stats);
         }
 
         private bool UserExists(int id)
