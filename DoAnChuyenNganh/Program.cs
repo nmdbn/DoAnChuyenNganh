@@ -41,6 +41,9 @@ builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 // Add Notification Service
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
+// Add Chat Service
+builder.Services.AddScoped<IChatService, ChatService>();
+
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 
@@ -62,8 +65,9 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 
-// Map SignalR Hub
+// Map SignalR Hubs
 app.MapHub<NotificationHub>("/notificationHub");
+app.MapHub<ChatHub>("/chatHub");
 
 app.MapControllerRoute(
     name: "default",

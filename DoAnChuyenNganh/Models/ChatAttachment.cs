@@ -1,0 +1,32 @@
+using System;
+using System.Collections.Generic;
+
+namespace DoAnChuyenNganh.Models;
+
+public partial class ChatAttachment
+{
+    public int AttachmentId { get; set; }
+
+    public int MessageId { get; set; }
+
+    public string FileName { get; set; } = null!;
+
+    public string OriginalFileName { get; set; } = null!;
+
+    public string FilePath { get; set; } = null!;
+
+    public string FileType { get; set; } = null!;
+
+    public string MimeType { get; set; } = null!;
+
+    public long FileSize { get; set; }
+
+    public int UploadedBy { get; set; }
+
+    public DateTime? CreatedAt { get; set; }
+
+    public virtual PrivateMessage Message { get; set; } = null!;
+
+    public virtual User UploadedByNavigation { get; set; } = null!;
+}
+

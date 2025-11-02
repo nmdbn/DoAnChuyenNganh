@@ -15,6 +15,8 @@ public partial class DoAnChuyenNganhContext : DbContext
     {
     }
 
+    public virtual DbSet<ChatAttachment> ChatAttachments { get; set; }
+
     public virtual DbSet<ContentReport> ContentReports { get; set; }
 
     public virtual DbSet<Course> Courses { get; set; }
@@ -106,6 +108,34 @@ public partial class DoAnChuyenNganhContext : DbContext
             entity.HasOne(d => d.ReviewedByNavigation).WithMany(p => p.ContentReportReviewedByNavigations)
                 .HasForeignKey(d => d.ReviewedBy)
                 .HasConstraintName("FK_ContentReports_ReviewedBy");
+        });
+
+        modelBuilder.Entity<ChatAttachment>(entity =>
+        {
+            entity.HasKey(e => e.AttachmentId).HasName("PK__ChatAtta__442C64BE");
+
+            entity.HasIndex(e => e.MessageId, "IX_ChatAttachments_MessageID");
+
+            entity.HasIndex(e => e.UploadedBy, "IX_ChatAttachments_UploadedBy");
+
+            entity.Property(e => e.AttachmentId).HasColumnName("AttachmentID");
+            entity.Property(e => e.MessageId).HasColumnName("MessageID");
+            entity.Property(e => e.FileName).HasMaxLength(255);
+            entity.Property(e => e.OriginalFileName).HasMaxLength(255);
+            entity.Property(e => e.FilePath).HasMaxLength(500);
+            entity.Property(e => e.FileType).HasMaxLength(10);
+            entity.Property(e => e.MimeType).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.Message).WithMany(p => p.ChatAttachments)
+                .HasForeignKey(d => d.MessageId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ChatAttachments_Message");
+
+            entity.HasOne(d => d.UploadedByNavigation).WithMany()
+                .HasForeignKey(d => d.UploadedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ChatAttachments_User");
         });
 
         modelBuilder.Entity<Course>(entity =>

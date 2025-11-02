@@ -364,3 +364,4 @@ FodyWeavers.xsd
 /DoAnChuyenNganh/appsettings.json
 /DoAnChuyenNganh/wwwroot/uploads
 /DoAnChuyenNganh/wwwroot/forum
+/DoAnChuyenNganh/appsettings.Development.json

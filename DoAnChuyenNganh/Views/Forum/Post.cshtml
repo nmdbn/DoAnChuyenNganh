@@ -68,7 +68,18 @@
                 }
             </div>
             <div class="author-details">
-                <h4><a href="@Url.Action("UserActivity", "Forum", new { id = Model.Post.UserId })">@Model.Post.Username</a></h4>
+                <h4>
+                    <a href="@Url.Action("UserActivity", "Forum", new { id = Model.Post.UserId })">@Model.Post.Username</a>
+                    @* Show Send Message button only if viewing another user's post and current user is logged in *@
+                    @if (Context.Session.GetInt32("UserId").HasValue && Context.Session.GetInt32("UserId").Value != Model.Post.UserId)
+                    {
+                        <a href="@Url.Action("Conversation", "Chat", new { userId = Model.Post.UserId })"
+                           class="btn btn-sm btn-outline-primary ms-2"
+                           title="Send message to @Model.Post.Username">
+                            <i class="bi bi-chat-dots"></i>
+                        </a>
+                    }
+                </h4>
                 <p class="text-muted">Posted on @Model.Post.CreatedAt?.ToString("MMMM dd, yyyy 'at' HH:mm")</p>
                 @if (Model.Post.UpdatedAt.HasValue && Model.Post.CreatedAt.HasValue &&
                      (Model.Post.UpdatedAt.Value - Model.Post.CreatedAt.Value).TotalSeconds > 5)

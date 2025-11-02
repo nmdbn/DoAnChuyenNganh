@@ -25,6 +25,8 @@ public partial class PrivateMessage
 
     public DateTime? CreatedAt { get; set; }
 
+    public virtual ICollection<ChatAttachment> ChatAttachments { get; set; } = new List<ChatAttachment>();
+
     public virtual User? DeletedByNavigation { get; set; }
 
     public virtual User Recipient { get; set; } = null!;
