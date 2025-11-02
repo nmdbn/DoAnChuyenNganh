@@ -1,0 +1,195 @@
+﻿
+@{
+    ViewData["Title"] = "_Statistical";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<link rel="stylesheet" href="~/css/user-management.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+<div class="user-management-container">
+    <!-- Header -->
+    <div class="user-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-bar-chart"></i> User Statistics</h1>
+                <p class="text-muted">Overview of user distribution in the system</p>
+            </div>
+            <div>
+                <a href="@Url.Action("Index", "User")" class="btn btn-primary">
+                    <i class="bi bi-arrow-left"></i> Back to User Management
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Section -->
+    <div class="users-section">
+        <div class="section-header">
+            <h2><i class="bi bi-graph-up"></i> User Distribution</h2>
+        </div>
+        <div class="chart-container">
+            <canvas id="userStatsChart"></canvas>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Data for the chart
+            const data = {
+                labels: ['Total Users', 'Active Users', 'Locked Users', 'Administrators'],
+                datasets: [{
+                    label: 'User Statistics',
+                    data: [
+        @Model.TotalUsers,
+        @Model.ActiveUsers,
+        @Model.LockedUsers,
+        @Model.Administrators
+                    ],
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.6)', // Total Users
+                        'rgba(16, 185, 129, 0.6)',  // Active Users
+                        'rgba(239, 68, 68, 0.6)',   // Locked Users
+                        'rgba(245, 158, 11, 0.6)'   // Administrators
+                    ],
+                    borderColor: [
+                        'rgba(102, 126, 234, 1)',
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(239, 68, 68, 1)',
+                        'rgba(245, 158, 11, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            // Chart configuration
+            const config = {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'User Statistics Overview',
+                            font: {
+                                size: 18,
+                                weight: '600'
+                            },
+                            padding: {
+                                top: 10,
+                                bottom: 20
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Users'
+                            },
+                            ticks: {
+                                stepSize: 1
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Categories'
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Initialize the chart
+            const userStatsChart = new Chart(
+                document.getElementById('userStatsChart'),
+                config
+            );
+        });
+    </script>
+}
+
+<style>
+    /* Reuse styles from user-management.css for consistency */
+    .user-management-container {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .user-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+    }
+
+        .user-header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .user-header p {
+            margin: 5px 0 0;
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .user-header .btn-primary {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+            .user-header .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            }
+
+    .users-section {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+    /* Chart Container */
+    .chart-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    canvas#userStatsChart {
+        max-height: 400px;
+    }
+</style>

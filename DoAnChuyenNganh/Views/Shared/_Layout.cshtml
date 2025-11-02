@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -50,6 +50,62 @@
                         }
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-dark" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-gear"></i> Admin
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                <li>
+                                    <a class="dropdown-item" asp-controller="User" asp-action="Index">
+                                        <i class="bi bi-people"></i> User Management
+                                    </a>
+                                </li>
+                                <li class="dropdown-submenu">
+                                    <a class="dropdown-item dropdown-toggle" href="#" id="learningManagementDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-book"></i> Learning Management
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="learningManagementDropdown">
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Course" asp-action="Create">
+                                                <i class="bi bi-plus-circle"></i> Add
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Course" asp-action="Index">
+                                                <i class="bi bi-pencil"></i> Edit
+                                            </a>
+                                        </li>
+                                        <li class="dropdown-submenu">
+                                            <a class="dropdown-item dropdown-toggle" href="#" id="manageLessonsMaterialsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="bi bi-file-earmark-text"></i> Manage Lessons & Materials
+                                            </a>
+                                            <ul class="dropdown-menu" aria-labelledby="manageLessonsMaterialsDropdown">
+                                                <li>
+                                                    <a class="dropdown-item" asp-controller="Lesson" asp-action="Index">
+                                                        <i class="bi bi-file-earmark-text"></i> Manage Lessons
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" asp-controller="CourseMaterial" asp-action="Index">
+                                                        <i class="bi bi-file-earmark-text"></i> Manage Materials
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Subject" asp-action="Index">
+                                                <i class="bi bi-list-ul"></i> Manage Subjects
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="C:\Users\phamt\Source\Repos\DoAnChuyenNganh\DoAnChuyenNganh\Views\Shared\_Statistical.cshtml">
+                                        <i class="bi bi-wrench"></i> System Administration
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                     </ul>
                     <ul class="navbar-nav">
@@ -180,3 +236,18 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+<style>
+    .dropdown-submenu {
+        position: relative;
+    }
+
+        .dropdown-submenu .dropdown-menu {
+            top: 0;
+            left: 100%;
+            margin-top: -1px;
+        }
+
+        .dropdown-submenu:hover > .dropdown-menu {
+            display: block;
+        }
+</style>
