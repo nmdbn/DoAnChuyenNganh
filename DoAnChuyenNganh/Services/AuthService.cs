@@ -1,4 +1,4 @@
-using DoAnChuyenNganh.Models;
+﻿using DoAnChuyenNganh.Models;
 using DoAnChuyenNganh.ViewModels.Auth;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
@@ -424,6 +424,7 @@ namespace DoAnChuyenNganh.Services
                 var user = await _context.Users
                     .Include(u => u.Role)
                     .FirstOrDefaultAsync(u => u.GoogleId == googleId || u.Email == email);
+
                 if (user is null)
                 {
                     user = new User
@@ -471,6 +472,69 @@ namespace DoAnChuyenNganh.Services
                 {
                     Success = false,
                     Message = "An error occurred during Google authentication"
+                };
+            }
+        }
+        public async Task<AuthResult> AuthenticateFacebookAsync(string email, string fullName, string facebookId, string ipAddress, string userAgent)
+        {
+            try
+            {
+                var nameParts = fullName.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                var firstName = nameParts.Length > 0 ? nameParts[0] : "";
+                var lastName = nameParts.Length > 1 ? nameParts[1] : "";
+
+                var user = await _context.Users
+                    .Include(u => u.Role)
+                    .FirstOrDefaultAsync(u => u.FacebookId == facebookId || u.Email == email);
+
+                if (user is null)
+                {
+                    user = new User
+                    {
+                        Username = email?.Split('@')[0] ?? $"fb_{facebookId}",
+                        Email = email ?? "",
+                        FacebookId = facebookId,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        IsEmailVerified = !string.IsNullOrEmpty(email),
+                        IsActive = true,
+                        IsLocked = false,
+                        RoleId = 2, // Default role (Student/User)
+                        LoginAttempts = 0,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now,
+                        PasswordHash = string.Empty,
+                        PasswordSalt = string.Empty,
+                    };
+                    _context.Users.Add(user);
+                    await _context.SaveChangesAsync();
+
+                    await LogActivityAsync(user.UserId, "facebook_register", "user", user.UserId, ipAddress, userAgent);
+                }
+
+                user.LastLoginAt = DateTime.Now;
+                user.IsActive = true;
+                await _context.SaveChangesAsync();
+
+                var session = await CreateSessionAsync(user.UserId, ipAddress, userAgent, rememberMe: true);
+
+                await LogActivityAsync(user.UserId, "facebook_login", "user", user.UserId, ipAddress, userAgent);
+
+                return new AuthResult
+                {
+                    Success = true,
+                    User = user,
+                    Token = session.SessionToken,
+                    Message = "Facebook login successful"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in Facebook authentication");
+                return new AuthResult
+                {
+                    Success = false,
+                    Message = "An error occurred during Facebook authentication"
                 };
             }
         }

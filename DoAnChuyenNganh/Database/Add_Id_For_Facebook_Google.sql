@@ -1,0 +1,5 @@
+﻿USE DoAnChuyenNganh;
+ALTER TABLE Users
+ADD FacebookId NVARCHAR(50) NULL;
+ALTER TABLE Users
+ADD GoogleId NVARCHAR(50) NULL;

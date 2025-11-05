@@ -522,7 +522,78 @@ namespace DoAnChuyenNganh.Controllers
             var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
             return Challenge(properties, FacebookDefaults.AuthenticationScheme);
         }
+        [HttpGet]
+        public async Task<IActionResult> FacebookResponse(string? returnUrl = null)
+        {
+            var result = await HttpContext.AuthenticateAsync(FacebookDefaults.AuthenticationScheme);
 
+            if (result?.Succeeded != true || result.Principal == null)
+            {
+                TempData["ErrorMessage"] = "Facebook login failed. Please try again.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            var claims = result.Principal.Identities.FirstOrDefault()?.Claims;
+            if (claims == null)
+            {
+                TempData["ErrorMessage"] = "Facebook login failed. Please try again.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            var name = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+            var providerId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var picture = claims.FirstOrDefault(c => c.Type == "picture")?.Value; // nếu bạn thêm Field picture
+
+            if (string.IsNullOrEmpty(providerId))
+            {
+                TempData["ErrorMessage"] = "Facebook did not provide sufficient information.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            var ipAddress = GetIpAddress();
+            var userAgent = GetUserAgent();
+
+            var resultAuth = await _authService.AuthenticateFacebookAsync(
+                email ?? providerId, 
+                name ?? "Facebook User",
+                providerId,
+                ipAddress,
+                userAgent);
+
+            if (!resultAuth.Success || resultAuth.User == null)
+            {
+                TempData["ErrorMessage"] = resultAuth.Message;
+                return RedirectToAction(nameof(Login));
+            }
+
+            var session = await _authService.CreateSessionAsync(
+                resultAuth.User.UserId,
+                ipAddress,
+                userAgent,
+                rememberMe: true);
+
+            SetSessionCookie(session.SessionToken, rememberMe: true);
+
+            HttpContext.Session.SetInt32("UserId", resultAuth.User.UserId);
+            HttpContext.Session.SetString("Username", resultAuth.User.Username);
+            HttpContext.Session.SetString("Email", resultAuth.User.Email ?? "");
+            HttpContext.Session.SetString("FullName", $"{resultAuth.User.FirstName} {resultAuth.User.LastName}");
+            HttpContext.Session.SetString("RoleName", resultAuth.User.Role?.RoleName ?? "User");
+            if (!string.IsNullOrEmpty(picture))
+            {
+                HttpContext.Session.SetString("AvatarUrl", picture);
+            }
+
+            await HttpContext.Session.CommitAsync();
+
+            TempData["SuccessMessage"] = "Login with Facebook successful!";
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction("Index", "Home");
+        }
         #endregion
     }
 }

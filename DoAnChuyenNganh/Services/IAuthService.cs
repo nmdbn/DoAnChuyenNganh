@@ -74,6 +74,11 @@ namespace DoAnChuyenNganh.Services
         /// Google OAuth authentication
         /// </summary>
         Task<AuthResult> AuthenticateGoogleAsync(string email, string fullName, string googleId, string ipAddress, string userAgent);
+
+        /// <summary>
+        /// Facebook OAuth authentication
+        /// </summary>
+        Task<AuthResult> AuthenticateFacebookAsync(string email, string fullName, string facebookId, string ipAddress, string userAgent);
     }
 }
 

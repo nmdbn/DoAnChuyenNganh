@@ -253,7 +253,7 @@
             }
         </script>
     }
-    @if (TempData["SuccessMessage"]?.ToString() == "Login with Google successful!")
+    @if (TempData["SuccessMessage"]?.ToString() == "Login with Google successful!" || TempData["SuccessMessage"]?.ToString() == "Login with Facebook successful!")
     {
         <script>
             window.location.replace(window.location.href);

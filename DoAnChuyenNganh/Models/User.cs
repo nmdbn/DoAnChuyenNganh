@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace DoAnChuyenNganh.Models;
+﻿namespace DoAnChuyenNganh.Models;
 
 public partial class User
 {
@@ -49,7 +46,7 @@ public partial class User
 
     public int? UpdatedBy { get; set; }
     public string? GoogleId { get; set; }
-
+    public string? FacebookId { get; set; }
     public virtual ICollection<ContentReport> ContentReportReportedUsers { get; set; } = new List<ContentReport>();
 
     public virtual ICollection<ContentReport> ContentReportReporters { get; set; } = new List<ContentReport>();
