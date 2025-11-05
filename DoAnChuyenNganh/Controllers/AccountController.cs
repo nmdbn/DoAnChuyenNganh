@@ -1,6 +1,7 @@
 ﻿using DoAnChuyenNganh.Services;
 using DoAnChuyenNganh.ViewModels.Auth;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -511,6 +512,17 @@ namespace DoAnChuyenNganh.Controllers
 
             return RedirectToAction("Index", "Home");
         }
+        #endregion
+
+        #region Facebbook Login
+        [HttpGet]
+        public IActionResult FacebookLogin(string? returnUrl = null)
+        {
+            var redirectUrl = Url.Action(nameof(FacebookResponse), "Account", new { returnUrl });
+            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+            return Challenge(properties, FacebookDefaults.AuthenticationScheme);
+        }
+
         #endregion
     }
 }

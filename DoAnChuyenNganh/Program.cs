@@ -3,10 +3,8 @@ using DoAnChuyenNganh.Models;
 using DoAnChuyenNganh.Providers;
 using DoAnChuyenNganh.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,16 +52,15 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
 })
     .AddCookie(options =>
     {
         options.LoginPath = "/Account/Login";
         options.LogoutPath = "/Account/Logout";
-        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.ExpireTimeSpan = TimeSpan.FromHours(24);
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.IsEssential = true;
     })
     .AddGoogle(options =>
     {
@@ -72,6 +69,17 @@ builder.Services.AddAuthentication(options =>
         options.CallbackPath = "/signin-google";
         options.Scope.Add("email");
         options.Scope.Add("profile");
+    })
+    .AddFacebook(options =>
+    {
+        options.AppId = builder.Configuration["Authentication:Facebook:AppId"]!;
+        options.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"]!;
+        options.CallbackPath = "/signin-facebook";
+        options.Scope.Add("public_profile");
+        options.Scope.Add("email");  
+        options.Fields.Add("name");
+        options.Fields.Add("email");
+        options.Fields.Add("picture");      
     });
 
 var app = builder.Build();
