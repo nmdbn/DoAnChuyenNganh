@@ -48,6 +48,7 @@ public partial class User
     public int? CreatedBy { get; set; }
 
     public int? UpdatedBy { get; set; }
+    public string? GoogleId { get; set; }
 
     public virtual ICollection<ContentReport> ContentReportReportedUsers { get; set; } = new List<ContentReport>();
 

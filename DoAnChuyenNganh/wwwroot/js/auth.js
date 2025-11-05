@@ -36,14 +36,14 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // Social login buttons (UI only - no backend implementation)
-  const socialButtons = document.querySelectorAll(".btn-social");
-  socialButtons.forEach((button) => {
-    button.addEventListener("click", function (e) {
-      e.preventDefault();
-      const provider = this.dataset.provider;
-      showSocialLoginMessage(provider);
-    });
-  });
+  //const socialButtons = document.querySelectorAll(".btn-social");
+  //socialButtons.forEach((button) => {
+  //  button.addEventListener("click", function (e) {
+  //    e.preventDefault();
+  //    const provider = this.dataset.provider;
+  //    showSocialLoginMessage(provider);
+  //  });
+  //});
 
   // Auto-hide alerts
   const alerts = document.querySelectorAll(".alert-auth");
@@ -197,10 +197,10 @@ function hideFieldError(field) {
 }
 
 // Social login message (UI only)
-function showSocialLoginMessage(provider) {
-  const message = `Social login with ${provider} is not yet implemented. This is a UI placeholder only.`;
-  alert(message);
-}
+//function showSocialLoginMessage(provider) {
+//  const message = `Social login with ${provider} is not yet implemented. This is a UI placeholder only.`;
+//  alert(message);
+//}
 
 // Fade out animation
 function fadeOut(element) {

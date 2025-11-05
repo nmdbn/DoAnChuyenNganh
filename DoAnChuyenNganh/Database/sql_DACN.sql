@@ -75,6 +75,7 @@ CREATE TABLE Users (
     UpdatedAt DATETIME2 DEFAULT GETDATE(),
     CreatedBy INT,
     UpdatedBy INT,
+	GoogleId NVARCHAR(50) NULL,
     
     CONSTRAINT FK_Users_Role FOREIGN KEY (RoleID) REFERENCES Roles(RoleID),
     CONSTRAINT FK_Users_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),

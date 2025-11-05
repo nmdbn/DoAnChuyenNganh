@@ -1,6 +1,9 @@
-using DoAnChuyenNganh.Services;
+﻿using DoAnChuyenNganh.Services;
 using DoAnChuyenNganh.ViewModels.Auth;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace DoAnChuyenNganh.Controllers
 {
@@ -44,9 +47,9 @@ namespace DoAnChuyenNganh.Controllers
             var userAgent = GetUserAgent();
 
             var result = await _authService.AuthenticateAsync(
-                model.UsernameOrEmail, 
-                model.Password, 
-                ipAddress, 
+                model.UsernameOrEmail,
+                model.Password,
+                ipAddress,
                 userAgent);
 
             if (!result.Success || result.User == null)
@@ -57,9 +60,9 @@ namespace DoAnChuyenNganh.Controllers
 
             // Create session
             var session = await _authService.CreateSessionAsync(
-                result.User.UserId, 
-                ipAddress, 
-                userAgent, 
+                result.User.UserId,
+                ipAddress,
+                userAgent,
                 model.RememberMe);
 
             // Set session cookie
@@ -190,10 +193,10 @@ namespace DoAnChuyenNganh.Controllers
             var userAgent = GetUserAgent();
 
             var result = await _authService.ChangePasswordAsync(
-                userId.Value, 
-                model.CurrentPassword, 
-                model.NewPassword, 
-                ipAddress, 
+                userId.Value,
+                model.CurrentPassword,
+                model.NewPassword,
+                ipAddress,
                 userAgent);
 
             if (!result.Success)
@@ -276,10 +279,10 @@ namespace DoAnChuyenNganh.Controllers
             var userAgent = GetUserAgent();
 
             var result = await _authService.ResetPasswordAsync(
-                model.Email, 
-                model.Token, 
-                model.Password, 
-                ipAddress, 
+                model.Email,
+                model.Token,
+                model.Password,
+                ipAddress,
                 userAgent);
 
             if (!result.Success)
@@ -420,6 +423,94 @@ namespace DoAnChuyenNganh.Controllers
             return Request.Headers["User-Agent"].ToString() ?? "Unknown";
         }
 
+        #endregion
+
+        #region Google Login
+
+        [HttpGet]
+        public IActionResult GoogleLogin(string? returnUrl = null)
+        {
+            var redirectUrl = Url.Action(nameof(GoogleResponse), "Account", new { returnUrl });
+            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GoogleResponse(string? returnUrl = null)
+        {
+            // Authenticate with Google scheme
+            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
+
+            if (result?.Succeeded != true || result.Principal == null)
+            {
+                TempData["ErrorMessage"] = "Google login failed. Please try again.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            var claims = result.Principal?.Identities.FirstOrDefault()?.Claims;
+
+            if (claims == null)
+            {
+                TempData["ErrorMessage"] = "Google login failed. Please try again.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            var name = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+            var providerId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(providerId))
+            {
+                TempData["ErrorMessage"] = "Google did not provide sufficient information.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            var ipAddress = GetIpAddress();
+            var userAgent = GetUserAgent();
+
+            // Xử lý đăng nhập hoặc tạo user mới
+            var resultAuth = await _authService.AuthenticateGoogleAsync(
+                email,
+                name ?? "Google User",
+                providerId,
+                ipAddress,
+                userAgent);
+
+            if (!resultAuth.Success || resultAuth.User == null)
+            {
+                TempData["ErrorMessage"] = resultAuth.Message;
+                return RedirectToAction(nameof(Login));
+            }
+
+            // Tạo session và cookie
+            var session = await _authService.CreateSessionAsync(
+                resultAuth.User.UserId,
+                ipAddress,
+                userAgent,
+                rememberMe: true);
+
+            SetSessionCookie(session.SessionToken, rememberMe: true);
+
+            // Lưu session user
+            HttpContext.Session.SetInt32("UserId", resultAuth.User.UserId);
+            HttpContext.Session.SetString("Username", resultAuth.User.Username);
+            HttpContext.Session.SetString("Email", resultAuth.User.Email);
+            HttpContext.Session.SetString("FullName", $"{resultAuth.User.FirstName} {resultAuth.User.LastName}");
+            HttpContext.Session.SetString("RoleName", resultAuth.User.Role?.RoleName ?? "User");
+            if (!string.IsNullOrEmpty(resultAuth.User.AvatarUrl))
+            {
+                HttpContext.Session.SetString("AvatarUrl", resultAuth.User.AvatarUrl);
+            }
+
+            await HttpContext.Session.CommitAsync();
+
+            TempData["SuccessMessage"] = "Login with Google successful!";
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction("Index", "Home");
+        }
         #endregion
     }
 }
