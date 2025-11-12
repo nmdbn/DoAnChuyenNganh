@@ -2,6 +2,7 @@ using DoAnChuyenNganh.Hubs;
 using DoAnChuyenNganh.Models;
 using DoAnChuyenNganh.Providers;
 using DoAnChuyenNganh.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -47,6 +48,40 @@ builder.Services.AddScoped<IChatService, ChatService>();
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 
+// Add Google Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+})
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        options.ExpireTimeSpan = TimeSpan.FromHours(24);
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.IsEssential = true;
+    })
+    .AddGoogle(options =>
+    {
+        options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+        options.CallbackPath = "/signin-google";
+        options.Scope.Add("email");
+        options.Scope.Add("profile");
+    })
+    .AddFacebook(options =>
+    {
+        options.AppId = builder.Configuration["Authentication:Facebook:AppId"]!;
+        options.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"]!;
+        options.CallbackPath = "/signin-facebook";
+        options.Scope.Add("public_profile");
+        options.Scope.Add("email");  
+        options.Fields.Add("name");
+        options.Fields.Add("email");
+        options.Fields.Add("picture");      
+    });
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -61,6 +96,7 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseSession();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();

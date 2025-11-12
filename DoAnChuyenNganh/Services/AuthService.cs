@@ -1,8 +1,7 @@
-using DoAnChuyenNganh.Models;
+﻿using DoAnChuyenNganh.Models;
 using DoAnChuyenNganh.ViewModels.Auth;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace DoAnChuyenNganh.Services
 {
@@ -29,7 +28,7 @@ namespace DoAnChuyenNganh.Services
                 // Find user by username or email
                 var user = await _context.Users
                     .Include(u => u.Role)
-                    .FirstOrDefaultAsync(u => 
+                    .FirstOrDefaultAsync(u =>
                         u.Username == usernameOrEmail || u.Email == usernameOrEmail);
 
                 if (user == null)
@@ -190,7 +189,7 @@ namespace DoAnChuyenNganh.Services
 
                 // Generate reset token (in production, store this in database with expiration)
                 var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-                
+
                 // TODO: Store token in database with expiration time
                 // TODO: Send email with reset link
 
@@ -263,9 +262,9 @@ namespace DoAnChuyenNganh.Services
             return await _context.UserSessions
                 .Include(s => s.User)
                     .ThenInclude(u => u.Role)
-                .FirstOrDefaultAsync(s => 
-                    s.SessionToken == sessionToken && 
-                    s.IsActive == true && 
+                .FirstOrDefaultAsync(s =>
+                    s.SessionToken == sessionToken &&
+                    s.IsActive == true &&
                     s.ExpiresAt > DateTime.Now);
         }
 
@@ -413,6 +412,132 @@ namespace DoAnChuyenNganh.Services
         }
 
         #endregion
+
+        public async Task<AuthResult> AuthenticateGoogleAsync(string email, string fullName, string googleId, string ipAddress, string userAgent)
+        {
+            try
+            {
+                var nameParts = fullName.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                var firstName = nameParts.Length > 0 ? nameParts[0] : "";
+                var lastName = nameParts.Length > 1 ? nameParts[1] : "";
+
+                var user = await _context.Users
+                    .Include(u => u.Role)
+                    .FirstOrDefaultAsync(u => u.GoogleId == googleId || u.Email == email);
+
+                if (user is null)
+                {
+                    user = new User
+                    {
+                        Username = email.Split('@')[0],
+                        Email = email,
+                        GoogleId = googleId,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        IsEmailVerified = true,
+                        IsActive = true,
+                        IsLocked = false,
+                        RoleId = 2, // Default role (Student/User)
+                        LoginAttempts = 0,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now,
+                        PasswordHash = string.Empty,
+                        PasswordSalt = string.Empty,
+                    };
+                    _context.Users.Add(user);
+                    await _context.SaveChangesAsync();
+                    await LogActivityAsync(user.UserId, "google_register", "user", user.UserId, ipAddress, userAgent);
+                }
+
+                user.LastLoginAt = DateTime.Now;
+                user.IsActive = true;
+                await _context.SaveChangesAsync();
+
+                var session = await CreateSessionAsync(user.UserId, ipAddress, userAgent, rememberMe: true);
+
+                await LogActivityAsync(user.UserId, "google_login", "user", user.UserId, ipAddress, userAgent);
+
+                return new AuthResult
+                {
+                    Success = true,
+                    User = user,
+                    Token = session.SessionToken,
+                    Message = "Google login successful"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in Google authentication");
+                return new AuthResult
+                {
+                    Success = false,
+                    Message = "An error occurred during Google authentication"
+                };
+            }
+        }
+        public async Task<AuthResult> AuthenticateFacebookAsync(string email, string fullName, string facebookId, string ipAddress, string userAgent)
+        {
+            try
+            {
+                var nameParts = fullName.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                var firstName = nameParts.Length > 0 ? nameParts[0] : "";
+                var lastName = nameParts.Length > 1 ? nameParts[1] : "";
+
+                var user = await _context.Users
+                    .Include(u => u.Role)
+                    .FirstOrDefaultAsync(u => u.FacebookId == facebookId || u.Email == email);
+
+                if (user is null)
+                {
+                    user = new User
+                    {
+                        Username = email?.Split('@')[0] ?? $"fb_{facebookId}",
+                        Email = email ?? "",
+                        FacebookId = facebookId,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        IsEmailVerified = !string.IsNullOrEmpty(email),
+                        IsActive = true,
+                        IsLocked = false,
+                        RoleId = 2, // Default role (Student/User)
+                        LoginAttempts = 0,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now,
+                        PasswordHash = string.Empty,
+                        PasswordSalt = string.Empty,
+                    };
+                    _context.Users.Add(user);
+                    await _context.SaveChangesAsync();
+
+                    await LogActivityAsync(user.UserId, "facebook_register", "user", user.UserId, ipAddress, userAgent);
+                }
+
+                user.LastLoginAt = DateTime.Now;
+                user.IsActive = true;
+                await _context.SaveChangesAsync();
+
+                var session = await CreateSessionAsync(user.UserId, ipAddress, userAgent, rememberMe: true);
+
+                await LogActivityAsync(user.UserId, "facebook_login", "user", user.UserId, ipAddress, userAgent);
+
+                return new AuthResult
+                {
+                    Success = true,
+                    User = user,
+                    Token = session.SessionToken,
+                    Message = "Facebook login successful"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in Facebook authentication");
+                return new AuthResult
+                {
+                    Success = false,
+                    Message = "An error occurred during Facebook authentication"
+                };
+            }
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -108,18 +108,34 @@
                             </ul>
                         </li>
                     </ul>
+
                     <ul class="navbar-nav">
                         @if (Context.Session.GetInt32("UserId").HasValue)
                         {
                             var avatarUrl = Context.Session.GetString("AvatarUrl");
                             var username = Context.Session.GetString("Username");
                             var fullName = Context.Session.GetString("FullName");
-                            var initials = "";
-                            if (!string.IsNullOrEmpty(fullName))
+                            string initials = "";
+
+                            if (!string.IsNullOrWhiteSpace(fullName))
                             {
-                                var names = fullName.Split(' ');
-                                initials = names.Length >= 2 ? $"{names[0][0]}{names[names.Length - 1][0]}" : names[0][0].ToString();
+                                var names = fullName
+                                .Trim()
+                                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                                if (names.Length >= 2)
+                                {
+                                    var first = names[0];
+                                    var last = names[names.Length - 1];
+                                    initials = (first.Length > 0 ? first[0].ToString() : "")
+                                    + (last.Length > 0 ? last[0].ToString() : "");
+                                }
+                                else if (names.Length == 1 && names[0].Length > 0)
+                                {
+                                    initials = names[0][0].ToString();
+                                }
                             }
+
                             <!-- Notification Bell -->
                             <li class="nav-item dropdown me-2">
                                 <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button"
@@ -139,6 +155,7 @@
                                     </div>
                                 </div>
                             </li>
+
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle d-flex align-items-center text-dark" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     @if (!string.IsNullOrEmpty(avatarUrl))
@@ -154,12 +171,16 @@
                                     <span class="ms-2">@username</span>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">
-                                        <i class="bi bi-person"></i> My Profile
-                                    </a></li>
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">
-                                        <i class="bi bi-key"></i> Change Password
-                                    </a></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
+                                            <i class="bi bi-person"></i> My Profile
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">
+                                            <i class="bi bi-key"></i> Change Password
+                                        </a>
+                                    </li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form asp-controller="Account" asp-action="Logout" method="post" style="display: inline;">
@@ -189,6 +210,7 @@
             </div>
         </nav>
     </header>
+
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
@@ -211,18 +233,17 @@
             </div>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @if (Context.Session.GetInt32("UserId").HasValue)
     {
-        <!-- SignalR for real-time notifications and chat -->
         <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@7.0.0/dist/browser/signalr.min.js"></script>
         <script src="~/js/notification.js" asp-append-version="true"></script>
         <script src="~/js/chat.js" asp-append-version="true"></script>
         <script>
-            // Initialize notification and chat systems
             const globalUserId = @Context.Session.GetInt32("UserId");
             if (typeof NotificationManager !== 'undefined') {
                 NotificationManager.init(globalUserId);
@@ -232,10 +253,16 @@
             }
         </script>
     }
-
+    @if (TempData["SuccessMessage"]?.ToString() == "Login with Google successful!" || TempData["SuccessMessage"]?.ToString() == "Login with Facebook successful!")
+    {
+        <script>
+            window.location.replace(window.location.href);
+        </script>
+    }
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+
 <style>
     .dropdown-submenu {
         position: relative;
