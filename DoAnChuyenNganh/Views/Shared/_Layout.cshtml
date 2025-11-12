@@ -68,12 +68,7 @@
                                     <ul class="dropdown-menu" aria-labelledby="learningManagementDropdown">
                                         <li>
                                             <a class="dropdown-item" asp-controller="Course" asp-action="Create">
-                                                <i class="bi bi-plus-circle"></i> Add
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Course" asp-action="Index">
-                                                <i class="bi bi-pencil"></i> Edit
+                                                <i class="bi bi-plus-circle"></i> Add Course
                                             </a>
                                         </li>
                                         <li class="dropdown-submenu">
@@ -98,10 +93,15 @@
                                                 <i class="bi bi-list-ul"></i> Manage Subjects
                                             </a>
                                         </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Grades" asp-action="Index">
+                                                <i class="bi bi-list-ul"></i> Manage Grades
+                                            </a>
+                                        </li>
                                     </ul>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="C:\Users\phamt\Source\Repos\DoAnChuyenNganh\DoAnChuyenNganh\Views\Shared\_Statistical.cshtml">
+                                    <a class="dropdown-item" asp-controller="Dashboard" asp-action="_Statistical">
                                         <i class="bi bi-wrench"></i> System Administration
                                     </a>
                                 </li>

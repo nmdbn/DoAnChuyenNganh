@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using DoAnChuyenNganh.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using DoAnChuyenNganh.Models;
 
 namespace DoAnChuyenNganh.Controllers
 {
@@ -21,27 +20,30 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Lesson
         public async Task<IActionResult> Index()
         {
-            var doAnChuyenNganhContext = _context.Lessons.Include(l => l.Course).Include(l => l.CreatedByNavigation).Include(l => l.UpdatedByNavigation);
-            return View(await doAnChuyenNganhContext.ToListAsync());
+            var lessons = _context.Lessons
+                .Include(l => l.Course)
+                .Include(l => l.CreatedByNavigation)
+                .Include(l => l.UpdatedByNavigation)
+                .OrderBy(l => l.CourseId)
+                .ThenBy(l => l.LessonOrder);
+
+            return View(await lessons.ToListAsync());
         }
 
         // GET: Lesson/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
             var lesson = await _context.Lessons
                 .Include(l => l.Course)
                 .Include(l => l.CreatedByNavigation)
                 .Include(l => l.UpdatedByNavigation)
                 .FirstOrDefaultAsync(m => m.LessonId == id);
+
             if (lesson == null)
-            {
                 return NotFound();
-            }
 
             return View(lesson);
         }
@@ -49,28 +51,48 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Lesson/Create
         public IActionResult Create()
         {
-            ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "CourseId");
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId");
-            ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "UserId");
+            ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "Title");
+            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "Username");
+            ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "Username");
             return View();
         }
 
         // POST: Lesson/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("LessonId,CourseId,Title,Content,LessonOrder,LessonType,VideoUrl,VideoDuration,IsPreviewable,IsPublished,CreatedAt,UpdatedAt,CreatedBy,UpdatedBy")] Lesson lesson)
+        public async Task<IActionResult> Create(Lesson lesson)
         {
+            // Loại bỏ validation cho các field navigation properties
+            ModelState.Remove("Course");
+            ModelState.Remove("CreatedByNavigation");
+            ModelState.Remove("UpdatedByNavigation");
+            ModelState.Remove("CourseMaterials");
+            ModelState.Remove("LessonProgresses");
+
             if (ModelState.IsValid)
             {
-                _context.Add(lesson);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                try
+                {
+                    // Set thời gian ở server
+                    lesson.CreatedAt = DateTime.Now;
+                    lesson.UpdatedAt = DateTime.Now;
+
+                    _context.Add(lesson);
+                    await _context.SaveChangesAsync();
+
+                    TempData["SuccessMessage"] = "Lesson created successfully!";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (Exception ex)
+                {
+                    TempData["ErrorMessage"] = $"Error creating lesson: {ex.Message}";
+                }
             }
-            ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "CourseId", lesson.CourseId);
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId", lesson.CreatedBy);
-            ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "UserId", lesson.UpdatedBy);
+
+            // Nếu có lỗi, load lại dropdown
+            ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "Title", lesson.CourseId);
+            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "Username", lesson.CreatedBy);
+            ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "Username", lesson.UpdatedBy);
             return View(lesson);
         }
 
@@ -78,56 +100,71 @@ namespace DoAnChuyenNganh.Controllers
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
             var lesson = await _context.Lessons.FindAsync(id);
             if (lesson == null)
-            {
                 return NotFound();
-            }
-            ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "CourseId", lesson.CourseId);
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId", lesson.CreatedBy);
-            ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "UserId", lesson.UpdatedBy);
+
+            ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "Title", lesson.CourseId);
+            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "Username", lesson.CreatedBy);
+            ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "Username", lesson.UpdatedBy);
+
             return View(lesson);
         }
 
         // POST: Lesson/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("LessonId,CourseId,Title,Content,LessonOrder,LessonType,VideoUrl,VideoDuration,IsPreviewable,IsPublished,CreatedAt,UpdatedAt,CreatedBy,UpdatedBy")] Lesson lesson)
+        public async Task<IActionResult> Edit(int id, Lesson lesson)
         {
             if (id != lesson.LessonId)
-            {
                 return NotFound();
-            }
+
+            // Loại bỏ validation cho navigation properties
+            ModelState.Remove("Course");
+            ModelState.Remove("CreatedByNavigation");
+            ModelState.Remove("UpdatedByNavigation");
+            ModelState.Remove("CourseMaterials");
+            ModelState.Remove("LessonProgresses");
 
             if (ModelState.IsValid)
             {
                 try
                 {
+                    // Giữ CreatedAt cũ, chỉ update UpdatedAt
+                    var existing = await _context.Lessons
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(l => l.LessonId == id);
+
+                    if (existing == null)
+                        return NotFound();
+
+                    lesson.CreatedAt = existing.CreatedAt;
+                    lesson.UpdatedAt = DateTime.Now;
+
                     _context.Update(lesson);
                     await _context.SaveChangesAsync();
+
+                    TempData["SuccessMessage"] = "Lesson updated successfully!";
+                    return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
                     if (!LessonExists(lesson.LessonId))
-                    {
                         return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    throw;
                 }
-                return RedirectToAction(nameof(Index));
+                catch (Exception ex)
+                {
+                    TempData["ErrorMessage"] = $"Error updating lesson: {ex.Message}";
+                }
             }
-            ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "CourseId", lesson.CourseId);
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId", lesson.CreatedBy);
-            ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "UserId", lesson.UpdatedBy);
+
+            ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "Title", lesson.CourseId);
+            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "Username", lesson.CreatedBy);
+            ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "Username", lesson.UpdatedBy);
+
             return View(lesson);
         }
 
@@ -135,19 +172,16 @@ namespace DoAnChuyenNganh.Controllers
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
             var lesson = await _context.Lessons
                 .Include(l => l.Course)
                 .Include(l => l.CreatedByNavigation)
                 .Include(l => l.UpdatedByNavigation)
                 .FirstOrDefaultAsync(m => m.LessonId == id);
+
             if (lesson == null)
-            {
                 return NotFound();
-            }
 
             return View(lesson);
         }
@@ -157,13 +191,21 @@ namespace DoAnChuyenNganh.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var lesson = await _context.Lessons.FindAsync(id);
-            if (lesson != null)
+            try
             {
-                _context.Lessons.Remove(lesson);
+                var lesson = await _context.Lessons.FindAsync(id);
+                if (lesson != null)
+                {
+                    _context.Lessons.Remove(lesson);
+                    await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Lesson deleted successfully!";
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error deleting lesson: {ex.Message}";
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
