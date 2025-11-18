@@ -1,145 +1,203 @@
 ﻿@model DoAnChuyenNganh.Models.User
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Detail";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Helpers cho ngày/giờ
+    string DateTimeOrDash(DateTime? d) => d.HasValue ? d.Value.ToString("dd/MM/yyyy HH:mm") : "-";
+    string DateOnlyOrDash(DateOnly? d) => d.HasValue ? d.Value.ToString("dd/MM/yyyy") : "-";
+    string TextOrDash(string? s) => string.IsNullOrWhiteSpace(s) ? "-" : s!;
+
+    // Booleans an toàn cho nullable bool?
+    bool isVerified = Model.IsEmailVerified ?? false;
+    bool isActive = Model.IsActive ?? false;
+    bool isLocked = Model.IsLocked ?? false;
+
+    // Lấy tên role an toàn mà không đụng vào thuộc tính không tồn tại (dùng reflection)
+    string RoleDisplay()
+    {
+        if (Model.Role == null) return "-";
+        var t = Model.Role.GetType();
+        var name =
+            t.GetProperty("RoleName")?.GetValue(Model.Role)?.ToString() ??
+            t.GetProperty("Name")?.GetValue(Model.Role)?.ToString() ??
+            t.GetProperty("Title")?.GetValue(Model.Role)?.ToString();
+        if (!string.IsNullOrWhiteSpace(name)) return name!;
+        // Fallback cuối: RoleId nếu có
+        var idProp = t.GetProperty("RoleId");
+        var idVal = idProp?.GetValue(Model.Role)?.ToString();
+        return !string.IsNullOrWhiteSpace(idVal) ? $"RoleID: {idVal}" : Model.Role.ToString()!;
+    }
 }
 
-<h1>Details</h1>
+<div class="container py-3">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h2 class="mb-1">Chi tiết người dùng</h2>
+            <div class="text-muted">
+                @("@")@TextOrDash(Model.Username) • ID: <span class="fw-semibold">@Model.UserId</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Edit" asp-route-id="@Model?.UserId" class="btn btn-primary">
+                <i class="bi bi-pencil-square"></i> Sửa
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Danh sách
+            </a>
+        </div>
+    </div>
 
-<div>
-    <h4>User</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Username)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Username)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Email)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Email)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PasswordHash)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PasswordHash)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PasswordSalt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PasswordSalt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.FirstName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.FirstName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.LastName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.LastName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DateOfBirth)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DateOfBirth)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PhoneNumber)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PhoneNumber)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.AvatarUrl)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.AvatarUrl)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Bio)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Bio)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsEmailVerified)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsEmailVerified)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsActive)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsActive)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsLocked)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsLocked)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.LastLoginAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.LastLoginAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.LoginAttempts)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.LoginAttempts)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.LockoutUntil)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.LockoutUntil)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UpdatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UpdatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedByNavigation)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedByNavigation.UserId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Role)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Role.RoleId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UpdatedByNavigation)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UpdatedByNavigation.UserId)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.UserId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+    <div class="row g-3">
+        <div class="col-12 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded overflow-hidden" style="width:96px;height:96px;background:#f3f4f6;">
+                            @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
+                            {
+                                <img src="@Model.AvatarUrl" alt="avatar" class="w-100 h-100 object-fit-cover" />
+                            }
+                            else
+                            {
+                                <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
+                                    <i class="bi bi-person fs-1"></i>
+                                </div>
+                            }
+                        </div>
+                        <div>
+                            <div class="h5 mb-0">@TextOrDash($"{Model.FirstName} {Model.LastName}".Trim())</div>
+                            <div class="text-muted">@TextOrDash(Model.Bio)</div>
+                            <div class="mt-2 d-flex flex-wrap gap-2">
+                                @if (isVerified)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-check-circle"></i> Đã xác minh email
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                        <i class="bi bi-exclamation-triangle"></i> Chưa xác minh email
+                                    </span>
+                                }
+
+                                @if (isActive)
+                                {
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                        <i class="bi bi-toggle-on"></i> Đang hoạt động
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                        <i class="bi bi-toggle-off"></i> Ngưng hoạt động
+                                    </span>
+                                }
+
+                                @if (isLocked)
+                                {
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                        <i class="bi bi-lock-fill"></i> Đang khoá
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="mb-2 small text-uppercase text-muted">Liên hệ</div>
+                    <div class="vstack gap-1">
+                        <div>
+                            <span class="text-muted">Email:</span>
+                            @if (!string.IsNullOrWhiteSpace(Model.Email))
+                            {
+                                <a href="mailto:@Model.Email">@Model.Email</a>
+                            }
+                            else
+                            {
+                                @("-")
+                            }
+                        </div>
+                        <div>
+                            <span class="text-muted">Điện thoại:</span>
+                            @if (!string.IsNullOrWhiteSpace(Model.PhoneNumber))
+                            {
+                                <a href="tel:@Model.PhoneNumber">@Model.PhoneNumber</a>
+                            }
+                            else
+                            {
+                                @("-")
+                            }
+                        </div>
+                        <div>
+                            <span class="text-muted">Ngày sinh:</span> @DateOnlyOrDash(Model.DateOfBirth)
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="mb-2 small text-uppercase text-muted">Vai trò & Trạng thái</div>
+                    <div class="vstack gap-1">
+                        <div><span class="text-muted">Vai trò:</span> @RoleDisplay()</div>
+                        <div><span class="text-muted">Đăng nhập gần nhất:</span> @DateTimeOrDash(Model.LastLoginAt)</div>
+                        <div><span class="text-muted">Số lần thử đăng nhập:</span> @(Model.LoginAttempts ?? 0)</div>
+                        <div><span class="text-muted">Khoá tới:</span> @DateTimeOrDash(Model.LockoutUntil)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-8">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="mb-2 small text-uppercase text-muted">Thông tin hệ thống</div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted mb-1">Tạo lúc</div>
+                                <div class="fw-semibold">@DateTimeOrDash(Model.CreatedAt)</div>
+                                <div class="text-muted mt-2 mb-1">Người tạo</div>
+                                <div class="fw-semibold">
+                                    @(
+                                        Model.CreatedByNavigation != null
+                                        ? (string.IsNullOrWhiteSpace(Model.CreatedByNavigation.Username)
+                                        ? $"UserID: {Model.CreatedByNavigation.UserId}"
+                                        : Model.CreatedByNavigation.Username)
+                                        : "-"
+                                        )
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted mb-1">Cập nhật lúc</div>
+                                <div class="fw-semibold">@DateTimeOrDash(Model.UpdatedAt)</div>
+                                <div class="text-muted mt-2 mb-1">Người cập nhật</div>
+                                <div class="fw-semibold">
+                                    @(
+                                        Model.UpdatedByNavigation != null
+                                        ? (string.IsNullOrWhiteSpace(Model.UpdatedByNavigation.Username)
+                                        ? $"UserID: {Model.UpdatedByNavigation.UserId}"
+                                        : Model.UpdatedByNavigation.Username)
+                                        : "-"
+                                        )
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="mb-2 small text-uppercase text-muted">Bảo mật</div>
+                    <div class="alert alert-info mb-0">
+                        Hash/Salt mật khẩu đã ẩn vì bảo mật. Reset bằng chức năng “Đặt lại mật khẩu”.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
