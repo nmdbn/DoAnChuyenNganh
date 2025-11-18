@@ -82,16 +82,30 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <div class="form-check form-switch">
-                                    <input asp-for="IsPreviewable" class="form-check-input" />
-                                    <label asp-for="IsPreviewable" class="form-check-label">Allow preview</label>
+                                    <!-- hidden to ensure false is posted when unchecked -->
+                                    <input type="hidden" name="IsPreviewable" value="false" />
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           id="IsPreviewable"
+                                           name="IsPreviewable"
+                                           value="true"
+                                    @(Model?.IsPreviewable == true ? "checked" : "") />
+                                    <label class="form-check-label" for="IsPreviewable">Allow preview</label>
                                 </div>
                                 <span asp-validation-for="IsPreviewable" class="text-danger"></span>
                             </div>
 
                             <div class="col-md-6">
                                 <div class="form-check form-switch">
-                                    <input asp-for="IsPublished" class="form-check-input" />
-                                    <label asp-for="IsPublished" class="form-check-label">Published</label>
+                                    <!-- hidden to ensure false is posted when unchecked -->
+                                    <input type="hidden" name="IsPublished" value="false" />
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           id="IsPublished"
+                                           name="IsPublished"
+                                           value="true"
+                                    @(Model?.IsPublished == true ? "checked" : "") />
+                                    <label class="form-check-label" for="IsPublished">Published</label>
                                 </div>
                                 <span asp-validation-for="IsPublished" class="text-danger"></span>
                             </div>

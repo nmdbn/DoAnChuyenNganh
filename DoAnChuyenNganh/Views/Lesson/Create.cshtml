@@ -1,66 +1,294 @@
 ﻿@model DoAnChuyenNganh.Models.Lesson
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create Lesson";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Create</h1>
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2>
+                <i class="bi bi-plus-circle"></i> Create New Lesson
+            </h2>
+            <p class="text-muted">Add a new lesson to your course</p>
+        </div>
+        <div class="col-md-4 text-md-end text-start">
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
 
-<h4>Lesson</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="CourseId" class="control-label"></label>
-                <select asp-for="CourseId" class ="form-control" asp-items="ViewBag.CourseId"></select>
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- LEFT: FORM -->
+        <div class="col-md-8">
+            <form asp-action="Create" method="post">
+                <div asp-validation-summary="All" class="alert alert-danger"></div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Lesson Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- BASIC INFO -->
+                        <h6 class="section-title">Basic Information</h6>
+                        <hr class="mt-1" />
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Title" class="form-label">
+                                Lesson Title <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Title" class="form-control form-control-lg" placeholder="Enter lesson title" />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label asp-for="Content" class="form-label">Lesson Content</label>
+                            <textarea asp-for="Content" class="form-control" rows="5"
+                                      placeholder="Describe the lesson content, learning objectives, or notes..."></textarea>
+                            <span asp-validation-for="Content" class="text-danger"></span>
+                        </div>
+
+                        <!-- COURSE & ORDER -->
+                        <h6 class="section-title">Course & Order</h6>
+                        <hr class="mt-1" />
+
+                        <div class="row">
+                            <div class="col-md-7">
+                                <div class="form-group mb-3">
+                                    <label asp-for="CourseId" class="form-label">
+                                        Course <span class="text-danger">*</span>
+                                    </label>
+                                    <select asp-for="CourseId" class="form-select" asp-items="ViewBag.CourseId">
+                                        <option value="">-- Select Course --</option>
+                                    </select>
+                                    <span asp-validation-for="CourseId" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-5">
+                                <div class="form-group mb-3">
+                                    <label asp-for="LessonOrder" class="form-label">
+                                        Lesson Order <span class="text-danger">*</span>
+                                    </label>
+                                    <input asp-for="LessonOrder" class="form-control" type="number" min="1"
+                                           placeholder="1, 2, 3..." />
+                                    <span asp-validation-for="LessonOrder" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TYPE & VIDEO -->
+                        <h6 class="section-title">Lesson Type & Video</h6>
+                        <hr class="mt-1" />
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label asp-for="LessonType" class="form-label">Lesson Type</label>
+                                    <select asp-for="LessonType" class="form-select">
+                                        <option value="">-- Select Type --</option>
+                                        <option value="text">Text</option>
+                                        <option value="video">Video</option>
+                                        <option value="quiz">Quiz</option>
+                                        <option value="assignment">Assignment</option>
+                                    </select>
+                                    <span asp-validation-for="LessonType" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-8">
+                                <div class="form-group mb-3">
+                                    <label asp-for="VideoUrl" class="form-label">Video URL</label>
+                                    <input asp-for="VideoUrl" class="form-control"
+                                           placeholder="https://example.com/video.mp4" />
+                                    <small class="form-text text-muted">Only required for video lessons</small>
+                                    <span asp-validation-for="VideoUrl" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="VideoDuration" class="form-label">Duration (seconds)</label>
+                                    <input asp-for="VideoDuration" class="form-control" type="number" min="0"
+                                           placeholder="e.g., 600" />
+                                    <span asp-validation-for="VideoDuration" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- VISIBILITY & PREVIEW -->
+                        <h6 class="section-title">Visibility & Preview</h6>
+                        <hr class="mt-1" />
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <!-- Hidden input gửi false khi không check -->
+                                    <input type="hidden" name="IsPreviewable" value="false" />
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           id="IsPreviewable"
+                                           name="IsPreviewable"
+                                           value="true"
+                                    @(Model?.IsPreviewable == true ? "checked" : "") />
+                                    <label class="form-check-label" for="IsPreviewable">
+                                        Allow Free Preview
+                                    </label>
+                                </div>
+                                <span asp-validation-for="IsPreviewable" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input type="hidden" name="IsPublished" value="false" />
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           id="IsPublished"
+                                           name="IsPublished"
+                                           value="true"
+                                    @(Model?.IsPublished != false ? "checked" : "") />
+                                    <label class="form-check-label" for="IsPublished">
+                                        Publish Lesson
+                                    </label>
+                                </div>
+                                <span asp-validation-for="IsPublished" class="text-danger"></span>
+                            </div>
+                        </div>
+
+
+                        <!-- OWNERSHIP -->
+                        <h6 class="section-title">Ownership</h6>
+                        <hr class="mt-1" />
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="CreatedBy" class="form-label">Created By</label>
+                                    <select asp-for="CreatedBy" class="form-select" asp-items="ViewBag.CreatedBy">
+                                        <option value="">-- Select User --</option>
+                                    </select>
+                                    <span asp-validation-for="CreatedBy" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="UpdatedBy" class="form-label">Updated By</label>
+                                    <select asp-for="UpdatedBy" class="form-select" asp-items="ViewBag.UpdatedBy">
+                                        <option value="">-- Select User --</option>
+                                    </select>
+                                    <span asp-validation-for="UpdatedBy" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>CreatedAt</strong> and <strong>UpdatedAt</strong> will be set automatically by the system.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mb-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i> Create Lesson
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- RIGHT: TIPS -->
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightbulb"></i> Tips
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success"></i>
+                            <strong>Title:</strong> Make it clear and descriptive
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success"></i>
+                            <strong>Order:</strong> Keep lessons in a logical sequence (1, 2, 3...)
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success"></i>
+                            <strong>Type:</strong> Use video for demos, text for theory, quiz for practice
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-info-circle text-primary"></i>
+                            <strong>Preview:</strong> Mark some lessons as preview to attract learners
+                        </li>
+                        <li>
+                            <i class="bi bi-info-circle text-primary"></i>
+                            <strong>Draft:</strong> Uncheck "Publish" to save as draft
+                        </li>
+                    </ul>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="Title" class="control-label"></label>
-                <input asp-for="Title" class="form-control" />
-                <span asp-validation-for="Title" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Content" class="control-label"></label>
-                <input asp-for="Content" class="form-control" />
-                <span asp-validation-for="Content" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="LessonOrder" class="control-label"></label>
-                <input asp-for="LessonOrder" class="form-control" />
-                <span asp-validation-for="LessonOrder" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="VideoUrl" class="control-label"></label>
-                <input asp-for="VideoUrl" class="form-control" />
-                <span asp-validation-for="VideoUrl" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="VideoDuration" class="control-label"></label>
-                <input asp-for="VideoDuration" class="form-control" />
-                <span asp-validation-for="VideoDuration" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CreatedBy" class="control-label"></label>
-                <select asp-for="CreatedBy" class ="form-control" asp-items="ViewBag.CreatedBy"></select>
-            </div>
-            <div class="form-group">
-                <label asp-for="UpdatedBy" class="control-label"></label>
-                <select asp-for="UpdatedBy" class ="form-control" asp-items="ViewBag.UpdatedBy"></select>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
+
+<style>
+    .section-title {
+        font-weight: 600;
+        color: #374151;
+        margin-top: 5px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 8px;
+    }
+
+        .form-control:focus,
+        .form-select:focus {
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: #667eea;
+        }
+
+    .alert-danger {
+        border-radius: 10px;
+    }
+
+    (max-width: 768px) {
+        .btn-lg
+
+    {
+        width: 100%;
+    }
+
+    }
+</style>

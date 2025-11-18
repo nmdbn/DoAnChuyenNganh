@@ -1,195 +1,455 @@
-﻿
+﻿@model DoAnChuyenNganh.ViewModels.Statistical.StatisticalViewModel
+
 @{
     ViewData["Title"] = "_Statistical";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<link rel="stylesheet" href="~/css/user-management.css" />
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
-<div class="user-management-container">
-    <!-- Header -->
-    <div class="user-header">
-        <div class="d-flex justify-content-between align-items-center">
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
             <div>
-                <h1><i class="bi bi-bar-chart"></i> User Statistics</h1>
-                <p class="text-muted">Overview of user distribution in the system</p>
-            </div>
-            <div>
-                <a href="@Url.Action("Index", "User")" class="btn btn-primary">
-                    <i class="bi bi-arrow-left"></i> Back to User Management
-                </a>
+                <h2><i class="bi bi-bar-chart"></i> System Statistics</h2>
+                <p class="text-muted mb-0">Overview of Courses, Lessons, Users, Subjects and Grades</p>
             </div>
         </div>
     </div>
 
-    <!-- Chart Section -->
-    <div class="users-section">
-        <div class="section-header">
-            <h2><i class="bi bi-graph-up"></i> User Distribution</h2>
+    <!-- SUMMARY CHART -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Summary Statistics</h5>
+            <small class="text-white-50">Click a bar or a button to view details</small>
         </div>
-        <div class="chart-container">
-            <canvas id="userStatsChart"></canvas>
+        <div class="card-body">
+            <div style="height: 260px;">
+                <canvas id="statsChart"></canvas>
+            </div>
+
+            <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
+                <div class="btn-group flex-wrap" role="group" aria-label="Data sections">
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-target="section-courses">
+                        Courses
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-target="section-lessons">
+                        Lessons
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-target="section-users">
+                        Users
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-target="section-subjects">
+                        Subjects
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-target="section-grades">
+                        Grades
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COURSES TABLE -->
+    <div id="section-courses" class="data-section d-none">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-journal-bookmark"></i> Courses</h5>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Title</th>
+                            <th>Subject</th>
+                            <th>Grade</th>
+                            <th>Difficulty</th>
+                            <th>Price</th>
+                            <th>Published</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Courses.Any())
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center text-muted">No courses found.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            var index = 1;
+                            foreach (var c in Model.Courses)
+                            {
+                                <tr>
+                                    <td>@index</td>
+                                    <td>@c.Title</td>
+                                    <td>@c.Subject?.SubjectName</td>
+                                    <td>@c.Grade?.GradeName</td>
+                                    <td>@c.DifficultyLevel</td>
+                                    <td>@string.Format("{0:0,0}", c.Price)</td>
+                                    <td>
+                                        @if (c.IsPublished == true)
+                                        {
+                                            <span class="badge bg-success">Yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">No</span>
+                                        }
+                                    </td>
+                                    <td>@c.CreatedAt?.ToString("yyyy-MM-dd")</td>
+                                </tr>
+                                index++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- LESSONS TABLE -->
+    <div id="section-lessons" class="data-section d-none">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-collection-play"></i> Lessons</h5>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Course</th>
+                            <th>Title</th>
+                            <th>Order</th>
+                            <th>Type</th>
+                            <th>Published</th>
+                            <th>Previewable</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Lessons.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">No lessons found.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            var index = 1;
+                            foreach (var l in Model.Lessons)
+                            {
+                                <tr>
+                                    <td>@index</td>
+                                    <td>@l.Course?.Title</td>
+                                    <td>@l.Title</td>
+                                    <td>@l.LessonOrder</td>
+                                    <td>@l.LessonType</td>
+                                    <td>
+                                        @if (l.IsPublished == true)
+                                        {
+                                            <span class="badge bg-success">Yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">No</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (l.IsPreviewable == true)
+                                        {
+                                            <span class="badge bg-info text-dark">Yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-muted">No</span>
+                                        }
+                                    </td>
+                                </tr>
+                                index++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- USERS TABLE -->
+    <div id="section-users" class="data-section d-none">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-people"></i> Users</h5>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Username</th>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Active</th>
+                            <th>Email Verified</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Users.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">No users found.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            var index = 1;
+                            foreach (var u in Model.Users)
+                            {
+                                <tr>
+                                    <td>@index</td>
+                                    <td>@u.Username</td>
+                                    <td>@($"{u.FirstName} {u.LastName}")</td>
+                                    <td>@u.Email</td>
+                                    <td>
+                                        @if (u.IsActive == true)
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (u.IsEmailVerified == true)
+                                        {
+                                            <span class="badge bg-info text-dark">Verified</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-muted">No</span>
+                                        }
+                                    </td>
+                                    <td>@u.CreatedAt?.ToString("yyyy-MM-dd")</td>
+                                </tr>
+                                index++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUBJECTS TABLE -->
+    <div id="section-subjects" class="data-section d-none">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-book-half"></i> Subjects</h5>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Subject Name</th>
+                            <th>Code</th>
+                            <th>Active</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Subjects.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No subjects found.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            var index = 1;
+                            foreach (var s in Model.Subjects)
+                            {
+                                <tr>
+                                    <td>@index</td>
+                                    <td>@s.SubjectName</td>
+                                    <td>@s.SubjectCode</td>
+                                    <td>
+                                        @if (s.IsActive == true)
+                                        {
+                                            <span class="badge bg-success">Yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">No</span>
+                                        }
+                                    </td>
+                                </tr>
+                                index++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRADES TABLE -->
+    <div id="section-grades" class="data-section d-none">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-layers"></i> Grades</h5>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Grade Name</th>
+                            <th>Level</th>
+                            <th>Active</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Grades.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No grades found.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            var index = 1;
+                            foreach (var g in Model.Grades)
+                            {
+                                <tr>
+                                    <td>@index</td>
+                                    <td>@g.GradeName</td>
+                                    <td>@g.GradeLevel</td>
+                                    <td>
+                                        @if (g.IsActive == true)
+                                        {
+                                            <span class="badge bg-success">Yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">No</span>
+                                        }
+                                    </td>
+                                </tr>
+                                index++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        $(document).ready(function () {
-            // Data for the chart
-            const data = {
-                labels: ['Total Users', 'Active Users', 'Locked Users', 'Administrators'],
-                datasets: [{
-                    label: 'User Statistics',
-                    data: [
-        @Model.TotalUsers,
-        @Model.ActiveUsers,
-        @Model.LockedUsers,
-        @Model.Administrators
-                    ],
-                    backgroundColor: [
-                        'rgba(102, 126, 234, 0.6)', // Total Users
-                        'rgba(16, 185, 129, 0.6)',  // Active Users
-                        'rgba(239, 68, 68, 0.6)',   // Locked Users
-                        'rgba(245, 158, 11, 0.6)'   // Administrators
-                    ],
-                    borderColor: [
-                        'rgba(102, 126, 234, 1)',
-                        'rgba(16, 185, 129, 1)',
-                        'rgba(239, 68, 68, 1)',
-                        'rgba(245, 158, 11, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            };
+        // Hàm show/hide các section bảng
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('.data-section');
+            sections.forEach(s => s.classList.add('d-none'));
 
-            // Chart configuration
-            const config = {
+            if (sectionId) {
+                const target = document.getElementById(sectionId);
+                if (target) {
+                    target.classList.remove('d-none');
+                }
+            }
+
+            // set active button
+            const btns = document.querySelectorAll('[data-target]');
+            btns.forEach(btn => {
+                if (btn.getAttribute('data-target') === sectionId) {
+                    btn.classList.add('btn-primary');
+                    btn.classList.remove('btn-outline-primary');
+                } else {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-outline-primary');
+                }
+            });
+        }
+
+        (function () {
+            const labels = ['Courses', 'Lessons', 'Users', 'Subjects', 'Grades'];
+            const data = [
+        @Model.TotalCourses,
+        @Model.TotalLessons,
+        @Model.TotalUsers,
+        @Model.TotalSubjects,
+        @Model.TotalGrades
+            ];
+
+            const ctx = document.getElementById('statsChart').getContext('2d');
+            const statsChart = new Chart(ctx, {
                 type: 'bar',
-                data: data,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Count',
+                        data: data,
+                        backgroundColor: [
+                            '#4e79a7',
+                            '#f28e2b',
+                            '#e15759',
+                            '#76b7b2',
+                            '#59a14f'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
                 options: {
                     responsive: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        title: {
-                            display: true,
-                            text: 'User Statistics Overview',
-                            font: {
-                                size: 18,
-                                weight: '600'
-                            },
-                            padding: {
-                                top: 10,
-                                bottom: 20
-                            }
-                        }
+                    maintainAspectRatio: false,
+                    onClick: (evt, elements) => {
+                        if (!elements.length) return;
+                        const index = elements[0].index;
+                        const mapping = [
+                            'section-courses',
+                            'section-lessons',
+                            'section-users',
+                            'section-subjects',
+                            'section-grades'
+                        ];
+                        showSection(mapping[index]);
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
+                            ticks: { stepSize: 1 },
                             title: {
                                 display: true,
-                                text: 'Number of Users'
-                            },
-                            ticks: {
-                                stepSize: 1
+                                text: 'Number of Records'
                             }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Categories'
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ' ' + ctx.parsed.y
                             }
                         }
                     }
                 }
-            };
+            });
 
-            // Initialize the chart
-            const userStatsChart = new Chart(
-                document.getElementById('userStatsChart'),
-                config
-            );
-        });
+            // Gán event click cho các nút
+            document.querySelectorAll('[data-target]').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const targetId = this.getAttribute('data-target');
+                    showSection(targetId);
+                });
+            });
+
+            // Không hiển thị bảng nào mặc định
+            showSection(null);
+        })();
     </script>
 }
-
-<style>
-    /* Reuse styles from user-management.css for consistency */
-    .user-management-container {
-        padding: 20px;
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-
-    .user-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 30px;
-        border-radius: 15px;
-        margin-bottom: 30px;
-        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
-    }
-
-        .user-header h1 {
-            margin: 0;
-            font-size: 2rem;
-            font-weight: 700;
-        }
-
-        .user-header p {
-            margin: 5px 0 0;
-            opacity: 0.9;
-            font-size: 1rem;
-        }
-
-        .user-header .btn-primary {
-            background: white;
-            color: #667eea;
-            border: none;
-            padding: 10px 20px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-            .user-header .btn-primary:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            }
-
-    .users-section {
-        background: white;
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
-    }
-
-    .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 25px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #e5e7eb;
-    }
-
-        .section-header h2 {
-            margin: 0;
-            font-size: 1.5rem;
-            color: #1f2937;
-            font-weight: 600;
-        }
-
-    /* Chart Container */
-    .chart-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    canvas#userStatsChart {
-        max-height: 400px;
-    }
-</style>

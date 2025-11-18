@@ -1,108 +1,554 @@
 ﻿@model IEnumerable<DoAnChuyenNganh.Models.Lesson>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Lesson Management";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var totalLessons = Model?.Count() ?? 0;
+    var publishedLessons = Model?.Count(l => l.IsPublished == true) ?? 0;
+    var previewLessons = Model?.Count(l => l.IsPreviewable == true) ?? 0;
+    var distinctCourses = Model?
+        .Where(l => l.Course != null)
+        .Select(l => l.Course.CourseId)
+        .Distinct()
+        .Count() ?? 0;
 }
 
-<h1>Index</h1>
+<link rel="stylesheet" href="~/css/user-management.css" />
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Title)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Content)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.LessonOrder)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.LessonType)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.VideoUrl)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.VideoDuration)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IsPreviewable)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IsPublished)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UpdatedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Course)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedByNavigation)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UpdatedByNavigation)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Title)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Content)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.LessonOrder)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.LessonType)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.VideoUrl)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.VideoDuration)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.IsPreviewable)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.IsPublished)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UpdatedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Course.CourseId)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedByNavigation.UserId)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UpdatedByNavigation.UserId)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.LessonId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.LessonId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.LessonId">Delete</a>
-            </td>
-        </tr>
+<style>
+    /* Lesson Management Styles */
+    .lesson-management-container {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* Header Section */
+    .lesson-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+    }
+
+        .lesson-header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .lesson-header p {
+            margin: 5px 0 0;
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .lesson-header .btn-primary {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+        }
+
+            .lesson-header .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            }
+
+    /* Statistics Section */
+    .lesson-stats {
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        transition: all 0.3s ease;
+        margin-bottom: 15px;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card i {
+            font-size: 2.5rem;
+            color: #667eea;
+        }
+
+        .stat-card.stat-success i {
+            color: #10b981;
+        }
+
+        .stat-card.stat-info i {
+            color: #3b82f6;
+        }
+
+        .stat-card.stat-warning i {
+            color: #f59e0b;
+        }
+
+    .stat-info h3 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .stat-info p {
+        margin: 5px 0 0;
+        color: #6b7280;
+        font-size: 0.9rem;
+    }
+
+    /* Lessons Section */
+    .lessons-section {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+    .search-filter {
+        max-width: 300px;
+    }
+
+        .search-filter input {
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            padding: 8px 15px;
+        }
+
+            .search-filter input:focus {
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+
+    /* Table Styles */
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .lesson-table {
+        margin-bottom: 0;
+    }
+
+        .lesson-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+            .lesson-table thead th {
+                border: none;
+                padding: 15px;
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 0.85rem;
+                letter-spacing: 0.5px;
+            }
+
+        .lesson-table tbody tr {
+            border-bottom: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+
+            .lesson-table tbody tr:hover {
+                background-color: #f9fafb;
+                transform: scale(1.01);
+            }
+
+        .lesson-table tbody td {
+            padding: 15px;
+            vertical-align: middle;
+        }
+
+    /* Status Badges */
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .status-active {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-inactive {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    /* Type Badge */
+    .badge-type {
+        background: #dbeafe;
+        color: #1e40af;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+
+    /* Action Buttons */
+    .btn-group .btn {
+        padding: 6px 12px;
+        border-radius: 6px;
+        margin: 0 2px;
+        transition: all 0.2s ease;
+    }
+
+        .btn-group .btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .btn-outline-secondary {
+        border-color: #6b7280;
+        color: #6b7280;
+    }
+
+        .btn-outline-secondary:hover {
+            background: #6b7280;
+            border-color: #6b7280;
+            color: white;
+        }
+
+    .btn-outline-primary {
+        border-color: #3b82f6;
+        color: #3b82f6;
+    }
+
+        .btn-outline-primary:hover {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+
+    .btn-outline-danger {
+        border-color: #ef4444;
+        color: #ef4444;
+    }
+
+        .btn-outline-danger:hover {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
+        }
+
+    /* Content Truncate */
+    .text-truncate-content {
+        max-width: 250px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #6b7280;
+        font-size: 0.9rem;
+    }
+
+    /* Empty State */
+    .alert-info {
+        background: #dbeafe;
+        border: 1px solid #93c5fd;
+        color: #1e40af;
+        border-radius: 10px;
+        padding: 20px;
+    }
+
+        .alert-info i {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+
+    /* Responsive */
+    (max-width: 768px) {
+        .section-header
+
+    {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .search-filter {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .lesson-table {
+        font-size: 0.85rem;
+    }
+
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .btn-group {
+        flex-direction: column;
+    }
+
+        .btn-group .btn {
+            width: 100%;
+            margin: 2px 0;
+        }
+
+    }
+</style>
+
+<div class="lesson-management-container">
+    <!-- Header -->
+    <div class="lesson-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-journal-text"></i> Lesson Management</h1>
+                <p>Manage lesson content, publish status and preview settings</p>
+            </div>
+            <div>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="bi bi-plus-lg"></i> Add New Lesson
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="lesson-stats">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="bi bi-journal-bookmark-fill"></i>
+                    <div class="stat-info">
+                        <h3>@totalLessons</h3>
+                        <p>Total Lessons</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card stat-success">
+                    <i class="bi bi-check-circle"></i>
+                    <div class="stat-info">
+                        <h3>@publishedLessons</h3>
+                        <p>Published Lessons</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card stat-info">
+                    <i class="bi bi-eye"></i>
+                    <div class="stat-info">
+                        <h3>@previewLessons</h3>
+                        <p>Previewable Lessons</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card stat-warning">
+                    <i class="bi bi-collection-play"></i>
+                    <div class="stat-info">
+                        <h3>@distinctCourses</h3>
+                        <p>Courses with Lessons</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lessons Table Section -->
+    <div class="lessons-section">
+        <div class="section-header">
+            <h2><i class="bi bi-list-ul"></i> Lesson List</h2>
+            <div class="search-filter">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search lessons...">
+            </div>
+        </div>
+
+        @if (Model != null && Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table lesson-table">
+                    <thead>
+                        <tr>
+                            <th><i class="bi bi-type"></i> Title</th>
+                            <th><i class="bi bi-list-ol"></i> Order</th>
+                            <th><i class="bi bi-tag"></i> Type</th>
+                            <th><i class="bi bi-mortarboard"></i> Course</th>
+                            <th><i class="bi bi-eye"></i> Preview</th>
+                            <th><i class="bi bi-broadcast-pin"></i> Status</th>
+                            <th class="text-center"><i class="bi bi-gear"></i> Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            var contentSnippet = string.IsNullOrWhiteSpace(item.Content)
+                            ? ""
+                            : (item.Content!.Length > 50
+                            ? item.Content.Substring(0, 50) + "..."
+                            : item.Content);
+
+                            <tr class="user-row">
+                                <!-- Title -->
+                                <td>
+                                    <div style="font-weight: 600; margin-bottom: 4px;">@item.Title</div>
+                                    @if (!string.IsNullOrWhiteSpace(contentSnippet))
+                                    {
+                                        <div class="text-truncate-content">
+                                            @contentSnippet
+                                        </div>
+                                    }
+                                </td>
+
+                                <!-- Order -->
+                                <td style="text-align: center;">
+                                    <span style="font-weight: 600; font-size: 1.1rem; color: #667eea;">
+                                        @item.LessonOrder
+                                    </span>
+                                </td>
+
+                                <!-- Type -->
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(item.LessonType))
+                                    {
+                                        <span class="badge-type">
+                                            @item.LessonType
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+
+                                <!-- Course -->
+                                <td>
+                                    @if (item.Course != null)
+                                    {
+                                        <div style="font-weight: 500;">
+                                            @(!string.IsNullOrWhiteSpace(item.Course.Title)
+                                                ? item.Course.Title
+                                                : $"Course #{item.Course.CourseId}")
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+
+                                <!-- IsPreviewable -->
+                                <td>
+                                    @if (item.IsPreviewable == true)
+                                    {
+                                        <span class="status-badge status-active">
+                                            <i class="bi bi-eye-fill"></i> Yes
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-inactive">
+                                            <i class="bi bi-eye-slash-fill"></i> No
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- IsPublished -->
+                                <td>
+                                    @if (item.IsPublished == true)
+                                    {
+                                        <span class="status-badge status-active">
+                                            <i class="bi bi-check-circle-fill"></i> Published
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-warning">
+                                            <i class="bi bi-file-earmark-text"></i> Draft
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a asp-action="Details" asp-route-id="@item.LessonId"
+                                           class="btn btn-outline-secondary" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@item.LessonId"
+                                           class="btn btn-outline-primary" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.LessonId"
+                                           class="btn btn-outline-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info d-flex align-items-center mt-3">
+                <i class="bi bi-info-circle me-2"></i>
+                <div>
+                    <strong>No lessons found.</strong> Try creating a new lesson to get started.
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Simple search filter by text
+            $('#searchInput').on('keyup', function () {
+                const value = $(this).val().toLowerCase();
+                $('.user-row').filter(function () {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+                });
+            });
+        });
+    </script>
 }
-    </tbody>
-</table>

@@ -1,0 +1,186 @@
+﻿@model DoAnChuyenNganh.Models.User
+
+@{
+    ViewData["Title"] = "Delete";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-3">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h2 class="mb-1 text-danger">Xoá người dùng</h2>
+            <div class="text-muted">
+                Bạn có chắc muốn xoá tài khoản
+                <strong>@Model.Username</strong> (ID: @Model.UserId)?
+            </div>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Quay lại danh sách
+        </a>
+    </div>
+
+    <div class="alert alert-warning">
+        <strong>Cảnh báo:</strong> Hành động này không thể hoàn tác.
+        Dữ liệu liên quan (log, lịch sử, v.v.) có thể bị ảnh hưởng tùy theo cách bạn xử lý ở backend.
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong>Thông tin người dùng</strong>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- Avatar + username -->
+                <div class="col-md-4 d-flex align-items-start gap-3">
+                    <div class="rounded overflow-hidden flex-shrink-0" style="width:80px;height:80px;background:#f3f4f6;">
+                        @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
+                        {
+                            <img src="@Model.AvatarUrl" alt="avatar" class="w-100 h-100 object-fit-cover" />
+                        }
+                        else
+                        {
+                            <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
+                                <i class="bi bi-person fs-1"></i>
+                            </div>
+                        }
+                    </div>
+                    <div>
+                        <div class="h5 mb-1">@($"{Model.FirstName} {Model.LastName}".Trim())</div>
+                        <div class="text-muted mb-1">@Model.Username</div>
+                        <div class="small">
+                            <span class="text-muted">Email:</span>
+                            @if (!string.IsNullOrWhiteSpace(Model.Email))
+                            {
+                                <a href="mailto:@Model.Email">@Model.Email</a>
+                            }
+                            else
+                            {
+                                @("-")
+                            }
+                        </div>
+                        <div class="small">
+                            <span class="text-muted">Số điện thoại:</span>
+                            @(!string.IsNullOrWhiteSpace(Model.PhoneNumber) ? Model.PhoneNumber : "-")
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info detail -->
+                <div class="col-md-8">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Ngày sinh</dt>
+                        <dd class="col-sm-8">
+                            @(Model.DateOfBirth.HasValue
+                                ? Model.DateOfBirth.Value.ToString("dd/MM/yyyy")
+                                : "-")
+                        </dd>
+
+                        <dt class="col-sm-4">Vai trò</dt>
+                        <dd class="col-sm-8">
+                            @(Model.Role != null
+                                ? $"RoleID: {Model.Role.RoleId}"
+                                : "-")
+                        </dd>
+
+                        <dt class="col-sm-4">Trạng thái</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.IsActive == true)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    Đang hoạt động
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                    Ngưng hoạt động
+                                </span>
+                            }
+
+                            @if (Model.IsLocked == true)
+                            {
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-1">
+                                    Đang khoá
+                                </span>
+                            }
+
+                            @if (Model.IsEmailVerified == true)
+                            {
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1">
+                                    Email đã xác minh
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1">
+                                    Email chưa xác minh
+                                </span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Giới thiệu</dt>
+                        <dd class="col-sm-8">
+                            @(!string.IsNullOrWhiteSpace(Model.Bio) ? Model.Bio : "-")
+                        </dd>
+
+                        <dt class="col-sm-4">Đăng nhập gần nhất</dt>
+                        <dd class="col-sm-8">
+                            @(Model.LastLoginAt.HasValue
+                                ? Model.LastLoginAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                : "-")
+                        </dd>
+
+                        <dt class="col-sm-4">Số lần thử đăng nhập</dt>
+                        <dd class="col-sm-8">
+                            @(Model.LoginAttempts ?? 0)
+                        </dd>
+
+                        <dt class="col-sm-4">Khoá tới</dt>
+                        <dd class="col-sm-8">
+                            @(Model.LockoutUntil.HasValue
+                                ? Model.LockoutUntil.Value.ToString("dd/MM/yyyy HH:mm")
+                                : "-")
+                        </dd>
+
+                        <dt class="col-sm-4">Tạo lúc</dt>
+                        <dd class="col-sm-8">
+                            @(Model.CreatedAt.HasValue
+                                ? Model.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                : "-")
+                        </dd>
+
+                        <dt class="col-sm-4">Người tạo</dt>
+                        <dd class="col-sm-8">
+                            @(
+                                Model.CreatedByNavigation != null
+                                ? (!string.IsNullOrWhiteSpace(Model.CreatedByNavigation.Username)
+                                ? Model.CreatedByNavigation.Username
+                                : $"UserID: {Model.CreatedByNavigation.UserId}")
+                                : "-"
+                                )
+                        </dd>
+
+                        <dt class="col-sm-4">Cập nhật lúc</dt>
+                        <dd class="col-sm-8">
+                            @(Model.UpdatedAt.HasValue
+                                ? Model.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                : "-")
+                        </dd>
+
+                        <dt class="col-sm-4">Người cập nhật</dt>
+                        <dd class="col-sm-8">
+                            @(
+                                Model.UpdatedByNavigation != null
+                                ? (!string.IsNullOrWhiteSpace(Model.UpdatedByNavigation.Username)
+                                ? Model.UpdatedByNavigation.Username
+                                : $"UserID: {Model.UpdatedByNavigation.UserId}")
+                                : "-"
+                                )
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <hr />
+
+            <
