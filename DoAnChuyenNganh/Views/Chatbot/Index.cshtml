@@ -1,0 +1,121 @@
+@model DoAnChuyenNganh.ViewModels.Chatbot.AIChatbotViewModel
+@{
+    ViewData["Title"] = "AI Chatbot";
+}
+
+<link rel="stylesheet" href="~/css/chatbot.css" asp-append-version="true" />
+
+<div class="chatbot-container">
+    <div class="chatbot-sidebar" id="chatbotSidebar">
+        <div class="sidebar-header">
+            <h5 class="mb-0">
+                <i class="bi bi-robot text-primary"></i> AI Assistant
+            </h5>
+            <button class="btn" id="newConversationBtn" title="New Conversation">
+                <i class="bi bi-pencil-square"></i>
+            </button>
+        </div>
+
+        <div class="sidebar-search">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" class="form-control" id="conversationSearch"
+                       placeholder="Search history...">
+            </div>
+        </div>
+
+        <div class="conversation-list" id="conversationList">
+            <div class="text-center text-muted py-4">
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chatbot-main">
+        <div class="chat-header" id="chatHeader">
+            <div class="d-flex align-items-center w-100 justify-content-between">
+                <div class="d-flex align-items-center overflow-hidden">
+                    <button class="btn btn-link d-md-none me-2 text-dark p-0" id="toggleSidebarBtn">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+
+                    <div class="chat-header-info">
+                        <h5 class="mb-0" id="conversationTitle">AI Assistant</h5>
+                        <small class="text-muted" id="conversationSubtitle">Ready to help</small>
+                    </div>
+                </div>
+
+                <div class="chat-header-actions flex-shrink-0">
+                    <button class="btn btn-sm btn-outline-danger border-0 bg-light" id="deleteConversationBtn"
+                            style="display: none;" title="Delete Conversation">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message" id="welcomeMessage">
+                <div class="text-center">
+                    <div class="welcome-icon-circle mx-auto">
+                        <i class="bi bi-stars text-primary" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <h3 class="mb-2 fw-bold">How can I help you today?</h3>
+                    <p class="text-muted mb-4">I can help you analyze data, answer questions, or generate ideas.</p>
+                    <button class="btn btn-primary px-4 py-2 rounded-pill" id="startNewChatBtn">
+                        <i class="bi bi-chat-text me-2"></i>Start New Conversation
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-container" id="chatInputContainer">
+            <div class="chat-input-wrapper">
+                <div class="alert alert-warning alert-dismissible fade show mb-2 shadow-sm" id="rateLimitWarning" style="display: none; font-size: 0.9rem;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <span id="rateLimitMessage">Please wait...</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="alert alert-danger alert-dismissible fade show mb-2 shadow-sm" id="errorAlert" style="display: none; font-size: 0.9rem;">
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    <span id="errorMessage"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <form id="messageForm">
+                    <div class="flex-grow-1">
+                        <textarea class="form-control" id="messageInput" rows="1"
+                                  placeholder="Message AI Assistant..."
+                                  maxlength="5000"></textarea>
+                    </div>
+
+                    <div class="d-flex flex-column justify-content-end">
+                        <input type="hidden" id="generateSqlCheck" value="false">
+                        <button type="submit" id="sendBtn" disabled>
+                            <i class="bi bi-arrow-up-short fs-4"></i>
+                        </button>
+                    </div>
+                </form>
+                <div class="character-count mt-1">
+                    <small class="text-muted"><span id="charCount">0</span>/5000</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/chatbot.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof ChatbotManager !== 'undefined') {
+                ChatbotManager.init(@Model.CurrentUserId, '@(Model.UserAvatarUrl ?? "")');
+            }
+        });
+    </script>
+}
