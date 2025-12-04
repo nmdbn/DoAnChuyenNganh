@@ -1,79 +1,248 @@
 ﻿@model DoAnChuyenNganh.Models.CourseMaterial
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Material Details";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Details</h1>
+<div class="container py-4">
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-info text-white rounded-top-4">
+            <h4 class="mb-0">
+                <i class="bi bi-info-circle"></i> Course Material Details
+            </h4>
+        </div>
 
-<div>
-    <h4>CourseMaterial</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.MaterialName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.MaterialName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.MaterialType)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.MaterialType)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.FileUrl)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.FileUrl)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.FileSize)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.FileSize)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DownloadCount)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DownloadCount)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsPublic)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsPublic)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Course)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Course.CourseId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedByNavigation)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedByNavigation.UserId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Lesson)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Lesson.LessonId)
-        </dd>
-    </dl>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <h3 class="mb-3">
+                        <i class="bi bi-file-earmark-text"></i> @Model.MaterialName
+                    </h3>
+
+                    <div class="mb-3">
+                        <span class="badge bg-primary fs-6">
+                            <i class="bi bi-tag"></i> @Model.MaterialType
+                        </span>
+                        @if (Model.IsPublic == true)
+                        {
+                            <span class="badge bg-success fs-6 ms-2">
+                                <i class="bi bi-eye"></i> Public
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary fs-6 ms-2">
+                                <i class="bi bi-eye-slash"></i> Private
+                            </span>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-md-4 text-end">
+                    @if (!string.IsNullOrEmpty(Model.FileUrl))
+                    {
+                        <a href="@Model.FileUrl"
+                           class="btn btn-primary btn-lg"
+                           download>
+                            <i class="bi bi-download"></i> Download File
+                        </a>
+                    }
+                </div>
+            </div>
+
+            <hr />
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3 border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-book"></i> Course Information</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (Model.Course != null)
+                            {
+                                <h6 class="fw-bold">@Model.Course.Title</h6>
+                                <p class="text-muted mb-0">
+                                    <small>Course ID: @Model.Course.CourseId</small>
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="text-muted mb-0">No course assigned</p>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="card mb-3 border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="bi bi-file-text"></i> Lesson Information</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (Model.Lesson != null)
+                            {
+                                <h6 class="fw-bold">@Model.Lesson.Title</h6>
+                                <p class="text-muted mb-0">
+                                    <small>Lesson ID: @Model.Lesson.LessonId</small>
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="text-muted mb-0">No lesson assigned</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card mb-3 border-info">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="bi bi-file-earmark"></i> File Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">File Size:</dt>
+                                <dd class="col-sm-8">
+                                    @if (Model.FileSize.HasValue)
+                                    {
+                                        var sizeInMB = Model.FileSize.Value / 1024.0 / 1024.0;
+                                        if (sizeInMB < 1)
+                                        {
+                                            <span>@((Model.FileSize.Value / 1024.0).ToString("F2")) KB</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@sizeInMB.ToString("F2") MB</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Unknown</span>
+                                    }
+                                </dd>
+
+                                <dt class="col-sm-4">Downloads:</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-warning text-dark">
+                                        @Model.DownloadCount times
+                                    </span>
+                                </dd>
+
+                                <dt class="col-sm-4">File URL:</dt>
+                                <dd class="col-sm-8">
+                                    @if (!string.IsNullOrEmpty(Model.FileUrl))
+                                    {
+                                        <a href="@Model.FileUrl" target="_blank" class="text-break">
+                                            @Model.FileUrl
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">No file URL</span>
+                                    }
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="bi bi-clock-history"></i> Metadata</h5>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Created At:</dt>
+                                <dd class="col-sm-8">
+                                    @if (Model.CreatedAt.HasValue)
+                                    {
+                                        <span>@Model.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Unknown</span>
+                                    }
+                                </dd>
+
+                                <dt class="col-sm-4">Created By:</dt>
+                                <dd class="col-sm-8">
+                                    @if (Model.CreatedByNavigation != null)
+                                    {
+                                        <div class="d-flex align-items-center">
+                                            @if (!string.IsNullOrEmpty(Model.CreatedByNavigation.AvatarUrl))
+                                            {
+                                                <img src="@Model.CreatedByNavigation.AvatarUrl"
+                                                     alt="Avatar"
+                                                     class="rounded-circle me-2"
+                                                     style="width: 30px; height: 30px; object-fit: cover;" />
+                                            }
+                                            else
+                                            {
+                                                <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                                     style="width: 30px; height: 30px;">
+                                                    <i class="bi bi-person text-white"></i>
+                                                </div>
+                                            }
+                                            <span>@Model.CreatedByNavigation.Username</span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Unknown</span>
+                                    }
+                                </dd>
+
+                                <dt class="col-sm-4">Material ID:</dt>
+                                <dd class="col-sm-8">
+                                    <code>#@Model.MaterialId</code>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left-circle"></i> Back to List
+                </a>
+                <div>
+                    <a asp-action="Edit" asp-route-id="@Model.MaterialId" class="btn btn-warning me-2">
+                        <i class="bi bi-pencil-square"></i> Edit
+                    </a>
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.MaterialId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle"></i> Confirm Delete
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this material?</p>
+                <p class="fw-bold text-danger">@Model.MaterialName</p>
+                <p class="text-muted mb-0">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <form asp-action="Delete" asp-route-id="@Model.MaterialId" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>

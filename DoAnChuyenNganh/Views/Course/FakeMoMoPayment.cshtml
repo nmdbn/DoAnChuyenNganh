@@ -1,0 +1,58 @@
+﻿@model DoAnChuyenNganh.Models.Payment
+
+@{
+    ViewData["Title"] = "Thanh toán MoMo (Fake Sandbox)";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-danger text-white text-center">
+                    <h4 class="mb-0">
+                        <i class="bi bi-wallet2"></i> Thanh toán MoMo (Giả lập)
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <h5 class="mb-3 text-center">
+                        Khóa học:
+                        <strong>@Model.Course?.Title</strong>
+                    </h5>
+
+                    <p class="text-muted text-center mb-1">
+                        Số tiền cần thanh toán:
+                    </p>
+                    <h3 class="text-center mb-4 text-success">
+                        @Model.Amount.ToString("N0") đ
+                    </h3>
+
+                    <p class="text-center text-secondary mb-4">
+                        Đây là môi trường <strong>Sandbox / Fake</strong>.
+                        Nhấn nút bên dưới để giả lập thanh toán thành công giống như trên MoMo thật.
+                    </p>
+
+                    <form asp-action="ConfirmFakePayment" asp-controller="Course" method="post">
+                        <input type="hidden" name="paymentId" value="@Model.PaymentId" />
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle-fill"></i> Xác nhận thanh toán thành công
+                            </button>
+
+                            <a asp-action="PublicDetails"
+                               asp-controller="Course"
+                               asp-route-id="@Model.CourseId"
+                               class="btn btn-outline-secondary">
+                                Hủy và quay lại khóa học
+                            </a>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center text-muted small">
+                    Dev mode • MoMo Sandbox Fake
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

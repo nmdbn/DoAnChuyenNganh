@@ -1,0 +1,321 @@
+﻿@model List<DoAnChuyenNganh.Models.Course>
+
+@{
+    ViewData["Title"] = "Courses";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-5">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-primary">
+                <i class="bi bi-book"></i> Available Courses
+            </h2>
+            <p class="text-muted">Discover and join high-quality courses</p>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-4 shadow-sm border-0">
+        <div class="card-body">
+            <form asp-action="Public" method="get" class="row g-3 align-items-end">
+                <!-- Search Box -->
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-search"></i> Search
+                    </label>
+                    <input name="searchString"
+                           class="form-control"
+                           placeholder="Search courses..."
+                           value="@ViewData["CurrentFilter"]" />
+                </div>
+
+                <!-- Subject Filter -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-bookmark"></i> Subject
+                    </label>
+                    <select name="subjectId" class="form-select">
+                        <option value="">-- All Subjects --</option>
+                        @if (ViewData["Subjects"] is SelectList subjects)
+                        {
+                            @foreach (var item in subjects)
+                            {
+                                <option value="@item.Value"
+                                        selected="@(item.Value == ViewData["SelectedSubject"]?.ToString())">
+                                    @item.Text
+                                </option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <!-- Grade Filter -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-mortarboard"></i> Grade Level
+                    </label>
+                    <select name="gradeId" class="form-select">
+                        <option value="">-- All Grades --</option>
+                        @if (ViewData["Grades"] is SelectList grades)
+                        {
+                            @foreach (var item in grades)
+                            {
+                                <option value="@item.Value"
+                                        selected="@(item.Value == ViewData["SelectedGrade"]?.ToString())">
+                                    @item.Text
+                                </option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                    <a asp-action="Public" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Summary -->
+    @if (ViewData["CurrentFilter"] != null || ViewData["SelectedSubject"] != null || ViewData["SelectedGrade"] != null)
+    {
+        <div class="alert alert-info mb-4">
+            <i class="bi bi-info-circle"></i>
+            Showing <strong>@Model.Count</strong> course(s)
+            @if (ViewData["CurrentFilter"] != null)
+            {
+                <span> matching "<strong>@ViewData["CurrentFilter"]</strong>"</span>
+            }
+        </div>
+    }
+
+    <!-- Course Grid -->
+    <div class="row g-4">
+        @if (Model.Any())
+        {
+            @foreach (var course in Model)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm hover-card border-0">
+                        <!-- Course Thumbnail -->
+                        <div class="position-relative">
+                            @if (!string.IsNullOrEmpty(course.ThumbnailUrl))
+                            {
+                                <img src="@course.ThumbnailUrl"
+                                     class="card-img-top"
+                                     alt="@course.Title"
+                                     style="height: 200px; object-fit: cover;">
+                            }
+                            else
+                            {
+                                <div class="bg-gradient-primary d-flex align-items-center justify-content-center text-white"
+                                     style="height: 200px;">
+                                    <div class="text-center">
+                                        <i class="bi bi-book fs-1"></i>
+                                        <h6 class="mt-2">eLearning</h6>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Featured Badge -->
+                            @if (course.IsFeatured == true)
+                            {
+                                <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-3">
+                                    <i class="bi bi-star-fill"></i> Featured
+                                </span>
+                            }
+
+                            <!-- Difficulty Badge -->
+                            @if (course.DifficultyLevel != null && course.DifficultyLevel > 0)
+                            {
+                                <span class="badge bg-info position-absolute top-0 start-0 m-3">
+                                    Level @course.DifficultyLevel
+                                </span>
+                            }
+                        </div>
+
+                        <!-- Course Body -->
+                        <div class="card-body d-flex flex-column">
+                            <!-- Title -->
+                            <h5 class="card-title fw-bold mb-3">
+                                <a asp-action="PublicDetails"
+                                   asp-route-id="@course.CourseId"
+                                   class="text-decoration-none text-dark hover-primary">
+                                    @course.Title
+                                </a>
+                            </h5>
+
+                            <!-- Course Info -->
+                            <div class="course-meta mb-3 small">
+                                <div class="mb-1">
+                                    <i class="bi bi-bookmark text-primary"></i>
+                                    <strong>Subject:</strong> @(course.Subject?.SubjectName ?? "N/A")
+                                </div>
+                                <div class="mb-1">
+                                    <i class="bi bi-mortarboard text-success"></i>
+                                    <strong>Grade:</strong> @(course.Grade?.GradeName ?? "N/A")
+                                </div>
+                                <div class="mb-1">
+                                    <i class="bi bi-person-badge text-info"></i>
+                                    <strong>Instructor:</strong>
+                                    @if (course.Instructor != null)
+                                    {
+                                        @($"{course.Instructor.FirstName} {course.Instructor.LastName}")
+                                    }
+                                    else
+                                    {
+                                        <span>Not assigned</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Short Description -->
+                            @if (!string.IsNullOrEmpty(course.ShortDescription))
+                            {
+                                <p class="text-muted small flex-grow-1 mb-3">
+                                    @course.ShortDescription
+                                </p>
+                            }
+
+                            <!-- Stats & Price -->
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <!-- Stats -->
+                                    <div class="small text-muted">
+                                        <i class="bi bi-eye"></i> @course.ViewCount
+                                        <span class="ms-2">
+                                            <i class="bi bi-people"></i> @course.EnrollmentCount
+                                        </span>
+                                        @if (course.RatingCount > 0)
+                                        {
+                                            <span class="ms-2">
+                                                <i class="bi bi-star-fill text-warning"></i>
+                                                @course.AverageRating?.ToString("0.0")
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <!-- Price -->
+                                    <div class="text-end">
+                                        @if (course.Price == 0 || course.Price == null)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                Free
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="fw-bold text-primary">
+                                                @course.Price?.ToString("N0") VND
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Action Button -->
+                                <a asp-action="Checkout"
+                                   asp-route-id="@course.CourseId"
+                                   class="btn btn-primary w-100 fw-semibold">
+                                    <i class="bi bi-play-circle"></i> Start Course
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox fs-1 text-muted"></i>
+                    <h4 class="text-muted mt-3">No courses found</h4>
+                    <p class="text-muted">Try adjusting your filters or search terms.</p>
+                    <a asp-action="Public" class="btn btn-outline-primary mt-3">
+                        <i class="bi bi-arrow-clockwise"></i> View All Courses
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    /* Card Hover Effect */
+    .hover-card {
+        transition: all 0.3s ease;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+        .hover-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.15) !important;
+        }
+
+    /* Gradient Background */
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    /* Link Hover */
+    .hover-primary:hover {
+        color: #667eea !important;
+    }
+
+    /* Course Meta Icons */
+    .course-meta i {
+        width: 16px;
+        display: inline-block;
+    }
+
+    /* Card Image */
+    .card-img-top {
+        border-radius: 12px 12px 0 0;
+    }
+
+    /* Form Controls */
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+    /* Badges */
+    .badge {
+        padding: 6px 12px;
+        font-weight: 500;
+    }
+
+    /* Button */
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+    /* Card Shadow */
+    .shadow-sm {
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08) !important;
+    }
+
+    /* Alert */
+    .alert-info {
+        background-color: #e7f3ff;
+        border-color: #b3d9ff;
+        color: #004085;
+        border-radius: 8px;
+    }
+</style>

@@ -87,16 +87,19 @@
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    <label asp-for="InstructorId" class="form-label">Instructor <span class="text-danger">*</span></label>
-                                    <select asp-for="InstructorId" class="form-select" asp-items="ViewBag.InstructorId" required>
-                                        <option value="">-- Select Instructor --</option>
-                                    </select>
-                                    <span asp-validation-for="InstructorId" class="text-danger"></span>
-                                </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label fw-bold text-success">Instructor</label>
+                                <input type="text"
+                                       class="form-control bg-light"
+                                       value="@User.Identity.Name (@ViewData["CurrentUserFullName"])"
+                                       disabled />
+                                <small class="form-text text-muted mt-2">
+                                    <i class="bi bi-info-circle"></i>
+                                    This course will be assigned to <strong>you</strong> as the instructor automatically.
+                                </small>
                             </div>
+                      
 
                             <div class="col-md-6">
                                 <div class="form-group mb-3">

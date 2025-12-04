@@ -1,0 +1,45 @@
+﻿@model DoAnChuyenNganh.Models.Course
+@{
+    ViewData["Title"] = "Học: " + Model.Title;
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar: Danh sách bài học -->
+        <div class="col-md-4 col-lg-3 bg-white border-end" style="height: 100vh; overflow-y: auto;">
+            <div class="p-4">
+                <h4 class="fw-bold text-primary">@Model.Title</h4>
+                <p class="text-muted">Giảng viên: @(Model.Instructor?.FirstName ?? "") @(Model.Instructor?.LastName ?? "")</p>
+                <hr>
+                <div class="list-group list-group-flush">
+                    @foreach (var lesson in Model.Lessons.OrderBy(l => l.LessonOrder))
+                    {
+                        <a asp-action="Lesson" asp-route-id="@lesson.LessonId"
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-play-btn"></i>
+                                <strong>@lesson.Title</strong>
+                                @if (lesson.IsPreviewable == true)
+                                {
+                                    <span class="badge bg-success ms-2">Miễn phí</span>
+                                }
+                            </div>
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="col-md-8 col-lg-9">
+            <div class="p-5 text-center">
+                <h2>Chào mừng bạn đến với khóa học!</h2>
+                <p class="lead">Vui lòng chọn bài học bên trái để bắt đầu.</p>
+                <div class="my-5">
+                    <i class="bi bi-play-circle-fill text-primary" style="font-size: 5rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

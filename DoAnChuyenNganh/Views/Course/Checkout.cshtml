@@ -1,0 +1,149 @@
+﻿@model DoAnChuyenNganh.ViewModels.Payments.CheckoutViewModel
+@{
+    ViewData["Title"] = "Checkout";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-4">
+    <h2 class="mb-4">Checkout</h2>
+    <div class="row g-4">
+        <!-- LEFT: Shipping / buyer info -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <strong>Shipping / Billing information</strong>
+                </div>
+                <div class="card-body">
+                    <!-- FORM -->
+                    <form asp-action="Checkout" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="CourseId" />
+                        <input type="hidden" asp-for="Price" />
+
+                        <div class="mb-3">
+                            <label asp-for="FullName" class="form-label">Full name</label>
+                            <input asp-for="FullName" class="form-control" />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PhoneNumber" class="form-label">Phone</label>
+                            <input asp-for="PhoneNumber" class="form-control" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Province" class="form-label">Province / City</label>
+                                <input asp-for="Province" class="form-control" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="District" class="form-label">District</label>
+                                <input asp-for="District" class="form-control" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Ward" class="form-label">Ward / Commune</label>
+                                <input asp-for="Ward" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="SpecificAddress" class="form-label">Specific address</label>
+                            <textarea asp-for="SpecificAddress" rows="2" class="form-control"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Note" class="form-label">Note</label>
+                            <textarea asp-for="Note" rows="2" class="form-control"></textarea>
+                        </div>
+
+                        <!-- PAYMENT METHODS -->
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <strong>Payment Method</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio"
+                                           asp-for="PaymentMethod" value="COD" checked />
+                                    <label class="form-check-label">
+                                        💸 Cash on Delivery (COD)
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio"
+                                           asp-for="PaymentMethod" value="MoMo" />
+                                    <label class="form-check-label">
+                                        🧧 MoMo
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio"
+                                           asp-for="PaymentMethod" value="PayPal" />
+                                    <label class="form-check-label">
+                                        🅿 PayPal
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                Place Order
+                            </button>
+                            <a asp-action="PublicDetails" asp-route-id="@Model.CourseId"
+                               class="btn btn-outline-secondary ms-2">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Order summary -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <strong>Order Summary</strong>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex">
+                        @if (!string.IsNullOrEmpty(Model.ThumbnailUrl))
+                        {
+                            <img src="@Model.ThumbnailUrl" alt="@Model.CourseTitle"
+                                 class="me-3 rounded" style="width:80px;height:80px;object-fit:cover;" />
+                        }
+                        <div>
+                            <h6 class="mb-1">@Model.CourseTitle</h6>
+                            <div class="text-muted small">1 x course</div>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <div class="d-flex justify-content-between">
+                        <span>Subtotal</span>
+                        <span>@Model.Price.ToString("N0") đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Shipping</span>
+                        <span>Free</span>
+                    </div>
+                    <hr />
+                    <div class="d-flex justify-content-between fw-bold">
+                        <span>Total</span>
+                        <span>@Model.Price.ToString("N0") đ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -68,7 +68,7 @@ public partial class DoAnChuyenNganhContext : DbContext
     public virtual DbSet<VwForumActivity> VwForumActivities { get; set; }
 
     public virtual DbSet<VwStudentProgress> VwStudentProgresses { get; set; }
-
+    public virtual DbSet<Payment> Payments { get; set; } = null!;
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer("Name=DefaultConnection");
 
