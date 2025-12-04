@@ -21,12 +21,25 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Grades
         public async Task<IActionResult> Index()
         {
+            // Kiểm tra quyền Admin
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             return View(await _context.Grades.ToListAsync());
         }
 
         // GET: Grades/Details/5
         public async Task<IActionResult> Details(short? id)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id == null)
             {
                 return NotFound();
@@ -45,20 +58,33 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Grades/Create
         public IActionResult Create()
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             return View();
         }
 
         // POST: Grades/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("GradeId,GradeName,GradeLevel,Description,IsActive,CreatedAt,UpdatedAt")] Grade grade)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (ModelState.IsValid)
             {
+                grade.CreatedAt = DateTime.Now;
+                grade.UpdatedAt = DateTime.Now;
                 _context.Add(grade);
                 await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Grade created successfully!";
                 return RedirectToAction(nameof(Index));
             }
             return View(grade);
@@ -67,6 +93,12 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Grades/Edit/5
         public async Task<IActionResult> Edit(short? id)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id == null)
             {
                 return NotFound();
@@ -81,12 +113,16 @@ namespace DoAnChuyenNganh.Controllers
         }
 
         // POST: Grades/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(short id, [Bind("GradeId,GradeName,GradeLevel,Description,IsActive,CreatedAt,UpdatedAt")] Grade grade)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id != grade.GradeId)
             {
                 return NotFound();
@@ -96,8 +132,10 @@ namespace DoAnChuyenNganh.Controllers
             {
                 try
                 {
+                    grade.UpdatedAt = DateTime.Now;
                     _context.Update(grade);
                     await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Grade updated successfully!";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -118,6 +156,12 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Grades/Delete/5
         public async Task<IActionResult> Delete(short? id)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id == null)
             {
                 return NotFound();
@@ -138,6 +182,12 @@ namespace DoAnChuyenNganh.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(short id)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             var grade = await _context.Grades.FindAsync(id);
             if (grade != null)
             {
@@ -145,12 +195,24 @@ namespace DoAnChuyenNganh.Controllers
             }
 
             await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Grade deleted successfully!";
             return RedirectToAction(nameof(Index));
         }
 
         private bool GradeExists(short id)
         {
             return _context.Grades.Any(e => e.GradeId == id);
+        }
+
+        // Helper method để kiểm tra quyền Admin
+        private bool IsAdmin()
+        {
+            // Kiểm tra RoleName từ Session
+            var roleName = HttpContext.Session.GetString("RoleName");
+
+            // So sánh RoleName với "Admin" (không phân biệt hoa thường)
+            return !string.IsNullOrEmpty(roleName) &&
+                   roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

@@ -33,7 +33,7 @@
         <!-- LEFT: FORM -->
         <div class="col-md-8">
             <form asp-action="Create" method="post">
-                <div asp-validation-summary="All" class="alert alert-danger"></div>
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
                 <div class="card mb-3">
                     <div class="card-header bg-primary text-white">
@@ -136,14 +136,13 @@
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="form-check form-switch">
-                                    <!-- Hidden input gửi false khi không check -->
-                                    <input type="hidden" name="IsPreviewable" value="false" />
                                     <input type="checkbox"
                                            class="form-check-input"
                                            id="IsPreviewable"
                                            name="IsPreviewable"
                                            value="true"
                                     @(Model?.IsPreviewable == true ? "checked" : "") />
+                                    <input type="hidden" name="IsPreviewable" value="false" />
                                     <label class="form-check-label" for="IsPreviewable">
                                         Allow Free Preview
                                     </label>
@@ -153,13 +152,13 @@
 
                             <div class="col-md-6">
                                 <div class="form-check form-switch">
-                                    <input type="hidden" name="IsPublished" value="false" />
                                     <input type="checkbox"
                                            class="form-check-input"
                                            id="IsPublished"
                                            name="IsPublished"
                                            value="true"
                                     @(Model?.IsPublished != false ? "checked" : "") />
+                                    <input type="hidden" name="IsPublished" value="false" />
                                     <label class="form-check-label" for="IsPublished">
                                         Publish Lesson
                                     </label>
@@ -168,37 +167,10 @@
                             </div>
                         </div>
 
-
-                        <!-- OWNERSHIP -->
-                        <h6 class="section-title">Ownership</h6>
-                        <hr class="mt-1" />
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    <label asp-for="CreatedBy" class="form-label">Created By</label>
-                                    <select asp-for="CreatedBy" class="form-select" asp-items="ViewBag.CreatedBy">
-                                        <option value="">-- Select User --</option>
-                                    </select>
-                                    <span asp-validation-for="CreatedBy" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    <label asp-for="UpdatedBy" class="form-label">Updated By</label>
-                                    <select asp-for="UpdatedBy" class="form-select" asp-items="ViewBag.UpdatedBy">
-                                        <option value="">-- Select User --</option>
-                                    </select>
-                                    <span asp-validation-for="UpdatedBy" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <p class="text-muted small mb-0">
+                        <div class="alert alert-info">
                             <i class="bi bi-info-circle"></i>
-                            <strong>CreatedAt</strong> and <strong>UpdatedAt</strong> will be set automatically by the system.
-                        </p>
+                            <strong>Note:</strong> Creator and updater information will be automatically recorded based on your logged-in account.
+                        </div>
                     </div>
                 </div>
 

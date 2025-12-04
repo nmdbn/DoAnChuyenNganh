@@ -1,44 +1,303 @@
 ﻿@model DoAnChuyenNganh.Models.Grade
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create Grade";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Create</h1>
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2>
+                <i class="bi bi-plus-circle"></i> Create New Grade
+            </h2>
+            <p class="text-muted">Add a new grade level to the system</p>
+        </div>
+        <div class="col-md-4 text-md-end text-start">
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
 
-<h4>Grade</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="GradeName" class="control-label"></label>
-                <input asp-for="GradeName" class="form-control" />
-                <span asp-validation-for="GradeName" class="text-danger"></span>
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- LEFT: FORM -->
+        <div class="col-md-8">
+            <form asp-action="Create" method="post">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-gradient text-white">
+                        <h5 class="mb-0">Grade Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- BASIC INFO -->
+                        <h6 class="section-title">Basic Information</h6>
+                        <hr class="mt-1" />
+
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group mb-3">
+                                    <label asp-for="GradeName" class="form-label">
+                                        Grade Name <span class="text-danger">*</span>
+                                    </label>
+                                    <input asp-for="GradeName" class="form-control form-control-lg"
+                                           placeholder="Enter grade name (e.g., Grade 1, Grade 10)" />
+                                    <span asp-validation-for="GradeName" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label asp-for="GradeLevel" class="form-label">
+                                        Grade Level <span class="text-danger">*</span>
+                                    </label>
+                                    <input asp-for="GradeLevel" class="form-control form-control-lg"
+                                           type="number" min="1" max="20" placeholder="1-20" />
+                                    <span asp-validation-for="GradeLevel" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="4"
+                                      placeholder="Describe the grade level, age group, curriculum focus, or other relevant information..."></textarea>
+                            <small class="form-text text-muted">Optional: Add details about this grade level</small>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <!-- LEVEL INDICATOR -->
+                        <div class="alert alert-light border">
+                            <div class="d-flex align-items-center">
+                                <div class="level-badge-large me-3" id="levelBadgePreview">
+                                    1
+                                </div>
+                                <div>
+                                    <strong>Level Preview</strong>
+                                    <div class="text-muted small">This is how the level will appear in the system</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- STATUS - ĐÃ SỬA: Đảo thứ tự input -->
+                        <h6 class="section-title">Status</h6>
+                        <hr class="mt-1" />
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch form-switch-lg">
+                                    <!-- ✅ ĐẶT HIDDEN INPUT TRƯỚC CHECKBOX -->
+                                    <input type="hidden" name="IsActive" value="false" />
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           id="IsActive"
+                                           name="IsActive"
+                                           value="true"
+                                           checked />
+                                    <label class="form-check-label" for="IsActive">
+                                        <strong>Active Grade</strong>
+                                        <small class="d-block text-muted">Grade will be available in the system</small>
+                                    </label>
+                                </div>
+                                <span asp-validation-for="IsActive" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Note:</strong> Creation and update timestamps will be automatically recorded.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mb-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i> Create Grade
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- RIGHT: TIPS -->
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightbulb"></i> Tips
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success"></i>
+                            <strong>Name:</strong> Use standard naming (e.g., "Grade 1", "Year 10")
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success"></i>
+                            <strong>Level:</strong> Use sequential numbers for easy sorting
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success"></i>
+                            <strong>Description:</strong> Include age range or curriculum details
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-info-circle text-primary"></i>
+                            <strong>Ordering:</strong> Lower numbers appear first in lists
+                        </li>
+                        <li>
+                            <i class="bi bi-info-circle text-primary"></i>
+                            <strong>Status:</strong> Uncheck "Active" to create as draft
+                        </li>
+                    </ul>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="GradeLevel" class="control-label"></label>
-                <input asp-for="GradeLevel" class="form-control" />
-                <span asp-validation-for="GradeLevel" class="text-danger"></span>
+
+            <div class="card">
+                <div class="card-header bg-gradient text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-ol"></i> Common Grades
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="grade-example">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="level-badge-small me-2">1</div>
+                            <div>
+                                <strong>Grade 1</strong>
+                                <div class="text-muted small">Ages 6-7</div>
+                            </div>
+                        </div>
+                        <hr />
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="level-badge-small me-2">6</div>
+                            <div>
+                                <strong>Grade 6</strong>
+                                <div class="text-muted small">Ages 11-12</div>
+                            </div>
+                        </div>
+                        <hr />
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="level-badge-small me-2">12</div>
+                            <div>
+                                <strong>Grade 12</strong>
+                                <div class="text-muted small">Ages 17-18</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function() {
+            // Update level badge preview when level changes
+            $('#GradeLevel').on('input', function() {
+                const level = $(this).val();
+                $('#levelBadgePreview').text(level || '1');
+            });
+        });
+    </script>
 }
+
+<style>
+    .bg-gradient {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .section-title {
+        font-weight: 600;
+        color: #374151;
+        margin-top: 5px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 8px;
+    }
+
+        .form-control:focus,
+        .form-select:focus {
+            box-shadow: 0 0 0 0.2rem rgba(245, 87, 108, 0.25);
+            border-color: #f5576c;
+        }
+
+    .form-switch-lg .form-check-input {
+        width: 3rem;
+        height: 1.5rem;
+    }
+
+    .level-badge-large {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.8rem;
+        box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+    }
+
+    .level-badge-small {
+        width: 35px;
+        height: 35px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1rem;
+        box-shadow: 0 2px 6px rgba(245, 87, 108, 0.3);
+    }
+
+    .grade-example {
+        padding: 5px 0;
+    }
+
+    .alert-danger {
+        border-radius: 10px;
+    }
+
+    (max-width: 768px) {
+        .btn-lg
+
+    {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .d-flex.gap-2 {
+        flex-direction: column;
+    }
+
+    }
+</style>

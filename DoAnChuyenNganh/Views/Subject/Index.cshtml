@@ -1,72 +1,723 @@
 ﻿@model IEnumerable<DoAnChuyenNganh.Models.Subject>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Subject Management";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Index</h1>
+<link rel="stylesheet" href="~/css/subject-management.css" />
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.SubjectName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SubjectCode)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IconUrl)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IsActive)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UpdatedAt)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.SubjectName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.SubjectCode)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Description)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.IconUrl)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.IsActive)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UpdatedAt)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.SubjectId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.SubjectId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.SubjectId">Delete</a>
-            </td>
-        </tr>
+<div class="subject-management-container">
+    <!-- Header -->
+    <div class="subject-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-book"></i> Subject Management</h1>
+                <p class="text-muted">Manage subjects and their information</p>
+            </div>
+            <div>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add New Subject
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @Html.AntiForgeryToken()
+
+    <!-- Statistics -->
+    <div class="subject-stats">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="bi bi-book-fill"></i>
+                    <div class="stat-info">
+                        <h3>@Model.Count()</h3>
+                        <p>Total Subjects</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card stat-success">
+                    <i class="bi bi-check-circle"></i>
+                    <div class="stat-info">
+                        <h3>@Model.Count(s => s.IsActive == true)</h3>
+                        <p>Active Subjects</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card stat-danger">
+                    <i class="bi bi-x-circle"></i>
+                    <div class="stat-info">
+                        <h3>@Model.Count(s => s.IsActive == false)</h3>
+                        <p>Inactive Subjects</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card stat-warning">
+                    <i class="bi bi-calendar-plus"></i>
+                    <div class="stat-info">
+                        <h3>@Model.Count(s => s.CreatedAt.HasValue && s.CreatedAt.Value.Month == DateTime.Now.Month)</h3>
+                        <p>Added This Month</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subjects Table Section -->
+    <div class="subjects-section">
+        <div class="section-header">
+            <h2><i class="bi bi-list-ul"></i> Subject List</h2>
+            <div class="search-filter">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search subjects...">
+            </div>
+        </div>
+
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table subject-table">
+                    <thead>
+                        <tr>
+                            <th><i class="bi bi-card-heading"></i> Subject Name</th>
+                            <th><i class="bi bi-code-square"></i> Subject Code</th>
+                            <th><i class="bi bi-file-text"></i> Description</th>
+                            <th><i class="bi bi-image"></i> Icon</th>
+                            <th><i class="bi bi-activity"></i> Status</th>
+                            <th><i class="bi bi-clock-history"></i> Created At</th>
+                            <th class="text-center"><i class="bi bi-gear"></i> Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr id="subject-row-@item.SubjectId" class="subject-row">
+                                <td>
+                                    <div class="subject-name-icon">
+                                        @if (!string.IsNullOrEmpty(item.IconUrl))
+                                        {
+                                            <img src="@item.IconUrl" alt="@item.SubjectName" class="subject-icon-small">
+                                        }
+                                        else
+                                        {
+                                            <div class="subject-icon-placeholder">
+                                                @item.SubjectName.Substring(0, 1).ToUpper()
+                                            </div>
+                                        }
+                                        <strong>@item.SubjectName</strong>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge-code">@item.SubjectCode</span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.Description) && item.Description.Length > 50)
+                                    {
+                                        <span title="@item.Description">@item.Description.Substring(0, 50)...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@item.Description</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.IconUrl))
+                                    {
+                                        <a href="@item.IconUrl" target="_blank" class="icon-link">
+                                            <i class="bi bi-link-45deg"></i> View Icon
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted">No icon</small>
+                                    }
+                                </td>
+                                <td class="status-cell">
+                                    @if (item.IsActive == true)
+                                    {
+                                        <span class="status-badge status-active">
+                                            <i class="bi bi-check-circle-fill"></i> Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-inactive">
+                                            <i class="bi bi-x-circle-fill"></i> Inactive
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.CreatedAt.HasValue)
+                                    {
+                                        <small class="text-muted">@item.CreatedAt.Value.ToString("MMM dd, yyyy")</small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted">N/A</small>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Details" asp-route-id="@item.SubjectId"
+                                           class="btn btn-sm btn-info" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@item.SubjectId"
+                                           class="btn btn-sm btn-warning" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        @if (item.IsActive == true)
+                                        {
+                                            <button class="btn btn-sm btn-danger toggle-status"
+                                                    data-subject-id="@item.SubjectId"
+                                                    data-is-active="true"
+                                                    title="Deactivate Subject">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-success toggle-status"
+                                                    data-subject-id="@item.SubjectId"
+                                                    data-is-active="false"
+                                                    title="Activate Subject">
+                                                <i class="bi bi-check-circle"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No subjects found in the system.
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Search functionality
+            $('#searchInput').on('keyup', function () {
+                const value = $(this).val().toLowerCase();
+                $('.subject-row').filter(function () {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+                });
+            });
+
+            // Handle toggle status button click
+            $('.toggle-status').on('click', function () {
+                const button = $(this);
+                const subjectId = button.data('subject-id');
+                const isCurrentlyActive = button.data('is-active');
+
+                // Confirm action
+                const action = isCurrentlyActive ? 'deactivate' : 'activate';
+                if (!confirm(`Are you sure you want to ${action} this subject?`)) {
+                    return;
+                }
+
+                // Disable button during request
+                button.prop('disabled', true);
+                button.html('<i class="bi bi-hourglass-split"></i>');
+
+                // Get anti-forgery token
+                const token = $('input[name="__RequestVerificationToken"]').val();
+
+                // Send AJAX request
+                $.ajax({
+                    url: '@Url.Action("ToggleStatus", "Subject")',
+                    type: 'POST',
+                    data: {
+                        subjectId: subjectId,
+                        __RequestVerificationToken: token
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            // Update button appearance
+                            const newIsActive = response.isActive;
+                            button.data('is-active', newIsActive);
+
+                            const row = button.closest('tr');
+                            const statusCell = row.find('.status-cell');
+
+                            if (newIsActive) {
+                                // Subject is now active
+                                button.removeClass('btn-success').addClass('btn-danger');
+                                button.html('<i class="bi bi-x-circle"></i>');
+                                button.attr('title', 'Deactivate Subject');
+
+                                // Update status badge
+                                statusCell.html('<span class="status-badge status-active"><i class="bi bi-check-circle-fill"></i> Active</span>');
+                            } else {
+                                // Subject is now inactive
+                                button.removeClass('btn-danger').addClass('btn-success');
+                                button.html('<i class="bi bi-check-circle"></i>');
+                                button.attr('title', 'Activate Subject');
+
+                                // Update status badge
+                                statusCell.html('<span class="status-badge status-inactive"><i class="bi bi-x-circle-fill"></i> Inactive</span>');
+                            }
+
+                            // Update statistics
+                            updateStatistics();
+
+                            // Show success message
+                            showNotification('success', response.message);
+                        } else {
+                            showNotification('error', response.message || 'Failed to update subject status');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        showNotification('error', 'An error occurred: ' + error);
+                    },
+                    complete: function () {
+                        // Re-enable button
+                        button.prop('disabled', false);
+                    }
+                });
+            });
+
+            // Update statistics after status change
+            function updateStatistics() {
+                const totalActive = $('.status-active').length;
+                const totalInactive = $('.status-inactive').length;
+
+                $('.stat-success .stat-info h3').text(totalActive);
+                $('.stat-danger .stat-info h3').text(totalInactive);
+            }
+
+            // Notification function
+            function showNotification(type, message) {
+                const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                const icon = type === 'success' ? 'check-circle' : 'exclamation-triangle';
+
+                const notification = `
+                    <div class="alert ${alertClass} alert-dismissible fade show notification-toast" role="alert">
+                        <i class="bi bi-${icon}"></i> ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+
+                // Remove existing notifications
+                $('.notification-toast').remove();
+
+                // Add new notification at top of container
+                $('.subject-management-container').prepend(notification);
+
+                // Auto-dismiss after 3 seconds
+                setTimeout(function () {
+                    $('.notification-toast').fadeOut('slow', function () {
+                        $(this).remove();
+                    });
+                }, 3000);
+            }
+        });
+    </script>
 }
-    </tbody>
-</table>
+
+<style>
+    /* Subject Management Styles */
+
+    .subject-management-container {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* Header Section */
+    .subject-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+    }
+
+        .subject-header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .subject-header p {
+            margin: 5px 0 0;
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .subject-header .btn-primary {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+            .subject-header .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            }
+
+    /* Statistics Section */
+    .subject-stats {
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        transition: all 0.3s ease;
+        margin-bottom: 15px;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card i {
+            font-size: 2.5rem;
+            color: #667eea;
+        }
+
+        .stat-card.stat-success i {
+            color: #10b981;
+        }
+
+        .stat-card.stat-danger i {
+            color: #ef4444;
+        }
+
+        .stat-card.stat-warning i {
+            color: #f59e0b;
+        }
+
+    .stat-info h3 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .stat-info p {
+        margin: 5px 0 0;
+        color: #6b7280;
+        font-size: 0.9rem;
+    }
+
+    /* Subjects Section */
+    .subjects-section {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+    .search-filter {
+        max-width: 300px;
+    }
+
+        .search-filter input {
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            padding: 8px 15px;
+        }
+
+            .search-filter input:focus {
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+
+    /* Table Styles */
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .subject-table {
+        margin-bottom: 0;
+    }
+
+        .subject-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+            .subject-table thead th {
+                border: none;
+                padding: 15px;
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 0.85rem;
+                letter-spacing: 0.5px;
+            }
+
+        .subject-table tbody tr {
+            border-bottom: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+
+            .subject-table tbody tr:hover {
+                background-color: #f9fafb;
+                transform: scale(1.01);
+            }
+
+        .subject-table tbody td {
+            padding: 15px;
+            vertical-align: middle;
+        }
+
+    /* Subject Name with Icon */
+    .subject-name-icon {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .subject-icon-small {
+        width: 35px;
+        height: 35px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+    .subject-icon-placeholder {
+        width: 35px;
+        height: 35px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    /* Badge for Subject Code */
+    .badge-code {
+        background: #dbeafe;
+        color: #1e40af;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        font-family: 'Courier New', monospace;
+    }
+
+    /* Icon Link */
+    .icon-link {
+        color: #667eea;
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }
+
+        .icon-link:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+    /* Status Badges */
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .status-active {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-inactive {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    /* Action Buttons */
+    .btn-group .btn {
+        padding: 6px 12px;
+        border-radius: 6px;
+        margin: 0 2px;
+        transition: all 0.2s ease;
+    }
+
+        .btn-group .btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .btn-info {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+    }
+
+        .btn-info:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+
+    .btn-warning {
+        background: #f59e0b;
+        border-color: #f59e0b;
+        color: white;
+    }
+
+        .btn-warning:hover {
+            background: #d97706;
+            border-color: #d97706;
+        }
+
+    .btn-success {
+        background: #10b981;
+        border-color: #10b981;
+        color: white;
+    }
+
+        .btn-success:hover {
+            background: #059669;
+            border-color: #059669;
+        }
+
+    .btn-danger {
+        background: #ef4444;
+        border-color: #ef4444;
+        color: white;
+    }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
+    /* Notifications */
+    .notification-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        animation: slideInRight 0.3s ease-out;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    slideInRight {
+        from
+
+    {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    }
+
+    .alert {
+        border-radius: 10px;
+        padding: 15px 20px;
+        border: none;
+    }
+
+        .alert i {
+            font-size: 1.2rem;
+            margin-right: 10px;
+        }
+
+    /* Loading State */
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* Empty State */
+    .alert-info {
+        background: #dbeafe;
+        border: 1px solid #93c5fd;
+        color: #1e40af;
+        border-radius: 10px;
+        padding: 20px;
+    }
+
+        .alert-info i {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+
+    /* Responsive Design */
+     (max-width: 768px) {
+        .section-header
+
+    {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .search-filter {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .subject-table {
+        font-size: 0.85rem;
+    }
+
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .btn-group {
+        flex-direction: column;
+    }
+
+        .btn-group .btn {
+            width: 100%;
+            margin: 2px 0;
+        }
+
+    }
+</style>

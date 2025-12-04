@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using DoAnChuyenNganh.Models;
 using DoAnChuyenNganh.Services;
 using DoAnChuyenNganh.ViewModels.Payments;
-
+using DoAnChuyenNganh.ViewModels.CoursesViewModels;
 namespace DoAnChuyenNganh.Controllers
 {
     public class CourseController : Controller
@@ -502,7 +502,8 @@ namespace DoAnChuyenNganh.Controllers
                 if (hasPaid)
                 {
                     // Đã thanh toán → vào học
-                    return View("Learning", course);
+                    return RedirectToAction("Learning", new { id = course.CourseId });
+
                 }
             }
 
@@ -770,7 +771,8 @@ namespace DoAnChuyenNganh.Controllers
                 .AnyAsync(p => p.UserId == userId && p.CourseId == id && p.Status == "Completed");
 
             if (isFree || hasPaid)
-                return View("Learning", course);
+                return RedirectToAction("Learning", new { id = course.CourseId });
+
 
             var user = await _context.Users.FindAsync(userId);
 
@@ -933,9 +935,131 @@ namespace DoAnChuyenNganh.Controllers
             if (payment == null)
                 return NotFound();
 
+            // Chỉ tạo Enrollment khi payment thành công
+            if (payment.Status == "Completed")
+            {
+                var enrollment = await _context.Enrollments
+                    .FirstOrDefaultAsync(e => e.UserId == userId && e.CourseId == payment.CourseId);
+
+                if (enrollment == null)
+                {
+                    enrollment = new Enrollment
+                    {
+                        UserId = userId,
+                        CourseId = payment.CourseId,
+                        EnrolledAt = DateTime.Now,
+                        IsActive = true
+                        // các field khác để default/null
+                    };
+
+                    _context.Enrollments.Add(enrollment);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             return View(payment); // View: Views/Course/PaymentSuccess.cshtml
         }
 
+
+        public async Task<IActionResult> Learning(int id, int? lessonId)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0)
+                return RedirectToAction("Login", "Account");
+
+            // Lấy course + các lesson đã publish
+            var course = await _context.Courses
+                .Include(c => c.Lessons.Where(l => l.IsPublished == true))
+                .FirstOrDefaultAsync(c => c.CourseId == id && c.IsPublished == true);
+
+            if (course == null)
+                return NotFound();
+
+            // Đảm bảo đã có Enrollment (có thể được tạo từ PaymentSuccess, nhưng nếu chưa thì tạo)
+            var enrollment = await _context.Enrollments
+                .FirstOrDefaultAsync(e => e.UserId == userId && e.CourseId == id);
+
+            if (enrollment == null)
+            {
+                enrollment = new Enrollment
+                {
+                    UserId = userId,
+                    CourseId = id,
+                    EnrolledAt = DateTime.Now,
+                    IsActive = true
+                };
+
+                _context.Enrollments.Add(enrollment);
+                await _context.SaveChangesAsync();
+            }
+
+            var lessons = course.Lessons
+                .OrderBy(l => l.LessonOrder)
+                .ToList();
+
+            int currentLessonId = 0;
+            if (lessons.Any())
+                currentLessonId = lessonId ?? lessons.First().LessonId;
+
+            // Lấy tài liệu của lesson hiện tại
+            var currentMaterials = await _context.CourseMaterials
+                .Where(m => m.CourseId == id && m.LessonId == currentLessonId)
+                .OrderBy(m => m.MaterialName)
+                .ToListAsync();
+
+            // Tạo/ cập nhật LessonProgress cho bài hiện tại
+            if (currentLessonId != 0)
+            {
+                var lp = await _context.LessonProgresses
+                    .FirstOrDefaultAsync(p =>
+                        p.EnrollmentId == enrollment.EnrollmentId &&
+                        p.LessonId == currentLessonId);
+
+                if (lp == null)
+                {
+                    lp = new LessonProgress
+                    {
+                        EnrollmentId = enrollment.EnrollmentId,
+                        LessonId = currentLessonId,
+                        IsCompleted = false,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now,
+                        TimeSpent = 0,
+                        LastPosition = 0
+                    };
+                    _context.LessonProgresses.Add(lp);
+                }
+                else
+                {
+                    lp.UpdatedAt = DateTime.Now;
+                }
+
+                enrollment.LastAccessedAt = DateTime.Now;
+                await _context.SaveChangesAsync();
+            }
+
+            // Map các bài đã có progress
+            var lessonIds = lessons.Select(l => l.LessonId).ToList();
+            var lessonProgresses = await _context.LessonProgresses
+                .Where(p => p.EnrollmentId == enrollment.EnrollmentId &&
+                            lessonIds.Contains(p.LessonId))
+                .ToListAsync();
+
+            var hasProgressDict = lessonProgresses
+                .GroupBy(p => p.LessonId)
+                .ToDictionary(g => g.Key, g => g.Any());
+
+            var vm = new LearningViewModel
+            {
+                Course = course,
+                Lessons = lessons,
+                CurrentLessonId = currentLessonId == 0 ? (int?)null : currentLessonId,
+                CurrentMaterials = currentMaterials,
+                HasProgressForLesson = hasProgressDict
+            };
+
+            return View(vm); // Views/Course/Learning.cshtml
+        }
 
 
     }

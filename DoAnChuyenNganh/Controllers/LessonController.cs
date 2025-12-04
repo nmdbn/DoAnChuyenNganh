@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using DoAnChuyenNganh.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,24 @@ namespace DoAnChuyenNganh.Controllers
         public LessonController(DoAnChuyenNganhContext context)
         {
             _context = context;
+        }
+
+        // Hàm helper lấy UserId từ user đang đăng nhập
+        private int GetCurrentUserId()
+        {
+            // Cách 1: Nếu bạn lưu UserId trong Claims
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(userIdClaim, out int userId))
+            {
+                return userId;
+            }
+
+            // Cách 2: Nếu bạn lưu UserId trong Session
+            // var userId = HttpContext.Session.GetInt32("UserId");
+            // if (userId.HasValue) return userId.Value;
+
+            // Mặc định trả về 1 nếu không tìm thấy (hoặc throw exception)
+            return 1; // TODO: Thay đổi logic này theo cách bạn quản lý session
         }
 
         // GET: Lesson
@@ -52,8 +71,7 @@ namespace DoAnChuyenNganh.Controllers
         public IActionResult Create()
         {
             ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "Title");
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "Username");
-            ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "Username");
+            // Không cần ViewData cho CreatedBy và UpdatedBy nữa
             return View();
         }
 
@@ -68,12 +86,18 @@ namespace DoAnChuyenNganh.Controllers
             ModelState.Remove("UpdatedByNavigation");
             ModelState.Remove("CourseMaterials");
             ModelState.Remove("LessonProgresses");
+            ModelState.Remove("CreatedBy");  // Thêm dòng này
+            ModelState.Remove("UpdatedBy");  // Thêm dòng này
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    // Set thời gian ở server
+                    // Tự động set user hiện tại
+                    int currentUserId = GetCurrentUserId();
+
+                    lesson.CreatedBy = currentUserId;
+                    lesson.UpdatedBy = currentUserId;
                     lesson.CreatedAt = DateTime.Now;
                     lesson.UpdatedAt = DateTime.Now;
 
@@ -91,8 +115,6 @@ namespace DoAnChuyenNganh.Controllers
 
             // Nếu có lỗi, load lại dropdown
             ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "Title", lesson.CourseId);
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "Username", lesson.CreatedBy);
-            ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "Username", lesson.UpdatedBy);
             return View(lesson);
         }
 
@@ -107,9 +129,6 @@ namespace DoAnChuyenNganh.Controllers
                 return NotFound();
 
             ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "Title", lesson.CourseId);
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "Username", lesson.CreatedBy);
-            ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "Username", lesson.UpdatedBy);
-
             return View(lesson);
         }
 
@@ -127,12 +146,13 @@ namespace DoAnChuyenNganh.Controllers
             ModelState.Remove("UpdatedByNavigation");
             ModelState.Remove("CourseMaterials");
             ModelState.Remove("LessonProgresses");
+            ModelState.Remove("UpdatedBy");  // Thêm dòng này
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    // Giữ CreatedAt cũ, chỉ update UpdatedAt
+                    // Lấy bản ghi cũ
                     var existing = await _context.Lessons
                         .AsNoTracking()
                         .FirstOrDefaultAsync(l => l.LessonId == id);
@@ -140,7 +160,12 @@ namespace DoAnChuyenNganh.Controllers
                     if (existing == null)
                         return NotFound();
 
+                    // Giữ nguyên CreatedAt và CreatedBy
                     lesson.CreatedAt = existing.CreatedAt;
+                    lesson.CreatedBy = existing.CreatedBy;
+
+                    // Tự động set user hiện tại cho UpdatedBy
+                    lesson.UpdatedBy = GetCurrentUserId();
                     lesson.UpdatedAt = DateTime.Now;
 
                     _context.Update(lesson);
@@ -162,9 +187,6 @@ namespace DoAnChuyenNganh.Controllers
             }
 
             ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "Title", lesson.CourseId);
-            ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "Username", lesson.CreatedBy);
-            ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "Username", lesson.UpdatedBy);
-
             return View(lesson);
         }
 
