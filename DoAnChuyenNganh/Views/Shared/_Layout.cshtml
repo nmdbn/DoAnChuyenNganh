@@ -36,6 +36,12 @@
                                 <i class="bi bi-search"></i> Search
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="News" asp-action="Index">
+                                <i class="bi bi-newspaper"></i> News
+                            </a>
+                        </li>
+
                         @if (Context.Session.GetInt32("UserId").HasValue)
                         {
                             <li class="nav-item">

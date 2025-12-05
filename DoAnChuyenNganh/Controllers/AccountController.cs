@@ -71,6 +71,7 @@ namespace DoAnChuyenNganh.Controllers
 
             // Store user info in session
             HttpContext.Session.SetInt32("UserId", result.User.UserId);
+            HttpContext.Session.SetInt32("RoleId", result.User.RoleId);
             HttpContext.Session.SetString("Username", result.User.Username);
             HttpContext.Session.SetString("Email", result.User.Email);
             HttpContext.Session.SetString("FullName", $"{result.User.FirstName} {result.User.LastName}");
@@ -79,6 +80,9 @@ namespace DoAnChuyenNganh.Controllers
             {
                 HttpContext.Session.SetString("AvatarUrl", result.User.AvatarUrl);
             }
+
+            _logger.LogInformation("Login successful - UserId: {UserId}, RoleId: {RoleId}, Username: {Username}",
+                result.User.UserId, result.User.RoleId, result.User.Username);
 
             TempData["SuccessMessage"] = "Login successful!";
 
@@ -494,6 +498,7 @@ namespace DoAnChuyenNganh.Controllers
 
             // Lưu session user
             HttpContext.Session.SetInt32("UserId", resultAuth.User.UserId);
+            HttpContext.Session.SetInt32("RoleId", resultAuth.User.RoleId);
             HttpContext.Session.SetString("Username", resultAuth.User.Username);
             HttpContext.Session.SetString("Email", resultAuth.User.Email);
             HttpContext.Session.SetString("FullName", $"{resultAuth.User.FirstName} {resultAuth.User.LastName}");
@@ -504,6 +509,9 @@ namespace DoAnChuyenNganh.Controllers
             }
 
             await HttpContext.Session.CommitAsync();
+
+            _logger.LogInformation("Google login successful - UserId: {UserId}, RoleId: {RoleId}, Username: {Username}",
+                resultAuth.User.UserId, resultAuth.User.RoleId, resultAuth.User.Username);
 
             TempData["SuccessMessage"] = "Login with Google successful!";
 
@@ -581,6 +589,7 @@ namespace DoAnChuyenNganh.Controllers
             SetSessionCookie(session.SessionToken, rememberMe: true);
 
             HttpContext.Session.SetInt32("UserId", resultAuth.User.UserId);
+            HttpContext.Session.SetInt32("RoleId", resultAuth.User.RoleId);
             HttpContext.Session.SetString("Username", resultAuth.User.Username);
             HttpContext.Session.SetString("Email", resultAuth.User.Email ?? "");
             HttpContext.Session.SetString("FullName", $"{resultAuth.User.FirstName} {resultAuth.User.LastName}");
@@ -592,6 +601,9 @@ namespace DoAnChuyenNganh.Controllers
             }
 
             await HttpContext.Session.CommitAsync();
+
+            _logger.LogInformation("Facebook login successful - UserId: {UserId}, RoleId: {RoleId}, Username: {Username}",
+                resultAuth.User.UserId, resultAuth.User.RoleId, resultAuth.User.Username);
 
             TempData["SuccessMessage"] = "Login with Facebook successful!";
 

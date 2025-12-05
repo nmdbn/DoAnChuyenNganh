@@ -41,6 +41,10 @@ public partial class DoAnChuyenNganhContext : DbContext
 
     public virtual DbSet<LessonProgress> LessonProgresses { get; set; }
 
+    public virtual DbSet<NewsArticle> NewsArticles { get; set; }
+
+    public virtual DbSet<NewsCategory> NewsCategories { get; set; }
+
     public virtual DbSet<Notification> Notifications { get; set; }
 
     public virtual DbSet<PrivateMessage> PrivateMessages { get; set; }
@@ -514,6 +518,74 @@ public partial class DoAnChuyenNganhContext : DbContext
                 .HasForeignKey(d => d.LessonId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_LessonProgress_Lesson");
+        });
+
+        modelBuilder.Entity<NewsArticle>(entity =>
+        {
+            entity.HasKey(e => e.ArticleId).HasName("PK__NewsArti__9C6270E8A1B2C3D4");
+
+            entity.HasIndex(e => e.Slug, "UQ__NewsArti__BC7B5FB6E5F6A7B8").IsUnique();
+
+            entity.HasIndex(e => e.CategoryId, "IX_NewsArticles_CategoryID");
+
+            entity.HasIndex(e => e.AuthorId, "IX_NewsArticles_AuthorID");
+
+            entity.HasIndex(e => e.IsPublished, "IX_NewsArticles_IsPublished");
+
+            entity.HasIndex(e => e.IsFeatured, "IX_NewsArticles_IsFeatured");
+
+            entity.HasIndex(e => e.PublishedAt, "IX_NewsArticles_PublishedAt");
+
+            entity.HasIndex(e => e.ViewCount, "IX_NewsArticles_ViewCount");
+
+            entity.HasIndex(e => e.CreatedAt, "IX_NewsArticles_CreatedAt");
+
+            entity.Property(e => e.ArticleId).HasColumnName("ArticleID");
+            entity.Property(e => e.Title).HasMaxLength(300);
+            entity.Property(e => e.Slug)
+                .HasMaxLength(350)
+                .IsUnicode(false);
+            entity.Property(e => e.Excerpt).HasMaxLength(500);
+            entity.Property(e => e.FeaturedImageUrl).HasMaxLength(400);
+            entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
+            entity.Property(e => e.AuthorId).HasColumnName("AuthorID");
+            entity.Property(e => e.IsPublished).HasDefaultValue(false);
+            entity.Property(e => e.IsFeatured).HasDefaultValue(false);
+            entity.Property(e => e.ViewCount).HasDefaultValue(0);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.Tags).HasMaxLength(500);
+
+            entity.HasOne(d => d.Author).WithMany(p => p.NewsArticleAuthors)
+                .HasForeignKey(d => d.AuthorId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_NewsArticles_Author");
+
+            entity.HasOne(d => d.Category).WithMany(p => p.NewsArticles)
+                .HasForeignKey(d => d.CategoryId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_NewsArticles_Category");
+
+            entity.HasOne(d => d.UpdatedByNavigation).WithMany(p => p.NewsArticleUpdatedByNavigations)
+                .HasForeignKey(d => d.UpdatedBy)
+                .HasConstraintName("FK_NewsArticles_UpdatedBy");
+        });
+
+        modelBuilder.Entity<NewsCategory>(entity =>
+        {
+            entity.HasKey(e => e.CategoryId).HasName("PK__NewsCate__19093A2B9D8E1F2A");
+
+            entity.HasIndex(e => e.CategoryName, "UQ__NewsCate__8517B2E0C4A5B6D7").IsUnique();
+
+            entity.HasIndex(e => e.IsActive, "IX_NewsCategories_IsActive");
+
+            entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
+            entity.Property(e => e.CategoryName).HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(300);
+            entity.Property(e => e.IconUrl).HasMaxLength(400);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
         });
 
         modelBuilder.Entity<Notification>(entity =>
