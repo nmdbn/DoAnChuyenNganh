@@ -8,18 +8,25 @@ using DoAnChuyenNganh.Models;
 using DoAnChuyenNganh.Services;
 using DoAnChuyenNganh.ViewModels.Payments;
 using DoAnChuyenNganh.ViewModels.CoursesViewModels;
+using System.Security.Claims;
+using Newtonsoft.Json;
+using System.IO;
+using System.Security.Cryptography;
+
 namespace DoAnChuyenNganh.Controllers
 {
     public class CourseController : Controller
     {
+        private readonly IConfiguration _config;
         private readonly IPaypalService _paypalService;
         private readonly DoAnChuyenNganhContext _context;
         private readonly IMomoService _momoService;
-        public CourseController(DoAnChuyenNganhContext context, IMomoService momoService, IPaypalService paypalService)
+        public CourseController(DoAnChuyenNganhContext context, IMomoService momoService, IPaypalService paypalService, IConfiguration config)
         {
             _context = context;
             _momoService = momoService;
             _paypalService = paypalService;
+            _config = config;
         }
 
         // =============================================
@@ -567,14 +574,17 @@ namespace DoAnChuyenNganh.Controllers
 
         private bool IsLoggedIn()
         {
-            var userId = GetCurrentUserId();
-            return userId > 0;
+            //var userId = GetCurrentUserId();
+            //return userId > 0;
+            return User.Identity.IsAuthenticated;
         }
 
         private int GetCurrentUserId()
         {
-            var userId = HttpContext.Session.GetInt32("UserId");
-            return userId.GetValueOrDefault(0);
+            //var userId = HttpContext.Session.GetInt32("UserId");
+            //return userId.GetValueOrDefault(0);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.TryParse(userIdClaim, out int id) ? id : 1;
         }
 
         private bool IsAdminOrInstructor()
@@ -688,20 +698,55 @@ namespace DoAnChuyenNganh.Controllers
 
             return Redirect(url);
         }
+        public async Task<IActionResult> MoMoReturn()
+        {
+            try
+            {
+                var result = await _momoService.ProcessReturn(Request.Query);
 
+                if (result.Success && result.PaymentId.HasValue)
+                {
+                    TempData["SuccessMessage"] = "Thanh toán MoMo thành công! Chào mừng bạn đến với khóa học!";
+                    return RedirectToAction("PaymentSuccess", new { paymentId = result.PaymentId });
+                }
+
+                TempData["ErrorMessage"] = result.Message ?? "Thanh toán thất bại";
+                return RedirectToAction("Public");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"MoMoReturn Error: {ex.Message}");
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi xử lý thanh toán";
+                return RedirectToAction("Public");
+            }
+        }
         [HttpGet]
         public async Task<IActionResult> FakeMoMoPayment(int paymentId)
         {
             var payment = await _context.Payments
                 .Include(p => p.Course)
-                .Include(p => p.User)   // nếu Payment có navigation User
+                .Include(p => p.User)
                 .FirstOrDefaultAsync(p => p.PaymentId == paymentId);
 
             if (payment == null)
                 return NotFound();
 
-            return View(payment); // View: FakeMoMoPayment.cshtml
+            return View(payment);
         }
+        private string HmacSHA256(string input, string key)
+        {
+            if (string.IsNullOrEmpty(key))
+                throw new ArgumentNullException(nameof(key));
+
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
+
+            var keyBytes = System.Text.Encoding.UTF8.GetBytes(key);
+            using var hmac = new System.Security.Cryptography.HMACSHA256(keyBytes);
+            var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+            return BitConverter.ToString(hash).Replace("-", "").ToLower();
+        }
+
         [HttpPost]
         public async Task<IActionResult> ConfirmFakePayment(int paymentId)
         {
@@ -724,23 +769,7 @@ namespace DoAnChuyenNganh.Controllers
             TempData["SuccessMessage"] = "Thanh toán thành công! Chào mừng bạn đến với khóa học!";
             return RedirectToAction("PaymentSuccess", new { paymentId = payment.PaymentId });
         }
-        public async Task<IActionResult> MoMoReturn()
-        {
-            var result = await _momoService.ProcessReturn(Request.Query);
 
-            if (result.Success)
-            {
-                TempData["SuccessMessage"] = "Thanh toán thành công! Chào mừng bạn đến với khóa học!";
-                // nếu trong PaymentResult có PaymentId thì dùng:
-                return RedirectToAction("PaymentSuccess", new { paymentId = result.PaymentId });
-
-                // nếu PaymentResult hiện chỉ có CourseId: tạm thời vẫn redirect PublicDetails,
-                // hoặc bạn chỉnh PaymentResult để thêm PaymentId.
-            }
-
-            TempData["ErrorMessage"] = result.Message;
-            return RedirectToAction("Public");
-        }
 
         // MoMo callback server-to-server (IPN) – optional
         [HttpPost]
@@ -788,7 +817,98 @@ namespace DoAnChuyenNganh.Controllers
 
             return View(vm);
         }
+        [HttpPost]
+        public async Task<IActionResult> MoMoIPN()
+        {
+            try
+            {
+                // Đọc body từ request
+                using var reader = new StreamReader(Request.Body);
+                var body = await reader.ReadToEndAsync();
 
+                System.Diagnostics.Debug.WriteLine($"=== MoMo IPN Received ===");
+                System.Diagnostics.Debug.WriteLine(body);
+
+                // Parse JSON với strong-typed model
+                var data = JsonConvert.DeserializeObject<MoMoIPNRequest>(body);
+
+                if (data == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("Cannot parse MoMo IPN body");
+                    return BadRequest();
+                }
+
+                System.Diagnostics.Debug.WriteLine($"ResultCode: {data.resultCode}");
+                System.Diagnostics.Debug.WriteLine($"OrderId: {data.orderId}");
+                System.Diagnostics.Debug.WriteLine($"TransId: {data.transId}");
+
+                // Verify signature (optional nhưng nên có)
+                var secretKey = _config["MOMO:SecretKey"];
+                var accessKey = _config["MOMO:AccessKey"];
+
+                var rawSignature =
+                    $"accessKey={accessKey}" +
+                    $"&amount={data.amount}" +
+                    $"&extraData={data.extraData}" +
+                    $"&message={data.message}" +
+                    $"&orderId={data.orderId}" +
+                    $"&orderInfo={data.orderInfo}" +
+                    $"&orderType={data.orderType}" +
+                    $"&partnerCode={data.partnerCode}" +
+                    $"&payType={data.payType}" +
+                    $"&requestId={data.requestId}" +
+                    $"&responseTime={data.responseTime}" +
+                    $"&resultCode={data.resultCode}" +
+                    $"&transId={data.transId}";
+
+                var computedSignature = HmacSHA256(rawSignature, secretKey);
+
+                if (computedSignature != data.signature)
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ Invalid signature in IPN");
+                    return Unauthorized();
+                }
+
+                // resultCode = 0 là thành công
+                if (data.resultCode == 0 && !string.IsNullOrEmpty(data.orderId))
+                {
+                    var payment = await _context.Payments
+                        .Include(p => p.Course)
+                        .FirstOrDefaultAsync(p => p.MoMoOrderId == data.orderId);
+
+                    if (payment != null && payment.Status == "Pending")
+                    {
+                        payment.Status = "Completed";
+                        payment.PaidAt = DateTime.Now;
+                        payment.TransactionId = data.transId;
+
+                        if (payment.Course != null)
+                            payment.Course.EnrollmentCount++;
+
+                        await _context.SaveChangesAsync();
+
+                        System.Diagnostics.Debug.WriteLine($"✅ Payment {payment.PaymentId} marked as Completed");
+                    }
+                    else if (payment != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"⚠️ Payment already processed: {payment.Status}");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ Payment not found for OrderId: {data.orderId}");
+                    }
+                }
+
+                // Trả về status 204 No Content để MoMo biết đã nhận được
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ MoMoIPN Error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}");
+                return StatusCode(500);
+            }
+        }
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Checkout(CheckoutViewModel model)
@@ -825,23 +945,25 @@ namespace DoAnChuyenNganh.Controllers
             _context.Payments.Add(payment);
             await _context.SaveChangesAsync();
 
-            // EVENT theo phương thức thanh toán
+            // Xử lý theo phương thức thanh toán
             switch (model.PaymentMethod)
             {
                 case "COD":
-                    // Lưu DB + coi như thanh toán xong
                     payment.Status = "Completed";
                     payment.PaidAt = DateTime.Now;
-
+                    payment.TransactionId = "COD_" + DateTime.Now.Ticks;
                     course.EnrollmentCount++;
                     await _context.SaveChangesAsync();
 
                     TempData["SuccessMessage"] = "Đặt hàng COD thành công, khóa học đã được mở.";
                     return RedirectToAction("PaymentSuccess", new { paymentId = payment.PaymentId });
 
-
                 case "MoMo":
                     {
+                        // ✅ KHÔNG CẦN TRUYỀN returnUrl, ipnUrl VÀO NỮA
+                        // Service sẽ tự lấy từ appsettings
+
+                        // Fake payment URL (chỉ dùng khi UseSandbox = true)
                         var fakeUrl = Url.Action(
                             "FakeMoMoPayment",
                             "Course",
@@ -849,29 +971,33 @@ namespace DoAnChuyenNganh.Controllers
                             Request.Scheme
                         );
 
-                        var returnUrl = Url.Action("MoMoReturn", "Course", null, Request.Scheme);
-                        var ipnUrl = Url.Action("MoMoNotify", "Course", null, Request.Scheme);
+                        try
+                        {
+                            // Truyền null cho returnUrl và ipnUrl vì service sẽ lấy từ config
+                            var redirectUrl = await _momoService.CreatePaymentUrl(
+                                payment,
+                                null,  // returnUrl
+                                null,  // ipnUrl
+                                fakeUrl
+                            );
 
-                        var redirectUrl = await _momoService.CreatePaymentUrl(
-                            payment,
-                            returnUrl,
-                            ipnUrl,
-                            fakeUrl
-                        );
-
-                        // Chuyển sang trang thanh toán MoMo (fake)
-                        return Redirect(redirectUrl);
+                            // Redirect sang trang thanh toán MoMo
+                            return Redirect(redirectUrl);
+                        }
+                        catch (Exception ex)
+                        {
+                            TempData["ErrorMessage"] = $"Lỗi kết nối MoMo: {ex.Message}";
+                            return RedirectToAction("Checkout", new { id = course.CourseId });
+                        }
                     }
 
                 case "PayPal":
                     {
-                        // Gọi service PayPal tạo order → redirect sang PayPal
                         var approvalUrl = await _paypalService.CreatePayPalOrder(
                             payment,
                             Url,
                             Request.Scheme
                         );
-
                         return Redirect(approvalUrl);
                     }
 
@@ -961,13 +1087,13 @@ namespace DoAnChuyenNganh.Controllers
         }
 
 
-        public async Task<IActionResult> Learning(int id, int? lessonId)
+        public async Task<IActionResult> Learning(int id, int? lessonId, int? attemptId)
         {
             var userId = GetCurrentUserId();
             if (userId == 0)
                 return RedirectToAction("Login", "Account");
 
-            // Lấy course + các lesson đã publish
+            // Lấy course + lessons đã publish
             var course = await _context.Courses
                 .Include(c => c.Lessons.Where(l => l.IsPublished == true))
                 .FirstOrDefaultAsync(c => c.CourseId == id && c.IsPublished == true);
@@ -975,7 +1101,7 @@ namespace DoAnChuyenNganh.Controllers
             if (course == null)
                 return NotFound();
 
-            // Đảm bảo đã có Enrollment (có thể được tạo từ PaymentSuccess, nhưng nếu chưa thì tạo)
+            // Đảm bảo Enrollment tồn tại
             var enrollment = await _context.Enrollments
                 .FirstOrDefaultAsync(e => e.UserId == userId && e.CourseId == id);
 
@@ -997,48 +1123,53 @@ namespace DoAnChuyenNganh.Controllers
                 .OrderBy(l => l.LessonOrder)
                 .ToList();
 
-            int currentLessonId = 0;
-            if (lessons.Any())
-                currentLessonId = lessonId ?? lessons.First().LessonId;
+            if (!lessons.Any())
+            {
+                return View("Learning", new LearningViewModel
+                {
+                    Course = course,
+                    Lessons = lessons
+                });
+            }
 
-            // Lấy tài liệu của lesson hiện tại
+            var currentLessonId = lessonId ?? lessons.First().LessonId;
+            var currentLesson = lessons.FirstOrDefault(l => l.LessonId == currentLessonId);
+
+            // Lấy course material của lesson hiện tại
             var currentMaterials = await _context.CourseMaterials
                 .Where(m => m.CourseId == id && m.LessonId == currentLessonId)
                 .OrderBy(m => m.MaterialName)
                 .ToListAsync();
 
-            // Tạo/ cập nhật LessonProgress cho bài hiện tại
-            if (currentLessonId != 0)
+            // Cập nhật LessonProgress
+            var lp = await _context.LessonProgresses
+                .FirstOrDefaultAsync(p =>
+                    p.EnrollmentId == enrollment.EnrollmentId &&
+                    p.LessonId == currentLessonId);
+
+            if (lp == null)
             {
-                var lp = await _context.LessonProgresses
-                    .FirstOrDefaultAsync(p =>
-                        p.EnrollmentId == enrollment.EnrollmentId &&
-                        p.LessonId == currentLessonId);
-
-                if (lp == null)
+                lp = new LessonProgress
                 {
-                    lp = new LessonProgress
-                    {
-                        EnrollmentId = enrollment.EnrollmentId,
-                        LessonId = currentLessonId,
-                        IsCompleted = false,
-                        CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now,
-                        TimeSpent = 0,
-                        LastPosition = 0
-                    };
-                    _context.LessonProgresses.Add(lp);
-                }
-                else
-                {
-                    lp.UpdatedAt = DateTime.Now;
-                }
-
-                enrollment.LastAccessedAt = DateTime.Now;
-                await _context.SaveChangesAsync();
+                    EnrollmentId = enrollment.EnrollmentId,
+                    LessonId = currentLessonId,
+                    IsCompleted = false,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now,
+                    TimeSpent = 0,
+                    LastPosition = 0
+                };
+                _context.LessonProgresses.Add(lp);
+            }
+            else
+            {
+                lp.UpdatedAt = DateTime.Now;
             }
 
-            // Map các bài đã có progress
+            enrollment.LastAccessedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            // Map bài nào đã có progress
             var lessonIds = lessons.Select(l => l.LessonId).ToList();
             var lessonProgresses = await _context.LessonProgresses
                 .Where(p => p.EnrollmentId == enrollment.EnrollmentId &&
@@ -1049,16 +1180,263 @@ namespace DoAnChuyenNganh.Controllers
                 .GroupBy(p => p.LessonId)
                 .ToDictionary(g => g.Key, g => g.Any());
 
+            // ======================
+            // PHẦN QUẢN LÝ QUIZ
+            // ======================
+            TakeQuizViewModel? quizToTake = null;
+            QuizResultViewModel? quizResult = null;
+
+            if (currentLesson != null && currentLesson.LessonType == "quiz")
+            {
+                // Nếu có attemptId => show result
+                if (attemptId.HasValue)
+                {
+                    var attempt = await _context.UserQuizAttempts
+                        .Include(a => a.User)
+                        .Include(a => a.Quiz)
+                        .Include(a => a.UserQuizAnswers)
+                            .ThenInclude(ua => ua.Question)
+                                .ThenInclude(q => q.QuizAnswers)
+                        .FirstOrDefaultAsync(a => a.AttemptId == attemptId.Value
+                                                  && a.Quiz.LessonId == currentLesson.LessonId);
+
+                    if (attempt != null)
+                    {
+                        quizResult = new QuizResultViewModel
+                        {
+                            AttemptId = attempt.AttemptId,
+                            StudentName = $"{attempt.User.FirstName} {attempt.User.LastName}",
+                            QuizTitle = attempt.Quiz.Title,
+                            SubmittedAt = attempt.SubmittedAt,
+                            TotalScore = attempt.TotalScore,
+                            MaxScore = attempt.MaxScore,
+                            PercentageScore = attempt.PercentageScore,
+                            Status = attempt.Status,
+                            Questions = attempt.UserQuizAnswers.Select(ua => new QuizQuestionResultViewModel
+                            {
+                                QuestionId = ua.QuestionId,
+                                QuestionText = ua.Question.QuestionText,
+                                QuestionType = ua.Question.QuestionType,
+                                Points = ua.Question.Points,
+                                EarnedPoints = ua.EarnedPoints,
+                                IsCorrect = ua.IsCorrect,
+                                Explanation = ua.Question.Explanation,
+                                SelectedAnswerId = ua.SelectedAnswerId,
+                                CorrectAnswerId = ua.Question.QuizAnswers.FirstOrDefault(a => a.IsCorrect)?.AnswerId,
+                                Answers = ua.Question.QuizAnswers.Select(a => new QuizAnswerTakeViewModel
+                                {
+                                    AnswerId = a.AnswerId,
+                                    AnswerText = a.AnswerText
+                                }).ToList(),
+                                EssayAnswer = ua.EssayAnswer,
+                                TeacherFeedback = ua.TeacherFeedback,
+                                GradedAt = ua.GradedAt
+                            }).ToList()
+                        };
+                    }
+                }
+                else
+                {
+                    // Chưa làm => tạo attempt mới + load quiz để làm
+                    var quiz = await _context.Quizzes
+                        .Include(q => q.QuizQuestions)
+                            .ThenInclude(q => q.QuizAnswers)
+                        .FirstOrDefaultAsync(q => q.LessonId == currentLesson.LessonId);
+
+                    if (quiz != null)
+                    {
+                        var attempt = new UserQuizAttempt
+                        {
+                            UserId = userId,
+                            QuizId = quiz.QuizId,
+                            EnrollmentId = enrollment.EnrollmentId,
+                            StartedAt = DateTime.Now,
+                            Status = "in_progress"
+                        };
+
+                        _context.UserQuizAttempts.Add(attempt);
+                        await _context.SaveChangesAsync();
+
+                        var questions = quiz.IsRandomOrder
+                            ? quiz.QuizQuestions.OrderBy(_ => Guid.NewGuid()).ToList()
+                            : quiz.QuizQuestions.OrderBy(q => q.QuestionOrder).ToList();
+
+                        quizToTake = new TakeQuizViewModel
+                        {
+                            QuizId = quiz.QuizId,
+                            AttemptId = attempt.AttemptId,
+                            Title = quiz.Title,
+                            Description = quiz.Description,
+                            LessonTitle = currentLesson.Title,
+                            CourseTitle = course.Title,
+                            Questions = questions.Select(q => new QuizQuestionTakeViewModel
+                            {
+                                QuestionId = q.QuestionId,
+                                QuestionText = q.QuestionText,
+                                QuestionType = q.QuestionType,
+                                Points = q.Points,
+                                Answers = q.QuestionType == "multiple_choice"
+                                    ? q.QuizAnswers
+                                        .OrderBy(a => a.AnswerOrder)
+                                        .Select(a => new QuizAnswerTakeViewModel
+                                        {
+                                            AnswerId = a.AnswerId,
+                                            AnswerText = a.AnswerText
+                                        }).ToList()
+                                    : new List<QuizAnswerTakeViewModel>()
+                            }).ToList()
+                        };
+                    }
+                }
+            }
+
             var vm = new LearningViewModel
             {
                 Course = course,
                 Lessons = lessons,
-                CurrentLessonId = currentLessonId == 0 ? (int?)null : currentLessonId,
+                CurrentLessonId = currentLessonId,
                 CurrentMaterials = currentMaterials,
-                HasProgressForLesson = hasProgressDict
+                HasProgressForLesson = hasProgressDict,
+                QuizToTake = quizToTake,
+                QuizResult = quizResult
             };
 
-            return View(vm); // Views/Course/Learning.cshtml
+            return View(vm);
+        }
+
+        // === ACTION SUBMIT QUIZ (bạn đã có – giữ nguyên là tốt nhất) ===
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubmitQuizFromLearning(
+    int courseId,
+    int lessonId,
+    SubmitQuizViewModel model)
+        {
+            if (model.Answers == null || model.Answers.Count == 0)
+            {
+                TempData["ErrorMessage"] = "Vui lòng trả lời ít nhất 1 câu hỏi.";
+                return RedirectToAction("Learning", new { id = courseId, lessonId });
+            }
+
+            try
+            {
+                // 1. Lưu câu trả lời của user
+                foreach (var ans in model.Answers)
+                {
+                    if (ans.SelectedAnswerId.HasValue || !string.IsNullOrWhiteSpace(ans.EssayAnswer))
+                    {
+                        var userAnswer = new UserQuizAnswer
+                        {
+                            AttemptId = model.AttemptId,
+                            QuestionId = ans.QuestionId,
+                            SelectedAnswerId = ans.SelectedAnswerId,
+                            EssayAnswer = ans.EssayAnswer,
+                            CreatedAt = DateTime.Now
+                        };
+
+                        _context.UserQuizAnswers.Add(userAnswer);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                // 2. CHẤM ĐIỂM BẰNG C# (không dùng stored procedure)
+                await GradeQuizAnswers(model.AttemptId);
+
+                TempData["SuccessMessage"] = "Quiz đã được nộp thành công! Xem kết quả bên dưới.";
+
+                return RedirectToAction("Learning", new
+                {
+                    id = courseId,
+                    lessonId = lessonId,
+                    attemptId = model.AttemptId
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack: {ex.StackTrace}");
+
+                TempData["ErrorMessage"] = "Lỗi khi nộp quiz: " + ex.Message;
+                return RedirectToAction("Learning", new { id = courseId, lessonId });
+            }
+        }
+        /// <summary>
+        /// Chấm điểm quiz bằng C# logic (không dùng stored procedure)
+        /// </summary>
+        private async Task GradeQuizAnswers(int attemptId)
+        {
+            // Lấy tất cả câu trả lời của user trong lần làm bài này
+            var userAnswers = await _context.UserQuizAnswers
+                .Include(ua => ua.Question)
+                .Where(ua => ua.AttemptId == attemptId)
+                .ToListAsync();
+
+            decimal totalScore = 0;
+            int maxScore = 0;
+
+            // Duyệt qua từng câu trả lời
+            foreach (var userAnswer in userAnswers)
+            {
+                maxScore += userAnswer.Question.Points;
+
+                // Chỉ chấm câu trắc nghiệm (multiple_choice)
+                if (userAnswer.Question.QuestionType == "multiple_choice"
+                    && userAnswer.SelectedAnswerId.HasValue)
+                {
+                    // Kiểm tra đáp án có đúng không
+                    var correctAnswer = await _context.QuizAnswers
+                        .FirstOrDefaultAsync(a =>
+                            a.QuestionId == userAnswer.QuestionId &&
+                            a.IsCorrect == true);
+
+                    if (correctAnswer != null && userAnswer.SelectedAnswerId == correctAnswer.AnswerId)
+                    {
+                        // Đúng -> cho điểm đầy đủ
+                        userAnswer.IsCorrect = true;
+                        userAnswer.EarnedPoints = userAnswer.Question.Points;
+                        totalScore += userAnswer.Question.Points;
+                    }
+                    else
+                    {
+                        // Sai -> 0 điểm
+                        userAnswer.IsCorrect = false;
+                        userAnswer.EarnedPoints = 0;
+                    }
+                }
+                // Essay questions không tự động chấm (teacher chấm sau)
+                else if (userAnswer.Question.QuestionType == "essay")
+                {
+                    userAnswer.IsCorrect = null; // Chưa chấm
+                    userAnswer.EarnedPoints = 0; // Chờ teacher chấm
+                }
+            }
+
+            // Cập nhật điểm vào database
+            _context.UserQuizAnswers.UpdateRange(userAnswers);
+            await _context.SaveChangesAsync();
+
+            // Cập nhật kết quả vào UserQuizAttempt
+            var attempt = await _context.UserQuizAttempts
+                .FirstOrDefaultAsync(a => a.AttemptId == attemptId);
+
+            if (attempt != null)
+            {
+                attempt.TotalScore = totalScore;
+                attempt.MaxScore = maxScore;
+                attempt.PercentageScore = maxScore > 0 ? (totalScore * 100 / maxScore) : 0;
+
+                // Kiểm tra xem có essay chưa chấm không
+                bool hasUngraduatedEssay = userAnswers.Any(ua =>
+                    ua.Question.QuestionType == "essay" &&
+                    ua.GradedBy == null);
+
+                attempt.Status = hasUngraduatedEssay ? "submitted" : "graded";
+                attempt.SubmittedAt = DateTime.Now;
+
+                _context.UserQuizAttempts.Update(attempt);
+                await _context.SaveChangesAsync();
+            }
         }
 
 

@@ -22,9 +22,42 @@ namespace DoAnChuyenNganh.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
+        // Helper: chỉ Instructor + Admin mới được vào
+        private bool HasInstructorOrAdminPermission()
+        {
+            // Ưu tiên check theo RoleName trong Session
+            var roleName = HttpContext.Session.GetString("RoleName");
+            if (!string.IsNullOrEmpty(roleName))
+            {
+                if (roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
+                    roleName.Equals("Instructor", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            // Nếu có PermissionLevel thì dùng: 3 = Instructor, 4 = Admin
+            var permissionLevel = HttpContext.Session.GetInt32("PermissionLevel");
+            if (permissionLevel.HasValue && permissionLevel.Value >= 3)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private IActionResult ForbidToHome()
+        {
+            TempData["ErrorMessage"] = "You do not have permission to access this area.";
+            return RedirectToAction("Index", "Home");
+        }
+
         // GET: CourseMaterial
         public async Task<IActionResult> Index()
         {
+            if (!HasInstructorOrAdminPermission())
+                return ForbidToHome();
+
             var doAnChuyenNganhContext = _context.CourseMaterials
                 .Include(c => c.Course)
                 .Include(c => c.CreatedByNavigation)
@@ -35,6 +68,9 @@ namespace DoAnChuyenNganh.Controllers
         // GET: CourseMaterial/Details/5
         public async Task<IActionResult> Details(int? id)
         {
+            if (!HasInstructorOrAdminPermission())
+                return ForbidToHome();
+
             if (id == null)
             {
                 return NotFound();
@@ -56,6 +92,9 @@ namespace DoAnChuyenNganh.Controllers
         // GET: CourseMaterial/Create
         public IActionResult Create()
         {
+            if (!HasInstructorOrAdminPermission())
+                return ForbidToHome();
+
             // Hiển thị tên Course thay vì ID
             ViewData["CourseId"] = new SelectList(_context.Courses, "CourseId", "Title");
 
@@ -69,6 +108,9 @@ namespace DoAnChuyenNganh.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("MaterialId,CourseId,LessonId,MaterialName")] CourseMaterial courseMaterial, IFormFile uploadedFile, bool IsPublic = false)
         {
+            if (!HasInstructorOrAdminPermission())
+                return ForbidToHome();
+
             try
             {
                 // Validate: Phải chọn ít nhất Course hoặc Lesson
@@ -255,6 +297,9 @@ namespace DoAnChuyenNganh.Controllers
         // GET: CourseMaterial/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
+            if (!HasInstructorOrAdminPermission())
+                return ForbidToHome();
+
             if (id == null)
             {
                 return NotFound();
@@ -282,6 +327,9 @@ namespace DoAnChuyenNganh.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, CourseMaterial formModel, IFormFile? uploadedFile, string? IsPublic)
         {
+            if (!HasInstructorOrAdminPermission())
+                return ForbidToHome();
+
             if (id != formModel.MaterialId)
             {
                 return NotFound();
@@ -416,6 +464,9 @@ namespace DoAnChuyenNganh.Controllers
         // GET: CourseMaterial/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
+            if (!HasInstructorOrAdminPermission())
+                return ForbidToHome();
+
             if (id == null)
             {
                 return NotFound();
@@ -439,6 +490,9 @@ namespace DoAnChuyenNganh.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            if (!HasInstructorOrAdminPermission())
+                return ForbidToHome();
+
             var courseMaterial = await _context.CourseMaterials.FindAsync(id);
             if (courseMaterial != null)
             {
@@ -468,6 +522,9 @@ namespace DoAnChuyenNganh.Controllers
         [HttpGet]
         public IActionResult GetLessonsByCourse(int? courseId)
         {
+            if (!HasInstructorOrAdminPermission())
+                return Unauthorized(new { message = "You do not have permission to access this resource." });
+
             try
             {
                 if (courseId.HasValue && courseId.Value > 0)

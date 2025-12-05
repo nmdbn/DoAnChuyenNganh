@@ -22,7 +22,6 @@ namespace DoAnChuyenNganh.Services
             _httpClientFactory = httpClientFactory;
         }
 
-        // ĐÃ ĐỔI THỨ TỰ: (payment, returnUrl, ipnUrl, fakePaymentUrl)
         public async Task<string> CreatePaymentUrl(
             Payment payment,
             string returnUrl,
@@ -34,11 +33,9 @@ namespace DoAnChuyenNganh.Services
             // ====== MODE DEV: DÙNG TRANG FAKE MOMO ======
             if (useSandbox)
             {
-                // Nếu có fakePaymentUrl thì redirect qua đó
                 if (!string.IsNullOrEmpty(fakePaymentUrl))
                     return fakePaymentUrl;
 
-                // fallback: quay lại trang Public nếu không có trang fake
                 return "/Course/Public";
             }
 
@@ -48,105 +45,164 @@ namespace DoAnChuyenNganh.Services
             var secretKey = _config["MOMO:SecretKey"];
             var endpoint = _config["MOMO:Endpoint"];
 
+            // ✅ LẤY RETURN URL VÀ IPN URL TỪ APPSETTINGS
+            var configReturnUrl = _config["MOMO:ReturnUrl"];
+            var configIpnUrl = _config["MOMO:IpnUrl"];
+
             if (string.IsNullOrEmpty(secretKey))
-                throw new Exception("MOMO SecretKey chưa được cấu hình! Vui lòng kiểm tra appsettings.json");
+                throw new Exception("MOMO SecretKey chưa được cấu hình!");
+
+            if (string.IsNullOrEmpty(configReturnUrl))
+                throw new Exception("MOMO ReturnUrl chưa được cấu hình!");
+
+            if (string.IsNullOrEmpty(configIpnUrl))
+                throw new Exception("MOMO IpnUrl chưa được cấu hình!");
 
             var requestId = Guid.NewGuid().ToString();
             var orderId = "MOMO" + DateTime.Now.Ticks;
-            var amount = payment.Amount.ToString("0");
-            var orderInfo = $"Thanh toan khoa hoc {payment.Course?.Title ?? "eLearning"}";
-            var extraData = "";
+            var amount = ((long)payment.Amount).ToString();
+            var orderInfo = $"Thanh toan khoa hoc: {payment.Course?.Title ?? "eLearning"}";
+            var extraData = payment.PaymentId.ToString();
+            var requestType = "captureWallet";
+            var autoCapture = true;
+            var lang = "vi";
 
-            var rawHash =
+            // Tạo rawSignature theo đúng format MoMo yêu cầu
+            var rawSignature =
                 $"accessKey={accessKey}" +
                 $"&amount={amount}" +
                 $"&extraData={extraData}" +
-                $"&ipnUrl={ipnUrl}" +
+                $"&ipnUrl={configIpnUrl}" +
                 $"&orderId={orderId}" +
                 $"&orderInfo={orderInfo}" +
                 $"&partnerCode={partnerCode}" +
-                $"&redirectUrl={returnUrl}" +
+                $"&redirectUrl={configReturnUrl}" +
                 $"&requestId={requestId}" +
-                $"&requestType=captureWallet";
+                $"&requestType={requestType}";
 
-            var signature = HmacSHA256(rawHash, secretKey);
+            var signature = HmacSHA256(rawSignature, secretKey);
 
             var requestBody = new
             {
                 partnerCode,
-                accessKey,
+                partnerName = "eLearning Platform",
+                storeId = "eLearningStore",
                 requestId,
                 amount,
                 orderId,
                 orderInfo,
-                redirectUrl = returnUrl,
-                ipnUrl,
+                redirectUrl = configReturnUrl,
+                ipnUrl = configIpnUrl,
+                lang,
+                requestType,
+                autoCapture,
                 extraData,
-                requestType = "captureWallet",
+                orderGroupId = "",
                 signature
             };
 
-            var client = _httpClientFactory.CreateClient();
-            var response = await client.PostAsync(
-                endpoint + "/v2/gateway/api/create",
-                new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json"));
-
-            var resultJson = await response.Content.ReadAsStringAsync();
-            dynamic result = JsonConvert.DeserializeObject(resultJson);
-
-            if (result?.resultCode == "0")
+            try
             {
-                payment.MoMoOrderId = orderId;
-                payment.MoMoRequestId = requestId;
-                await _context.SaveChangesAsync();
-                return result.payUrl;
-            }
+                var client = _httpClientFactory.CreateClient();
+                var jsonContent = JsonConvert.SerializeObject(requestBody);
 
-            throw new Exception("Tạo link MoMo thất bại: " + (string?)result?.message);
+                System.Diagnostics.Debug.WriteLine("=== MoMo Request ===");
+                System.Diagnostics.Debug.WriteLine($"URL: {endpoint}/v2/gateway/api/create");
+                System.Diagnostics.Debug.WriteLine($"Body: {jsonContent}");
+                System.Diagnostics.Debug.WriteLine($"RawSignature: {rawSignature}");
+                System.Diagnostics.Debug.WriteLine($"Signature: {signature}");
+
+                var response = await client.PostAsync(
+                    $"{endpoint}/v2/gateway/api/create",
+                    new StringContent(jsonContent, Encoding.UTF8, "application/json"));
+
+                var resultJson = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"MoMo Response: {resultJson}");
+
+                dynamic result = JsonConvert.DeserializeObject(resultJson);
+
+                // resultCode = 0 là thành công
+                if (result?.resultCode == 0)
+                {
+                    payment.MoMoOrderId = orderId;
+                    payment.MoMoRequestId = requestId;
+                    await _context.SaveChangesAsync();
+                    return result.payUrl;
+                }
+
+                throw new Exception($"Tạo link MoMo thất bại: [{result?.resultCode}] {result?.message}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"MoMo Error: {ex.Message}");
+                throw new Exception($"Lỗi kết nối MoMo: {ex.Message}");
+            }
         }
 
         public async Task<PaymentResult> ProcessReturn(IQueryCollection query)
         {
-            // Ép về string cho chắc
-            var resultCode = query["resultCode"].ToString();
+            var partnerCode = query["partnerCode"].ToString();
             var orderId = query["orderId"].ToString();
-            var message = query["message"].ToString();
+            var requestId = query["requestId"].ToString();
+            var amount = query["amount"].ToString();
+            var orderInfo = query["orderInfo"].ToString();
+            var orderType = query["orderType"].ToString();
             var transId = query["transId"].ToString();
+            var resultCode = query["resultCode"].ToString();
+            var message = query["message"].ToString();
+            var payType = query["payType"].ToString();
+            var responseTime = query["responseTime"].ToString();
+            var extraData = query["extraData"].ToString();
+            var signature = query["signature"].ToString();
 
-            // ====== CASE: THANH TOÁN ẢO (FAKE MOMO) ======
-            if (query.ContainsKey("paymentId"))
+            // Log để debug
+            System.Diagnostics.Debug.WriteLine("=== MoMo Return ===");
+            System.Diagnostics.Debug.WriteLine($"ResultCode: {resultCode}");
+            System.Diagnostics.Debug.WriteLine($"OrderId: {orderId}");
+            System.Diagnostics.Debug.WriteLine($"TransId: {transId}");
+            System.Diagnostics.Debug.WriteLine($"ExtraData: {extraData}");
+
+            // Verify signature
+            var secretKey = _config["MOMO:SecretKey"];
+            var accessKey = _config["MOMO:AccessKey"];
+
+            var rawSignature =
+                $"accessKey={accessKey}" +
+                $"&amount={amount}" +
+                $"&extraData={extraData}" +
+                $"&message={message}" +
+                $"&orderId={orderId}" +
+                $"&orderInfo={orderInfo}" +
+                $"&orderType={orderType}" +
+                $"&partnerCode={partnerCode}" +
+                $"&payType={payType}" +
+                $"&requestId={requestId}" +
+                $"&responseTime={responseTime}" +
+                $"&resultCode={resultCode}" +
+                $"&transId={transId}";
+
+            var computedSignature = HmacSHA256(rawSignature, secretKey);
+
+            System.Diagnostics.Debug.WriteLine($"RawSignature: {rawSignature}");
+            System.Diagnostics.Debug.WriteLine($"Computed Signature: {computedSignature}");
+            System.Diagnostics.Debug.WriteLine($"Received Signature: {signature}");
+
+            // Kiểm tra chữ ký
+            if (computedSignature != signature)
             {
-                if (int.TryParse(query["paymentId"].ToString(), out int paymentId))
+                System.Diagnostics.Debug.WriteLine("⚠️ Signature không khớp!");
+                return new PaymentResult
                 {
-                    var payment = await _context.Payments
-                        .Include(p => p.Course)
-                        .FirstOrDefaultAsync(p => p.PaymentId == paymentId);
-
-                    if (payment != null && payment.Status == "Pending")
-                    {
-                        payment.Status = "Completed";
-                        payment.PaidAt = DateTime.Now;
-                        payment.TransactionId = "FAKE_SUCCESS_" + DateTime.Now.Ticks;
-
-                        if (payment.Course != null)
-                            payment.Course.EnrollmentCount++;
-
-                        await _context.SaveChangesAsync();
-                    }
-
-                    return new PaymentResult
-                    {
-                        Success = true,
-                        CourseId = payment?.CourseId
-                    };
-                }
+                    Success = false,
+                    Message = "Chữ ký không hợp lệ"
+                };
             }
 
-            // ====== CASE: MOMO THẬT ======
+            // resultCode = 0 là thành công
             if (resultCode == "0")
             {
                 var payment = await _context.Payments
-                    .Include(p => p.Course) // THÊM Include cho đúng
+                    .Include(p => p.Course)
                     .FirstOrDefaultAsync(p => p.MoMoOrderId == orderId);
 
                 if (payment != null && payment.Status == "Pending")
@@ -159,19 +215,28 @@ namespace DoAnChuyenNganh.Services
                         payment.Course.EnrollmentCount++;
 
                     await _context.SaveChangesAsync();
+
+                    return new PaymentResult
+                    {
+                        Success = true,
+                        CourseId = payment.CourseId,
+                        PaymentId = payment.PaymentId,
+                        Message = "Thanh toán thành công"
+                    };
                 }
 
                 return new PaymentResult
                 {
-                    Success = true,
-                    CourseId = payment?.CourseId
+                    Success = false,
+                    Message = "Không tìm thấy đơn hàng"
                 };
             }
 
+            // Các mã lỗi khác
             return new PaymentResult
             {
                 Success = false,
-                Message = message ?? "Thanh toán thất bại hoặc bị hủy."
+                Message = message ?? "Thanh toán thất bại hoặc bị hủy"
             };
         }
 

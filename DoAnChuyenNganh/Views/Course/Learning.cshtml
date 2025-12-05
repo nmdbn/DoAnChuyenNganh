@@ -4,6 +4,38 @@
 @{
     ViewData["Title"] = Model.Course.Title + " - Learning";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var currentLesson = Model.CurrentLesson;
+    var lessonType = (currentLesson?.LessonType ?? string.Empty).ToLower();
+
+    var isVideoLesson = lessonType == "video";
+    var isQuizLesson = lessonType == "quiz";
+
+    Lesson previousLesson = null;
+    Lesson nextLesson = null;
+
+    if (currentLesson != null && Model.Lessons != null && Model.Lessons.Count > 0)
+    {
+        var idx = -1;
+        for (var i = 0; i < Model.Lessons.Count; i++)
+        {
+            if (Model.Lessons[i].LessonId == currentLesson.LessonId)
+            {
+                idx = i;
+                break;
+            }
+        }
+
+        if (idx > 0)
+        {
+            previousLesson = Model.Lessons[idx - 1];
+        }
+
+        if (idx >= 0 && idx < Model.Lessons.Count - 1)
+        {
+            nextLesson = Model.Lessons[idx + 1];
+        }
+    }
 }
 
 <div class="container-fluid py-3">
@@ -30,7 +62,7 @@
                                asp-route-lessonId="@lesson.LessonId"
                                class="list-group-item list-group-item-action d-flex align-items-center @(isActive ? "active" : "")">
                                 <div class="me-2">
-                                    <i class="bi @(lesson.LessonType == "video" ? "bi-play-circle" : "bi-file-text")"></i>
+                                    <i class="bi @(lesson.LessonType == "video" ? "bi-play-circle" : (lesson.LessonType == "quiz" ? "bi-ui-checks-grid" : "bi-file-text"))"></i>
                                 </div>
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold text-truncate">
@@ -58,51 +90,33 @@
 
         <!-- MAIN CONTENT -->
         <div class="col-md-9 col-lg-9">
-            @{
-                var currentLesson = Model.CurrentLesson;
-            }
-
-            @if (currentLesson != null)
+            @if (currentLesson == null)
             {
-                // Determine lesson type
-                var isVideo = (currentLesson.LessonType ?? "").ToLower() == "video";
-
-                // Find current index, previous and next lesson WITHOUT lambda
-                var index = -1;
-                for (var i = 0; i < Model.Lessons.Count; i++)
-                {
-                    if (Model.Lessons[i].LessonId == currentLesson.LessonId)
-                    {
-                        index = i;
-                        break;
-                    }
-                }
-
-                Lesson previousLesson = null;
-                Lesson nextLesson = null;
-
-                if (index > 0)
-                {
-                    previousLesson = Model.Lessons[index - 1];
-                }
-
-                if (index >= 0 && index < Model.Lessons.Count - 1)
-                {
-                    nextLesson = Model.Lessons[index + 1];
-                }
-
+                <div class="alert alert-info">
+                    This course has no published lessons yet.
+                </div>
+            }
+            else
+            {
                 <!-- TITLE CARD -->
                 <div class="card shadow-sm mb-3">
                     <div class="card-body">
                         <h5 class="mb-1">@currentLesson.Title</h5>
                         <p class="text-muted mb-0">
                             Lesson @currentLesson.LessonOrder
-                            @(isVideo ? "- Video lesson" : "")
+                            @if (isVideoLesson)
+                            {
+                                <span>- Video lesson</span>
+                            }
+                            else if (isQuizLesson)
+                            {
+                                <span>- Quiz lesson</span>
+                            }
                         </p>
                     </div>
                 </div>
 
-                <!-- TEXT CONTENT -->
+                <!-- LESSON TEXT CONTENT -->
                 <div class="card shadow-sm mb-3">
                     <div class="card-body">
                         <h6 class="fw-semibold mb-2">Lesson content</h6>
@@ -114,17 +128,17 @@
                         }
                         else
                         {
-                            <p class="text-muted mb-0">This lesson does not contain any text content yet.</p>
+                            <p class="text-muted mb-0">This lesson has no text content yet.</p>
                         }
                     </div>
                 </div>
 
-                <!-- VIDEO SECTION: ONLY WHEN TYPE = VIDEO -->
-                @if (isVideo && !string.IsNullOrEmpty(currentLesson.VideoUrl))
+                <!-- VIDEO SECTION: only for video lessons -->
+                @if (isVideoLesson && !string.IsNullOrEmpty(currentLesson.VideoUrl))
                 {
                     <div class="card shadow-sm mb-3">
                         <div class="card-header">
-                            <span class="fw-semibold">Video lesson</span>
+                            <span class="fw-semibold">Video</span>
                         </div>
                         <div class="card-body">
                             <div class="ratio ratio-16x9 mb-2">
@@ -139,7 +153,7 @@
                     </div>
                 }
 
-                <!-- ATTACHMENTS -->
+                <!-- MATERIALS (common for all lesson types) -->
                 @if (Model.CurrentMaterials != null && Model.CurrentMaterials.Any())
                 {
                     <div class="card shadow-sm mb-3">
@@ -163,6 +177,208 @@
                                     </li>
                                 }
                             </ul>
+                        </div>
+                    </div>
+                }
+
+                <!-- QUIZ SECTION -->
+                @if (isQuizLesson)
+                {
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h4 class="card-title text-primary mb-4">
+                                <i class="bi bi-ui-checks-grid"></i> Quiz: @currentLesson.Title
+                            </h4>
+
+                            @* === ĐÃ NỘP QUIZ → HIỂN THỊ KẾT QUẢ ĐẸP === *@
+                            @if (Model.QuizResult != null)
+                            {
+                                var r = Model.QuizResult;
+                                var isPass = r.PercentageScore >= 60;
+
+                                <!-- Header kết quả -->
+                                <div class="text-center mb-4 p-4 rounded-3 @(isPass ? "bg-success-subtle" : "bg-danger-subtle")">
+                                    <h3 class="mb-2">Kết quả của bạn</h3>
+                                    <h1 class="display-4 fw-bold @(isPass ? "text-success" : "text-danger")">
+                                        @r.TotalScore / @r.MaxScore
+                                        <span class="h4">(@r.PercentageScore.ToString("F1")%)</span>
+                                    </h1>
+                                    <p class="lead fw-bold">
+                                        @if (isPass)
+                                        {
+                                            <i class="bi bi-trophy text-warning"></i>
+                                            <span class="text-success">Chúc mừng! Bạn đã đạt!</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-emoji-frown"></i>
+                                            <span class="text-danger">Chưa đạt, hãy thử lại nhé!</span>
+                                        }
+                                    </p>
+                                </div>
+
+                                <hr class="my-4">
+
+                                <!-- Chi tiết từng câu hỏi -->
+                                @foreach (var q in r.Questions)
+                                {
+                                    var questionIndex = r.Questions.IndexOf(q) + 1;
+
+                                    <div class="border rounded-3 p-4 mb-4 shadow-sm">
+                                        <p class="fw-bold fs-5 mb-3">
+                                            Câu @questionIndex: @q.QuestionText
+                                            <span class="text-muted fs-6">(@q.Points điểm)</span>
+                                        </p>
+
+                                        @if (q.QuestionType == "multiple_choice")
+                                        {
+                                            <!-- Hiển thị các đáp án trắc nghiệm -->
+                                            @foreach (var a in q.Answers)
+                                            {
+                                                bool isCorrect = a.AnswerId == q.CorrectAnswerId;
+                                                bool isSelected = a.AnswerId == q.SelectedAnswerId;
+
+                                                string bgClass = "";
+                                                string iconClass = "";
+                                                string badgeHtml = "";
+
+                                                if (isCorrect)
+                                                {
+                                                    // Đáp án đúng -> nền xanh lá
+                                                    bgClass = "bg-success text-white";
+                                                    iconClass = "bi-check-circle-fill";
+                                                    badgeHtml = "<span class='badge bg-white text-success ms-3 fw-bold'><i class='bi bi-check-lg'></i> Đúng</span>";
+                                                }
+                                                else if (isSelected && !isCorrect)
+                                                {
+                                                    // Chọn sai -> nền đỏ
+                                                    bgClass = "bg-danger text-white";
+                                                    iconClass = "bi-x-circle-fill";
+                                                    badgeHtml = "<span class='badge bg-white text-danger ms-3 fw-bold'><i class='bi bi-x-lg'></i> Sai</span>";
+                                                }
+                                                else
+                                                {
+                                                    // Không chọn -> nền xám nhạt
+                                                    bgClass = "bg-light text-dark border";
+                                                    iconClass = "bi-circle";
+                                                }
+
+                                                <div class="d-flex align-items-center p-3 rounded mb-2 @bgClass">
+                                                    <i class="bi @iconClass me-3 fs-4"></i>
+                                                    <span class="flex-grow-1">@a.AnswerText</span>
+                                                    @Html.Raw(badgeHtml)
+                                                </div>
+                                            }
+
+                                            <!-- Điểm nhận được -->
+                                            <div class="mt-3 pt-3 border-top">
+                                                <strong>Điểm của bạn:</strong>
+                                                <span class="badge @(q.IsCorrect == true ? "bg-success" : "bg-danger") fs-6">
+                                                    @q.EarnedPoints / @q.Points
+                                                </span>
+                                            </div>
+
+                                            <!-- Giải thích (nếu có) -->
+                                            @if (!string.IsNullOrWhiteSpace(q.Explanation))
+                                            {
+                                                <div class="mt-3 p-3 bg-info-subtle rounded">
+                                                    <i class="bi bi-lightbulb text-warning"></i>
+                                                    <strong>Giải thích:</strong>
+                                                    <span>@q.Explanation</span>
+                                                </div>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <!-- Hiển thị câu essay -->
+                                            <div class="alert alert-info">
+                                                <strong>Câu trả lời của bạn:</strong>
+                                                <p class="mt-2">@(q.EssayAnswer ?? "(Chưa trả lời)")</p>
+
+                                                @if (q.GradedAt.HasValue)
+                                                {
+                                                    <hr />
+                                                    <strong>Nhận xét:</strong>
+                                                    <p>@q.TeacherFeedback</p>
+                                                    <strong>Điểm:</strong> @q.EarnedPoints
+                                               }
+                                                else
+                                                {
+                                                    <hr />
+                                                    <em class="text-muted">Đang chờ giáo viên chấm...</em>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            }
+                            @* === CHƯA LÀM QUIZ → HIỂN THỊ FORM === *@
+                            else if (Model.QuizToTake != null)
+                            {
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i>
+                                    Bạn có <strong>@Model.QuizToTake.Questions.Count câu hỏi</strong>. Chúc may mắn!
+                                </div>
+
+                                <form asp-action="SubmitQuizFromLearning" method="post">
+                                    @Html.AntiForgeryToken()
+
+                                    <input type="hidden" name="courseId" value="@Model.Course.CourseId" />
+                                    <input type="hidden" name="lessonId" value="@currentLesson.LessonId" />
+                                    <input type="hidden" name="model.AttemptId" value="@Model.QuizToTake.AttemptId" />
+
+                                    @for (var i = 0; i < Model.QuizToTake.Questions.Count; i++)
+                                    {
+                                        var q = Model.QuizToTake.Questions[i];
+
+                                        <div class="border rounded-3 p-4 mb-4 shadow-sm bg-light">
+                                            <p class="fw-bold fs-5 mb-3">
+                                                Câu @(i + 1): @q.QuestionText
+                                                <span class="text-muted">(@q.Points điểm)</span>
+                                            </p>
+
+                                            <input type="hidden" name="model.Answers[@i].QuestionId" value="@q.QuestionId" />
+
+                                            @if (q.QuestionType == "multiple_choice")
+                                            {
+                                                @for (var j = 0; j < q.Answers.Count; j++)
+                                                {
+                                                    var a = q.Answers[j];
+                                                    <div class="form-check form-check-lg mb-3">
+                                                        <input class="form-check-input"
+                                                               type="radio"
+                                                               name="model.Answers[@i].SelectedAnswerId"
+                                                               id="answer_@(i)_@(j)"
+                                                               value="@a.AnswerId" />
+                                                        <label class="form-check-label fs-6" for="answer_@(i)_@(j)">
+                                                            @a.AnswerText
+                                                        </label>
+                                                    </div>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <textarea name="model.Answers[@i].EssayAnswer"
+                                                          class="form-control"
+                                                          rows="5"
+                                                          placeholder="Nhập câu trả lời của bạn..."></textarea>
+                                            }
+                                        </div>
+                                    }
+
+                                    <div class="text-center">
+                                        <button type="submit" class="btn btn-success btn-lg px-5">
+                                            <i class="bi bi-send-fill"></i> Nộp bài
+                                        </button>
+                                    </div>
+                                </form>
+                            }
+                            else
+                            {
+                                <div class="alert alert-warning">
+                                    Quiz chưa được cấu hình hoặc đang tải...
+                                </div>
+                            }
                         </div>
                     </div>
                 }
@@ -193,12 +409,12 @@
                     </div>
                 </div>
             }
-            else
-            {
-                <div class="alert alert-info">
-                    This course has no published lessons yet.
-                </div>
-            }
         </div>
     </div>
 </div>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+}

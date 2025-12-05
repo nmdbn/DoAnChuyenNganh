@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http; // để dùng HttpContext.Session
 using DoAnChuyenNganh.Models;
 
 namespace DoAnChuyenNganh.Controllers
@@ -69,7 +68,7 @@ namespace DoAnChuyenNganh.Controllers
         // POST: Subject/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("SubjectId,SubjectName,SubjectCode,Description,IconUrl,IsActive,CreatedAt,UpdatedAt")] Subject subject)
+        public async Task<IActionResult> Create([Bind("SubjectName,SubjectCode,Description,IconUrl,IsActive")] Subject subject)
         {
             if (!IsAdmin())
             {
@@ -114,7 +113,7 @@ namespace DoAnChuyenNganh.Controllers
         // POST: Subject/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(short id, [Bind("SubjectId,SubjectName,SubjectCode,Description,IconUrl,IsActive,CreatedAt,UpdatedAt")] Subject subject)
+        public async Task<IActionResult> Edit(short id, [Bind("SubjectId,SubjectName,SubjectCode,Description,IconUrl,IsActive")] Subject subject)
         {
             if (!IsAdmin())
             {
@@ -203,13 +202,10 @@ namespace DoAnChuyenNganh.Controllers
             return _context.Subjects.Any(e => e.SubjectId == id);
         }
 
-        // Helper method để kiểm tra quyền Admin
+        // Chỉ cho Admin
         private bool IsAdmin()
         {
-            // Kiểm tra RoleName từ Session
             var roleName = HttpContext.Session.GetString("RoleName");
-
-            // So sánh RoleName với "Admin" (không phân biệt hoa thường)
             return !string.IsNullOrEmpty(roleName) &&
                    roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
         }

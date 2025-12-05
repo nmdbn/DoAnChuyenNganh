@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http; // để dùng HttpContext.Session
 using DoAnChuyenNganh.Models;
 
 namespace DoAnChuyenNganh.Controllers
@@ -21,7 +20,6 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Grades
         public async Task<IActionResult> Index()
         {
-            // Kiểm tra quyền Admin
             if (!IsAdmin())
             {
                 TempData["ErrorMessage"] = "You do not have permission to access this area.";
@@ -70,7 +68,7 @@ namespace DoAnChuyenNganh.Controllers
         // POST: Grades/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("GradeId,GradeName,GradeLevel,Description,IsActive,CreatedAt,UpdatedAt")] Grade grade)
+        public async Task<IActionResult> Create([Bind("GradeName,GradeLevel,Description,IsActive")] Grade grade)
         {
             if (!IsAdmin())
             {
@@ -115,7 +113,7 @@ namespace DoAnChuyenNganh.Controllers
         // POST: Grades/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(short id, [Bind("GradeId,GradeName,GradeLevel,Description,IsActive,CreatedAt,UpdatedAt")] Grade grade)
+        public async Task<IActionResult> Edit(short id, [Bind("GradeId,GradeName,GradeLevel,Description,IsActive")] Grade grade)
         {
             if (!IsAdmin())
             {
@@ -204,13 +202,10 @@ namespace DoAnChuyenNganh.Controllers
             return _context.Grades.Any(e => e.GradeId == id);
         }
 
-        // Helper method để kiểm tra quyền Admin
+        // Chỉ cho user có RoleName = "Admin" (lưu trong Session) được vào
         private bool IsAdmin()
         {
-            // Kiểm tra RoleName từ Session
             var roleName = HttpContext.Session.GetString("RoleName");
-
-            // So sánh RoleName với "Admin" (không phân biệt hoa thường)
             return !string.IsNullOrEmpty(roleName) &&
                    roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
         }

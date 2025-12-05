@@ -94,16 +94,55 @@
 
                         <div class="row">
                             <div class="col-md-4">
-                                <div class="form-group mb-3">
-                                    <label asp-for="LessonType" class="form-label">Lesson Type</label>
-                                    <select asp-for="LessonType" class="form-select">
-                                        <option value="">-- Select Type --</option>
+                                <div class="mb-3">
+                                    <label asp-for="LessonType" class="form-label"></label>
+                                    <select asp-for="LessonType" class="form-select" id="lessonTypeSelect">
                                         <option value="text">Text</option>
                                         <option value="video">Video</option>
                                         <option value="quiz">Quiz</option>
-                                        <option value="assignment">Assignment</option>
                                     </select>
-                                    <span asp-validation-for="LessonType" class="text-danger"></span>
+                                </div>
+
+                                <!-- CÁC FIELD QUẢN LÝ VIDEO, CONTENT... -->
+
+                                <div id="quizEditor" class="card mt-3" style="display:none;">
+                                    <div class="card-header">
+                                        <strong>Quiz for this lesson</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">
+                                                Questions (use format: Câu 1, a/b/c/d)
+                                            </label>
+                                            <textarea name="quizRawText" class="form-control" rows="10"
+                                                      placeholder="Ví dụ:
+Câu 1: Vai trò chính của ứng dụng mạng là gì?
+
+a. Cung cấp các dịch vụ mạng cho người dùng
+b. Quản lý các tài nguyên mạng
+c. Giúp người dùng truy cập vào các thông tin trên mạng
+d. Tất cả các ý trên
+
+Câu 2: Mạng máy tính là gì?
+
+a. ...
+b. ...
+c. ...
+d. ..."></textarea>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">
+                                                Answer key (ví dụ: <code>1.d 2.d</code>)
+                                            </label>
+                                            <input type="text" name="quizAnswerKey" class="form-control"
+                                                   placeholder="1.d 2.d 3.a" />
+                                            <small class="text-muted">
+                                                Format: số câu + chữ a/b/c/d.
+                                                Ví dụ: <strong>1.d 2.b 3.a</strong>
+                                            </small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -226,6 +265,21 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script>
+        const select = document.getElementById('lessonTypeSelect');
+        const quizBox = document.getElementById('quizEditor');
+
+        function toggleQuizBox() {
+            if (!select) return;
+            quizBox.style.display = (select.value === 'quiz') ? 'block' : 'none';
+        }
+
+        if (select) {
+            select.addEventListener('change', toggleQuizBox);
+            toggleQuizBox();
+        }
+    </script>
 }
 
 <style>

@@ -1,4 +1,12 @@
 ﻿<!DOCTYPE html>
+@{
+    var roleName = Context.Session.GetString("RoleName");
+
+    bool isLoggedIn = !string.IsNullOrEmpty(roleName);
+    bool isAdmin = string.Equals(roleName, "Admin", StringComparison.OrdinalIgnoreCase);
+    bool isInstructor = string.Equals(roleName, "Instructor", StringComparison.OrdinalIgnoreCase);
+    bool isUser = string.Equals(roleName, "User", StringComparison.OrdinalIgnoreCase);
+}
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -51,67 +59,102 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-dark" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-gear"></i> Admin
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-                                <li>
-                                    <a class="dropdown-item" asp-controller="User" asp-action="Index">
-                                        <i class="bi bi-people"></i> User Management
-                                    </a>
-                                </li>
-                                <li class="dropdown-submenu">
-                                    <a class="dropdown-item dropdown-toggle" href="#" id="learningManagementDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bi bi-book"></i> Learning Management
-                                    </a>
-                                    <ul class="dropdown-menu" aria-labelledby="learningManagementDropdown">
+                        @if (isLoggedIn)   // chỉ khi đã login mới thấy nút Admin
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-dark" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-gear"></i> Admin
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+
+                                    @* ---- CHỈ ADMIN: User Management ---- *@
+                                    @if (isAdmin)
+                                    {
                                         <li>
-                                            <a class="dropdown-item" asp-controller="Course" asp-action="Create">
-                                                <i class="bi bi-plus-circle"></i> Add Course
+                                            <a class="dropdown-item" asp-controller="User" asp-action="Index">
+                                                <i class="bi bi-people"></i> User Management
                                             </a>
                                         </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" asp-controller="Course" asp-action="Public">
-                                                Khóa học
-                                            </a>
-                                        </li>
-                                        <li class="dropdown-submenu">
-                                            <a class="dropdown-item dropdown-toggle" href="#" id="manageLessonsMaterialsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                <i class="bi bi-file-earmark-text"></i> Manage Lessons & Materials
-                                            </a>
-                                            <ul class="dropdown-menu" aria-labelledby="manageLessonsMaterialsDropdown">
+                                    }
+
+                                    <li class="dropdown-submenu">
+                                        <a class="dropdown-item dropdown-toggle" href="#" id="learningManagementDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-book"></i> Learning Management
+                                        </a>
+                                        <ul class="dropdown-menu" aria-labelledby="learningManagementDropdown">
+
+                                            @* ---- ADMIN + INSTRUCTOR: Add Course ---- *@
+                                            @if (isAdmin || isInstructor)
+                                            {
                                                 <li>
-                                                    <a class="dropdown-item" asp-controller="Lesson" asp-action="Index">
-                                                        <i class="bi bi-file-earmark-text"></i> Manage Lessons
+                                                    <a class="dropdown-item" asp-controller="Course" asp-action="Create">
+                                                        <i class="bi bi-plus-circle"></i> Add Course
+                                                    </a>
+                                                </li>
+                                            }
+
+                                            @* ---- ADMIN + INSTRUCTOR: Manage Lessons & Materials ---- *@
+                                            @if (isAdmin || isInstructor)
+                                            {
+                                                <li class="dropdown-submenu">
+                                                    <a class="dropdown-item dropdown-toggle" href="#" id="manageLessonsMaterialsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="bi bi-file-earmark-text"></i> Manage Lessons & Materials
+                                                    </a>
+                                                    <ul class="dropdown-menu" aria-labelledby="manageLessonsMaterialsDropdown">
+                                                        <li>
+                                                            <a class="dropdown-item" asp-controller="Lesson" asp-action="Index">
+                                                                <i class="bi bi-file-earmark-text"></i> Manage Lessons
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" asp-controller="CourseMaterial" asp-action="Index">
+                                                                <i class="bi bi-file-earmark-text"></i> Manage Materials
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </li>
+                                            }
+
+                                            @* ---- ADMIN + INSTRUCTOR + USER: Khóa học ---- *@
+                                            @if (isAdmin || isInstructor || isUser)
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item" asp-controller="Course" asp-action="Public">
+                                                        <i class="bi bi-collection"></i> Khóa học
+                                                    </a>
+                                                </li>
+                                            }
+
+                                            @* ---- CHỈ ADMIN: Subject + Grade ---- *@
+                                            @if (isAdmin)
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item" asp-controller="Subject" asp-action="Index">
+                                                        <i class="bi bi-list-ul"></i> Manage Subjects
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item" asp-controller="CourseMaterial" asp-action="Index">
-                                                        <i class="bi bi-file-earmark-text"></i> Manage Materials
+                                                    <a class="dropdown-item" asp-controller="Grades" asp-action="Index">
+                                                        <i class="bi bi-list-ul"></i> Manage Grades
                                                     </a>
                                                 </li>
-                                            </ul>
-                                        </li>
+                                            }
+                                        </ul>
+                                    </li>
+
+                                    @* ---- CHỈ ADMIN: Statistics / System Administration ---- *@
+                                    @if (isAdmin)
+                                    {
                                         <li>
-                                            <a class="dropdown-item" asp-controller="Subject" asp-action="Index">
-                                                <i class="bi bi-list-ul"></i> Manage Subjects
+                                            <a class="dropdown-item" asp-controller="Dashboard" asp-action="_Statistical">
+                                                <i class="bi bi-wrench"></i> System Administration
                                             </a>
                                         </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Grades" asp-action="Index">
-                                                <i class="bi bi-list-ul"></i> Manage Grades
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" asp-controller="Dashboard" asp-action="_Statistical">
-                                        <i class="bi bi-wrench"></i> System Administration
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+
                     </ul>
 
                     <ul class="navbar-nav">

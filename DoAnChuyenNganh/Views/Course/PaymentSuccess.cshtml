@@ -11,20 +11,20 @@
                 <div class="card-header text-center">
                     <h4 class="mb-0">
                         <i class="bi bi-check-circle text-success"></i>
-                        Thanh toán thành công
+                        Payment successful
                     </h4>
                 </div>
                 <div class="card-body">
                     <p class="text-muted mb-1">
-                        Phương thức: <strong>@Model.PaymentMethod</strong>
+                        Method: <strong>@Model.PaymentMethod</strong>
                     </p>
                     <p class="mb-3">
-                        Mã giao dịch: <strong>@Model.TransactionId</strong>
+                        Transaction code: <strong>@Model.TransactionId</strong>
                     </p>
 
                     <hr />
 
-                    <h5>Khóa học của bạn</h5>
+                    <h5>Your course</h5>
                     <div class="d-flex mb-3">
                         <img src="@Model.Course?.ThumbnailUrl"
                              alt="@Model.Course?.Title"
@@ -33,7 +33,7 @@
                         <div>
                             <h5 class="mb-1">@Model.Course?.Title</h5>
                             <p class="mb-0 text-muted">
-                                Số tiền: @Model.Amount.ToString("N0") đ
+                                Amount: @Model.Amount.ToString("N0") đ
                             </p>
                         </div>
                     </div>
@@ -42,10 +42,10 @@
                         <a asp-action="Learning"
                            asp-route-id="@Model.CourseId"
                            class="btn btn-primary">
-                            Vào học ngay
+                            Come to school now!
                         </a>
                         <a asp-action="Public" class="btn btn-outline-secondary ms-2">
-                            Quay lại danh sách khóa học
+                            Back to course list
                         </a>
                     </div>
                 </div>

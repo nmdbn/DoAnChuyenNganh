@@ -4,14 +4,23 @@ namespace DoAnChuyenNganh.Services
 {
     public interface IMomoService
     {
-        // Đổi thứ tự tham số: returnUrl, ipnUrl, fakePaymentUrl
+        /// <summary>
+        /// Tạo URL thanh toán MoMo
+        /// </summary>
+        /// <param name="payment">Thông tin thanh toán</param>
+        /// <param name="returnUrl">URL callback (nullable - lấy từ config nếu null)</param>
+        /// <param name="ipnUrl">URL IPN (nullable - lấy từ config nếu null)</param>
+        /// <param name="fakePaymentUrl">URL fake payment cho sandbox mode</param>
         Task<string> CreatePaymentUrl(
             Payment payment,
-            string returnUrl,
-            string ipnUrl,
-            string fakePaymentUrl
+            string? returnUrl,
+            string? ipnUrl,
+            string? fakePaymentUrl
         );
 
+        /// <summary>
+        /// Xử lý callback từ MoMo sau khi thanh toán
+        /// </summary>
         Task<PaymentResult> ProcessReturn(IQueryCollection query);
     }
 

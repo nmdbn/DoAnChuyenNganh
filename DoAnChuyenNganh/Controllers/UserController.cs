@@ -292,10 +292,17 @@ namespace DoAnChuyenNganh.Controllers
         // =========================
 
         // POST: Users/ToggleLock - AJAX endpoint
+        // POST: Users/ToggleLock - AJAX endpoint
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleLock(int userId)
         {
+            // Chắc chắn chỉ Admin mới gọi được (phòng trường hợp bị call lén)
+            if (!IsAdmin())
+            {
+                return Json(new { success = false, message = "You do not have permission to perform this action." });
+            }
+
             try
             {
                 var user = await _context.Users.FindAsync(userId);
@@ -305,15 +312,41 @@ namespace DoAnChuyenNganh.Controllers
                     return Json(new { success = false, message = "User not found" });
                 }
 
-                // Toggle IsLocked and IsActive (opposite values)
+                // Lấy user hiện đang đăng nhập
+                int? currentUserId = HttpContext.Session.GetInt32("UserId");
+                var currentRoleName = HttpContext.Session.GetString("RoleName");
+
+                // Không cho lock admin khác (RoleId = 4 hoặc RoleName = "Admin")
+                bool targetIsAdmin = user.RoleId == 4 ||
+                                     string.Equals(user.Role?.RoleName, "Admin", StringComparison.OrdinalIgnoreCase);
+
+                if (targetIsAdmin)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "You cannot lock another administrator account."
+                    });
+                }
+
+                // (option) Không cho tự lock chính mình luôn cho chắc
+                if (currentUserId.HasValue && user.UserId == currentUserId.Value)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "You cannot lock your own account."
+                    });
+                }
+
+                // Toggle IsLocked và IsActive
                 user.IsLocked = !user.IsLocked;
                 user.IsActive = !user.IsActive;
                 user.UpdatedAt = DateTime.Now;
 
-                // If locking, set lockout time
                 if (user.IsLocked == true)
                 {
-                    user.LockoutUntil = DateTime.Now.AddYears(100); // Permanent lock
+                    user.LockoutUntil = DateTime.Now.AddYears(100); // coi như khóa vĩnh viễn
                 }
                 else
                 {
@@ -336,6 +369,7 @@ namespace DoAnChuyenNganh.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
+
 
         // POST: Users/ChangeRole - AJAX endpoint
         [HttpPost]

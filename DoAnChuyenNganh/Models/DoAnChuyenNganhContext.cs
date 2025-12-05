@@ -68,12 +68,29 @@ public partial class DoAnChuyenNganhContext : DbContext
     public virtual DbSet<VwForumActivity> VwForumActivities { get; set; }
 
     public virtual DbSet<VwStudentProgress> VwStudentProgresses { get; set; }
+
     public virtual DbSet<Payment> Payments { get; set; } = null!;
+    public virtual DbSet<Quiz> Quizzes { get; set; }
+    public virtual DbSet<QuizQuestion> QuizQuestions { get; set; }
+    public virtual DbSet<QuizAnswer> QuizAnswers { get; set; }
+    public virtual DbSet<UserQuizAttempt> UserQuizAttempts { get; set; }
+    public virtual DbSet<UserQuizAnswer> UserQuizAnswers { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer("Name=DefaultConnection");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // =======================
+        // FIX TÊN BẢNG QUIZ SYSTEM (vì DB không pluralize)
+        // =======================
+        modelBuilder.Entity<Quiz>().ToTable("Quiz");
+        modelBuilder.Entity<QuizQuestion>().ToTable("QuizQuestion");
+        modelBuilder.Entity<QuizAnswer>().ToTable("QuizAnswer");
+        modelBuilder.Entity<UserQuizAttempt>().ToTable("UserQuizAttempt");
+        modelBuilder.Entity<UserQuizAnswer>().ToTable("UserQuizAnswer");
+        modelBuilder.Entity<Quiz>().ToTable("Quiz");
+        modelBuilder.HasDefaultSchema("dbo");
         modelBuilder.Entity<ContentReport>(entity =>
         {
             entity.HasKey(e => e.ReportId).HasName("PK__ContentR__D5BD48E525467EF8");
@@ -632,6 +649,7 @@ public partial class DoAnChuyenNganhContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
+            entity.ToTable("Users");
             entity.HasKey(e => e.UserId).HasName("PK__Users__1788CCAC5252C436");
 
             entity.HasIndex(e => e.CreatedAt, "IX_Users_CreatedAt");
@@ -825,6 +843,192 @@ public partial class DoAnChuyenNganhContext : DbContext
             entity.Property(e => e.StudentName).HasMaxLength(101);
             entity.Property(e => e.UserId).HasColumnName("UserID");
             entity.Property(e => e.Username).HasMaxLength(50);
+        });
+        modelBuilder.Entity<Quiz>(entity =>
+        {
+            entity.HasKey(e => e.QuizId).HasName("PK_Quiz");
+            entity.ToTable("Quiz");
+
+            entity.Property(e => e.QuizId).HasColumnName("QuizID");
+            entity.Property(e => e.LessonId).HasColumnName("LessonID");
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description);
+            entity.Property(e => e.IsRandomOrder).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.CreatedBy).HasColumnName("CreatedBy");
+            entity.Property(e => e.UpdatedBy).HasColumnName("UpdatedBy");
+
+            entity.HasIndex(e => e.LessonId)
+                .HasDatabaseName("IX_Quiz_LessonID");
+
+            // FK -> Lessons
+            entity.HasOne(d => d.Lesson)
+                .WithMany() // chưa cần collection Quizzes trong Lesson
+                .HasForeignKey(d => d.LessonId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_Quiz_Lesson");
+
+            // FK -> Users (CreatedBy, UpdatedBy)
+            entity.HasOne(d => d.CreatedByNavigation)
+                .WithMany(p => p.QuizzesCreated)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Quiz_CreatedBy");
+
+            entity.HasOne(d => d.UpdatedByNavigation)
+                .WithMany(p => p.QuizzesUpdated)
+                .HasForeignKey(d => d.UpdatedBy)
+                .HasConstraintName("FK_Quiz_UpdatedBy");
+        });
+
+
+        // =======================
+        // QUIZ QUESTION
+        // =======================
+
+        modelBuilder.Entity<QuizQuestion>(entity =>
+        {
+            entity.HasKey(e => e.QuestionId).HasName("PK_QuizQuestion");
+            entity.ToTable("QuizQuestion");
+
+            entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
+            entity.Property(e => e.QuizId).HasColumnName("QuizID");
+            entity.Property(e => e.QuestionType).HasMaxLength(20);
+            entity.Property(e => e.QuestionOrder);
+            entity.Property(e => e.Points);
+            entity.Property(e => e.Explanation);
+            entity.Property(e => e.CreatedAt);
+
+            entity.HasIndex(e => new { e.QuizId, e.QuestionOrder })
+                .IsUnique()
+                .HasDatabaseName("UQ_QuizQuestion_Order");
+
+            entity.HasOne(d => d.Quiz)
+                .WithMany(p => p.QuizQuestions)
+                .HasForeignKey(d => d.QuizId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_QuizQuestion_Quiz");
+        });
+
+        // =======================
+        // QUIZ ANSWER
+        // =======================
+
+        modelBuilder.Entity<QuizAnswer>(entity =>
+        {
+            entity.HasKey(e => e.AnswerId).HasName("PK_QuizAnswer");
+
+            entity.Property(e => e.AnswerId).HasColumnName("AnswerID");
+            entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
+            entity.Property(e => e.AnswerText);
+            entity.Property(e => e.IsCorrect).HasDefaultValue(false);
+            entity.Property(e => e.AnswerOrder);
+
+            entity.HasIndex(e => new { e.QuestionId, e.AnswerOrder })
+                .IsUnique()
+                .HasDatabaseName("UQ_QuizAnswer_Order");
+
+            entity.HasOne(d => d.Question)  // Chỉ config cho Question
+                .WithMany(p => p.QuizAnswers)
+                .HasForeignKey(d => d.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_QuizAnswer_Question");
+        });
+
+
+        // =======================
+        // USER QUIZ ATTEMPT
+        // =======================
+
+        modelBuilder.Entity<UserQuizAttempt>(entity =>
+        {
+            entity.HasKey(e => e.AttemptId).HasName("PK_UserQuizAttempt");
+            entity.ToTable("UserQuizAttempt");
+
+            entity.Property(e => e.AttemptId).HasColumnName("AttemptID");
+            entity.Property(e => e.UserId).HasColumnName("UserID");
+            entity.Property(e => e.QuizId).HasColumnName("QuizID");
+            entity.Property(e => e.EnrollmentId).HasColumnName("EnrollmentID");
+            entity.Property(e => e.StartedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.SubmittedAt);
+            entity.Property(e => e.TotalScore).HasColumnType("decimal(5,2)").HasDefaultValue(0);
+            entity.Property(e => e.MaxScore).HasDefaultValue(0);
+            entity.Property(e => e.PercentageScore).HasColumnType("decimal(5,2)").HasDefaultValue(0);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("in_progress");
+
+            entity.HasIndex(e => e.UserId).HasDatabaseName("IX_UserQuizAttempt_UserID");
+            entity.HasIndex(e => e.QuizId).HasDatabaseName("IX_UserQuizAttempt_QuizID");
+            entity.HasIndex(e => e.EnrollmentId).HasDatabaseName("IX_UserQuizAttempt_EnrollmentID");
+            entity.HasIndex(e => e.Status).HasDatabaseName("IX_UserQuizAttempt_Status");
+
+            entity.HasOne(d => d.User)
+                .WithMany(p => p.UserQuizAttempts)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_UserQuizAttempt_User");
+
+            entity.HasOne(d => d.Quiz)
+                .WithMany(p => p.UserQuizAttempts)
+                .HasForeignKey(d => d.QuizId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_UserQuizAttempt_Quiz");
+
+            // Không ép Enrollment phải có collection UserQuizAttempts, nên dùng WithMany() trống
+            entity.HasOne(d => d.Enrollment)
+                .WithMany()
+                .HasForeignKey(d => d.EnrollmentId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_UserQuizAttempt_Enrollment");
+        });
+
+
+        // =======================
+        // USER QUIZ ANSWER
+        // =======================
+
+        modelBuilder.Entity<UserQuizAnswer>(entity =>
+        {
+            entity.HasKey(e => e.UserAnswerId).HasName("PK_UserQuizAnswer");
+            entity.ToTable("UserQuizAnswer");
+
+            entity.Property(e => e.UserAnswerId).HasColumnName("UserAnswerID");
+            entity.Property(e => e.AttemptId).HasColumnName("AttemptID");
+            entity.Property(e => e.QuestionId).HasColumnName("QuestionID");
+            entity.Property(e => e.SelectedAnswerId).HasColumnName("SelectedAnswerID");
+            entity.Property(e => e.EssayAnswer);
+            entity.Property(e => e.IsCorrect);
+            entity.Property(e => e.EarnedPoints).HasColumnType("decimal(5,2)").HasDefaultValue(0);
+            entity.Property(e => e.TeacherFeedback);
+            entity.Property(e => e.GradedBy).HasColumnName("GradedBy");
+            entity.Property(e => e.GradedAt);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+
+            entity.HasIndex(e => new { e.AttemptId, e.QuestionId })
+                .IsUnique()
+                .HasDatabaseName("UQ_UserQuizAnswer_AttemptQuestion");
+
+            entity.HasOne(d => d.Attempt)
+                .WithMany(p => p.UserQuizAnswers)
+                .HasForeignKey(d => d.AttemptId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_UserQuizAnswer_Attempt");
+
+            entity.HasOne(d => d.Question)
+                .WithMany(p => p.UserQuizAnswers)
+                .HasForeignKey(d => d.QuestionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_UserQuizAnswer_Question");
+
+            entity.HasOne(d => d.SelectedAnswer)
+                .WithMany(p => p.UserQuizAnswers)
+                .HasForeignKey(d => d.SelectedAnswerId)
+                .HasConstraintName("FK_UserQuizAnswer_SelectedAnswer");
+
+            entity.HasOne(d => d.GradedByNavigation)
+                .WithMany(p => p.EssaysGraded)
+                .HasForeignKey(d => d.GradedBy)
+                .HasConstraintName("FK_UserQuizAnswer_GradedBy");
         });
 
         OnModelCreatingPartial(modelBuilder);

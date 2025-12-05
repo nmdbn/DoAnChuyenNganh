@@ -1,4 +1,6 @@
-﻿namespace DoAnChuyenNganh.Models;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace DoAnChuyenNganh.Models;
 
 public partial class User
 {
@@ -106,4 +108,16 @@ public partial class User
     public virtual ICollection<UserLike> UserLikes { get; set; } = new List<UserLike>();
 
     public virtual ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
+    [InverseProperty(nameof(Quiz.CreatedByNavigation))]
+    public virtual ICollection<Quiz> QuizzesCreated { get; set; } = new List<Quiz>();
+
+    [InverseProperty(nameof(Quiz.UpdatedByNavigation))]
+    public virtual ICollection<Quiz> QuizzesUpdated { get; set; } = new List<Quiz>();
+
+    public virtual ICollection<UserQuizAttempt> UserQuizAttempts { get; set; } = new List<UserQuizAttempt>();
+
+    [InverseProperty(nameof(UserQuizAnswer.GradedByNavigation))]
+    public virtual ICollection<UserQuizAnswer> EssaysGraded { get; set; } = new List<UserQuizAnswer>();
+
+
 }
