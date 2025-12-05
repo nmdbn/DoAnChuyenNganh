@@ -7,11 +7,11 @@
 
 /* Forum Header */
 .forum-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 30px;
-  border-radius: 10px;
-  margin-bottom: 30px;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0a0f1f 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
 }
 
 .forum-header h1 {

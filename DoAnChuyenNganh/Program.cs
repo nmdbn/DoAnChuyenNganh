@@ -52,6 +52,10 @@ builder.Services.AddHttpClient();                                    // BẮT BU
 builder.Services.AddScoped<IMomoService, MomoService>();            // ĐĂNG KÝ SERVICE
 builder.Services.AddScoped<DoAnChuyenNganh.Services.MomoService>();
 builder.Services.AddScoped<IPaypalService, PaypalService>();// (Tùy chọn, để an toàn)
+
+// Add News Service
+builder.Services.AddScoped<INewsService, NewsService>();
+
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 

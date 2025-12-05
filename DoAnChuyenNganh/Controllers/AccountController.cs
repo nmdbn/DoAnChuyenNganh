@@ -498,6 +498,7 @@ namespace DoAnChuyenNganh.Controllers
 
             // Lưu session user
             HttpContext.Session.SetInt32("UserId", resultAuth.User.UserId);
+            HttpContext.Session.SetInt32("RoleId", resultAuth.User.RoleId);
             HttpContext.Session.SetString("Username", resultAuth.User.Username);
             HttpContext.Session.SetString("Email", resultAuth.User.Email);
             HttpContext.Session.SetString("FullName", $"{resultAuth.User.FirstName} {resultAuth.User.LastName}");
@@ -508,6 +509,9 @@ namespace DoAnChuyenNganh.Controllers
             }
 
             await HttpContext.Session.CommitAsync();
+
+            _logger.LogInformation("Google login successful - UserId: {UserId}, RoleId: {RoleId}, Username: {Username}",
+                resultAuth.User.UserId, resultAuth.User.RoleId, resultAuth.User.Username);
 
             TempData["SuccessMessage"] = "Login with Google successful!";
 
@@ -547,7 +551,7 @@ namespace DoAnChuyenNganh.Controllers
             var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
             var name = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
             var providerId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            var picture = claims.FirstOrDefault(c => c.Type == "picture")?.Value; // nếu bạn thêm Field picture
+            var picture = claims.FirstOrDefault(c => c.Type == "picture")?.Value;
 
             if (string.IsNullOrEmpty(providerId))
             {
@@ -555,11 +559,16 @@ namespace DoAnChuyenNganh.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                email = $"{providerId}@facebook.local";
+            }
+
             var ipAddress = GetIpAddress();
             var userAgent = GetUserAgent();
 
             var resultAuth = await _authService.AuthenticateFacebookAsync(
-                email ?? providerId, 
+                email,
                 name ?? "Facebook User",
                 providerId,
                 ipAddress,
@@ -580,16 +589,21 @@ namespace DoAnChuyenNganh.Controllers
             SetSessionCookie(session.SessionToken, rememberMe: true);
 
             HttpContext.Session.SetInt32("UserId", resultAuth.User.UserId);
+            HttpContext.Session.SetInt32("RoleId", resultAuth.User.RoleId);
             HttpContext.Session.SetString("Username", resultAuth.User.Username);
             HttpContext.Session.SetString("Email", resultAuth.User.Email ?? "");
             HttpContext.Session.SetString("FullName", $"{resultAuth.User.FirstName} {resultAuth.User.LastName}");
             HttpContext.Session.SetString("RoleName", resultAuth.User.Role?.RoleName ?? "User");
+
             if (!string.IsNullOrEmpty(picture))
             {
                 HttpContext.Session.SetString("AvatarUrl", picture);
             }
 
             await HttpContext.Session.CommitAsync();
+
+            _logger.LogInformation("Facebook login successful - UserId: {UserId}, RoleId: {RoleId}, Username: {Username}",
+                resultAuth.User.UserId, resultAuth.User.RoleId, resultAuth.User.Username);
 
             TempData["SuccessMessage"] = "Login with Facebook successful!";
 
