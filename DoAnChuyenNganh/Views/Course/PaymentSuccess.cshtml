@@ -1,0 +1,55 @@
+﻿@model DoAnChuyenNganh.Models.Payment
+@{
+    ViewData["Title"] = "Thanh toán thành công";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header text-center">
+                    <h4 class="mb-0">
+                        <i class="bi bi-check-circle text-success"></i>
+                        Payment successful
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-1">
+                        Method: <strong>@Model.PaymentMethod</strong>
+                    </p>
+                    <p class="mb-3">
+                        Transaction code: <strong>@Model.TransactionId</strong>
+                    </p>
+
+                    <hr />
+
+                    <h5>Your course</h5>
+                    <div class="d-flex mb-3">
+                        <img src="@Model.Course?.ThumbnailUrl"
+                             alt="@Model.Course?.Title"
+                             class="me-3 rounded"
+                             style="width:120px;height:80px;object-fit:cover" />
+                        <div>
+                            <h5 class="mb-1">@Model.Course?.Title</h5>
+                            <p class="mb-0 text-muted">
+                                Amount: @Model.Amount.ToString("N0") đ
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <a asp-action="Learning"
+                           asp-route-id="@Model.CourseId"
+                           class="btn btn-primary">
+                            Come to school now!
+                        </a>
+                        <a asp-action="Public" class="btn btn-outline-secondary ms-2">
+                            Back to course list
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

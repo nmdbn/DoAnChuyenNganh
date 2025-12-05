@@ -60,7 +60,13 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label asp-for="LessonType" class="form-label">Lesson type</label>
-                                <input asp-for="LessonType" class="form-control" placeholder="e.g. Video, Quiz, Article" />
+                                <select asp-for="LessonType" class="form-select">
+                                    <option value="">-- Select Type --</option>
+                                    <option value="text">Text</option>
+                                    <option value="video">Video</option>
+                                    <option value="quiz">Quiz</option>
+                                    <option value="assignment">Assignment</option>
+                                </select>
                                 <span asp-validation-for="LessonType" class="text-danger"></span>
                             </div>
 
@@ -82,46 +88,53 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <div class="form-check form-switch">
-                                    <input asp-for="IsPreviewable" class="form-check-input" />
-                                    <label asp-for="IsPreviewable" class="form-check-label">Allow preview</label>
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           id="IsPreviewable"
+                                           name="IsPreviewable"
+                                           value="true"
+                                    @(Model?.IsPreviewable == true ? "checked" : "") />
+                                    <input type="hidden" name="IsPreviewable" value="false" />
+                                    <label class="form-check-label" for="IsPreviewable">Allow preview</label>
                                 </div>
                                 <span asp-validation-for="IsPreviewable" class="text-danger"></span>
                             </div>
 
                             <div class="col-md-6">
                                 <div class="form-check form-switch">
-                                    <input asp-for="IsPublished" class="form-check-input" />
-                                    <label asp-for="IsPublished" class="form-check-label">Published</label>
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           id="IsPublished"
+                                           name="IsPublished"
+                                           value="true"
+                                    @(Model?.IsPublished == true ? "checked" : "") />
+                                    <input type="hidden" name="IsPublished" value="false" />
+                                    <label class="form-check-label" for="IsPublished">Published</label>
                                 </div>
                                 <span asp-validation-for="IsPublished" class="text-danger"></span>
                             </div>
                         </div>
 
-                        <!-- AUDIT INFO -->
+                        <!-- AUDIT INFO (Read-only display) -->
                         <h5 class="mb-3 mt-4">Audit information</h5>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label asp-for="CreatedAt" class="form-label">Created at</label>
-                                <input asp-for="CreatedAt" class="form-control" type="datetime-local" readonly />
-                                <span asp-validation-for="CreatedAt" class="text-danger"></span>
+                        <div class="alert alert-light">
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <strong>Created at:</strong><br />
+                                    <span class="text-muted">@Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <strong>Created by:</strong><br />
+                                    <span class="text-muted">@Model.CreatedByNavigation?.Username</span>
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <label asp-for="UpdatedAt" class="form-label">Last updated at</label>
-                                <input asp-for="UpdatedAt" class="form-control" type="datetime-local" />
-                                <span asp-validation-for="UpdatedAt" class="text-danger"></span>
-                            </div>
-                        </div>
-
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <label asp-for="CreatedBy" class="form-label">Created by</label>
-                                <select asp-for="CreatedBy" class="form-select" asp-items="ViewBag.CreatedBy" disabled></select>
-                                <span asp-validation-for="CreatedBy" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="UpdatedBy" class="form-label">Updated by</label>
-                                <select asp-for="UpdatedBy" class="form-select" asp-items="ViewBag.UpdatedBy"></select>
-                                <span asp-validation-for="UpdatedBy" class="text-danger"></span>
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <small class="text-info">
+                                        <i class="bi bi-info-circle"></i>
+                                        Last update information will be automatically recorded when you save changes.
+                                    </small>
+                                </div>
                             </div>
                         </div>
 
@@ -131,7 +144,7 @@
                                 Cancel
                             </a>
                             <button type="submit" class="btn btn-primary">
-                                Save changes
+                                <i class="bi bi-save"></i> Save changes
                             </button>
                         </div>
                     </form>

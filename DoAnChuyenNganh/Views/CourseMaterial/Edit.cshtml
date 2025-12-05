@@ -1,80 +1,302 @@
 ﻿@model DoAnChuyenNganh.Models.CourseMaterial
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Course Material";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Edit</h1>
+<div class="container py-4">
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-warning text-dark rounded-top-4">
+            <h4 class="mb-0">
+                <i class="bi bi-pencil-square"></i> Edit Course Material
+            </h4>
+        </div>
 
-<h4>CourseMaterial</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="MaterialId" />
-            <div class="form-group">
-                <label asp-for="CourseId" class="control-label"></label>
-                <select asp-for="CourseId" class="form-control" asp-items="ViewBag.CourseId"></select>
-                <span asp-validation-for="CourseId" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="LessonId" class="control-label"></label>
-                <select asp-for="LessonId" class="form-control" asp-items="ViewBag.LessonId"></select>
-                <span asp-validation-for="LessonId" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="MaterialName" class="control-label"></label>
-                <input asp-for="MaterialName" class="form-control" />
-                <span asp-validation-for="MaterialName" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="MaterialType" class="control-label"></label>
-                <input asp-for="MaterialType" class="form-control" />
-                <span asp-validation-for="MaterialType" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="FileUrl" class="control-label"></label>
-                <input asp-for="FileUrl" class="form-control" />
-                <span asp-validation-for="FileUrl" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="FileSize" class="control-label"></label>
-                <input asp-for="FileSize" class="form-control" />
-                <span asp-validation-for="FileSize" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="DownloadCount" class="control-label"></label>
-                <input asp-for="DownloadCount" class="form-control" />
-                <span asp-validation-for="DownloadCount" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="IsPublic" class="control-label"></label>
-                <input asp-for="IsPublic" class="form-control" />
-                <span asp-validation-for="IsPublic" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CreatedAt" class="control-label"></label>
-                <input asp-for="CreatedAt" class="form-control" />
-                <span asp-validation-for="CreatedAt" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CreatedBy" class="control-label"></label>
-                <select asp-for="CreatedBy" class="form-control" asp-items="ViewBag.CreatedBy"></select>
-                <span asp-validation-for="CreatedBy" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+        <div class="card-body">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <!-- Hidden fields để giữ nguyên metadata -->
+                <input type="hidden" asp-for="MaterialId" />
+                <input type="hidden" asp-for="CreatedAt" />
+                <input type="hidden" asp-for="CreatedBy" />
+                <input type="hidden" asp-for="DownloadCount" />
+                <input type="hidden" asp-for="FileUrl" />
+                <input type="hidden" asp-for="FileSize" />
+                <input type="hidden" asp-for="MaterialType" />
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="CourseId" class="form-label fw-bold">
+                            <i class="bi bi-book"></i> Course
+                        </label>
+                        <select asp-for="CourseId"
+                                class="form-select"
+                                asp-items="ViewBag.CourseId"
+                                id="courseSelect">
+                            <option value="">-- Select Course --</option>
+                        </select>
+                        <span asp-validation-for="CourseId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="LessonId" class="form-label fw-bold">
+                            <i class="bi bi-file-text"></i> Lesson <small class="text-muted">(Optional)</small>
+                        </label>
+                        <select asp-for="LessonId"
+                                class="form-select"
+                                id="lessonSelect">
+                            <option value="">-- Loading lessons... --</option>
+                        </select>
+                        <span asp-validation-for="LessonId" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Bạn phải chọn ít nhất Course hoặc Lesson (hoặc cả hai)
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="MaterialName" class="form-label fw-bold">
+                        <i class="bi bi-tag"></i> Material Name
+                    </label>
+                    <input asp-for="MaterialName"
+                           class="form-control"
+                           placeholder="Enter material name..."
+                           required />
+                    <span asp-validation-for="MaterialName" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        <i class="bi bi-file-earmark"></i> Current File
+                    </label>
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <p class="mb-1"><strong>Type:</strong> <span class="badge bg-primary">@Model.MaterialType</span></p>
+                            <p class="mb-1"><strong>Size:</strong> @((Model.FileSize ?? 0) / 1024.0 / 1024.0).ToString("F2") MB</p>
+                            @if (!string.IsNullOrEmpty(Model.FileUrl))
+                            {
+                                <p class="mb-0">
+                                    <strong>File:</strong>
+                                    <a href="@Model.FileUrl" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-download"></i> Download Current File
+                                    </a>
+                                </p>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        <i class="bi bi-cloud-upload"></i> Upload New File <small class="text-muted">(Optional - leave empty to keep current file)</small>
+                    </label>
+                    <input type="file"
+                           name="uploadedFile"
+                           id="uploadedFile"
+                           class="form-control"
+                           onchange="displayFileInfo(this)" />
+                    <small class="text-muted">Upload a new file to replace the current one</small>
+                </div>
+
+                <div class="mb-3" id="fileInfoDisplay" style="display: none;">
+                    <div class="alert alert-success">
+                        <h6 class="alert-heading"><i class="bi bi-check-circle"></i> New File Selected</h6>
+                        <p class="mb-1"><strong>File Name:</strong> <span id="fileName"></span></p>
+                        <p class="mb-1"><strong>File Size:</strong> <span id="fileSize"></span></p>
+                        <p class="mb-0"><strong>File Type:</strong> <span id="fileType"></span></p>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input type="checkbox"
+                               name="IsPublic"
+                               value="true"
+                        @(Model.IsPublic == true ? "checked" : "")
+                               class="form-check-input"
+                               id="isPublicSwitch">
+                        <label class="form-check-label fw-bold" for="isPublicSwitch">
+                            <i class="bi bi-eye"></i> Make this material public
+                        </label>
+                    </div>
+                    <small class="text-muted">Public materials can be viewed by all enrolled students</small>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-calendar"></i> Created At
+                        </label>
+                        <input type="text"
+                               value="@Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")"
+                               class="form-control"
+                               disabled />
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-person"></i> Created By
+                        </label>
+                        <input type="text"
+                               value="@Model.CreatedByNavigation?.Username"
+                               class="form-control"
+                               disabled />
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-download"></i> Download Count
+                        </label>
+                        <input type="text"
+                               value="@Model.DownloadCount times"
+                               class="form-control"
+                               disabled />
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left-circle"></i> Back to List
+                    </a>
+                    <button type="submit" class="btn btn-warning px-4">
+                        <i class="bi bi-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const courseSelect = document.getElementById('courseSelect');
+            const lessonSelect = document.getElementById('lessonSelect');
+            const initialCourseId = '@Model.CourseId';
+            const initialLessonId = '@Model.LessonId';
+
+            // Function to load lessons
+            function loadLessons(courseId, selectLessonId = null) {
+                lessonSelect.innerHTML = '<option value="">-- Loading lessons... --</option>';
+
+                const url = '@Url.Action("GetLessonsByCourse", "CourseMaterial")' +
+                           (courseId ? '?courseId=' + courseId : '');
+
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        lessonSelect.innerHTML = '';
+
+                        if (courseId) {
+                            lessonSelect.innerHTML = '<option value="">-- Select Lesson (Optional) --</option>';
+                        } else {
+                            lessonSelect.innerHTML = '<option value="">-- Select Lesson --</option>';
+                        }
+
+                        if (data && data.length > 0) {
+                            data.forEach(function(lesson) {
+                                const option = document.createElement('option');
+                                option.value = lesson.lessonId;
+                                option.textContent = lesson.title;
+                                if (selectLessonId && lesson.lessonId == selectLessonId) {
+                                    option.selected = true;
+                                }
+                                lessonSelect.appendChild(option);
+                            });
+                        } else {
+                            const option = document.createElement('option');
+                            option.value = '';
+                            option.textContent = courseId ? '-- No lessons in this course --' : '-- No lessons available --';
+                            lessonSelect.appendChild(option);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading lessons:', error);
+                        lessonSelect.innerHTML = '<option value="">-- Error loading lessons --</option>';
+                    });
+            }
+
+            // Course selection change event
+            courseSelect.addEventListener('change', function() {
+                const courseId = this.value;
+                loadLessons(courseId || null);
+            });
+
+            // Load lessons on page load with initial values
+            if (initialCourseId) {
+                loadLessons(initialCourseId, initialLessonId);
+            } else {
+                loadLessons(null, initialLessonId);
+            }
+
+            // Form validation
+            document.querySelector('form').addEventListener('submit', function(e) {
+                const courseId = courseSelect.value;
+                const lessonId = lessonSelect.value;
+
+                if (!courseId && !lessonId) {
+                    e.preventDefault();
+                    alert('Vui lòng chọn ít nhất Course hoặc Lesson!');
+                    return false;
+                }
+
+                return true;
+            });
+        });
+
+        // Display file information
+        function displayFileInfo(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const fileSize = file.size;
+                const fileSizeKB = (fileSize / 1024).toFixed(2);
+                const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(2);
+
+                const displaySize = fileSize < 1024 * 1024
+                    ? fileSizeKB + ' KB'
+                    : fileSizeMB + ' MB';
+
+                const fileName = file.name;
+                const fileExt = fileName.split('.').pop().toUpperCase();
+
+                const fileTypeCategory = getFileTypeCategory(fileExt);
+
+                document.getElementById('fileName').textContent = fileName;
+                document.getElementById('fileSize').textContent = displaySize;
+                document.getElementById('fileType').textContent = fileExt + ' (' + fileTypeCategory + ')';
+                document.getElementById('fileInfoDisplay').style.display = 'block';
+            } else {
+                document.getElementById('fileInfoDisplay').style.display = 'none';
+            }
+        }
+
+        function getFileTypeCategory(ext) {
+            const docTypes = ['PDF', 'DOC', 'DOCX', 'TXT', 'XLS', 'XLSX', 'PPT', 'PPTX'];
+            const imageTypes = ['JPG', 'JPEG', 'PNG', 'GIF', 'BMP', 'SVG'];
+            const videoTypes = ['MP4', 'AVI', 'MOV', 'WMV', 'FLV', 'MKV'];
+            const audioTypes = ['MP3', 'WAV', 'FLAC', 'AAC', 'OGG'];
+
+            if (docTypes.includes(ext)) return 'Document';
+            if (imageTypes.includes(ext)) return 'Image';
+            if (videoTypes.includes(ext)) return 'Video';
+            if (audioTypes.includes(ext)) return 'Audio';
+            return 'Other';
+        }
+    </script>
 }

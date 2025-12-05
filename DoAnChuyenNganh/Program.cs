@@ -1,12 +1,14 @@
-using DoAnChuyenNganh.Hubs;
+﻿using DoAnChuyenNganh.Hubs;
 using DoAnChuyenNganh.Models;
 using DoAnChuyenNganh.Providers;
 using DoAnChuyenNganh.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using DoAnChuyenNganh.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -23,7 +25,7 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SameSite = SameSiteMode.Lax;
 });
 
 // Add SignalR for real-time notifications with custom user ID provider
@@ -44,6 +46,12 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Add Chat Service
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddControllersWithViews();
+// THÊM 3 DÒNG NÀY VÀO CÙNG NƠI VỚI CÁC SERVICE KHÁC
+builder.Services.AddHttpClient();                                    // BẮT BUỘC cho MoMoService
+builder.Services.AddScoped<IMomoService, MomoService>();            // ĐĂNG KÝ SERVICE
+builder.Services.AddScoped<DoAnChuyenNganh.Services.MomoService>();
+builder.Services.AddScoped<IPaypalService, PaypalService>();// (Tùy chọn, để an toàn)
 
 // Add News Service
 builder.Services.AddScoped<INewsService, NewsService>();

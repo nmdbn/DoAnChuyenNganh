@@ -1,151 +1,463 @@
 ﻿@model DoAnChuyenNganh.Models.Course
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Course Details";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Helper functions
+    string DateTimeOrDash(DateTime? d) => d.HasValue ? d.Value.ToString("dd/MM/yyyy HH:mm") : "-";
+    string TextOrDash(string? s) => string.IsNullOrWhiteSpace(s) ? "-" : s!;
+    string NumberOrDash(decimal? n) => n.HasValue ? $"{n.Value:N0}" : "-";
+    string PriceDisplay(decimal? price) => price.HasValue && price.Value > 0 ? $"{price.Value:N0} VND" : "Free";
+
+    // Safe booleans
+    bool isPublished = Model.IsPublished;
+    bool isFeatured = Model.IsFeatured;
+
+    // Get related entities safely
+    string InstructorDisplay()
+    {
+        if (Model.Instructor == null) return "-";
+        var fullName = $"{Model.Instructor.FirstName} {Model.Instructor.LastName}".Trim();
+        return !string.IsNullOrWhiteSpace(fullName) ? fullName : $"UserID: {Model.Instructor.UserId}";
+    }
+
+    string SubjectDisplay() => Model.Subject?.SubjectName ?? "-";
+    string GradeDisplay() => Model.Grade?.GradeName ?? "-";
 }
 
-<h1>Details</h1>
+<div class="container py-3">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h2 class="mb-1">Course Details</h2>
+            <div class="text-muted">
+                <span class="fw-semibold">@Model.Title</span> • ID: <span class="fw-semibold">@Model.CourseId</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Edit" asp-route-id="@Model?.CourseId" class="btn btn-primary">
+                <i class="bi bi-pencil-square"></i> Edit
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
 
-<div>
-    <h4>Course</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Title)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Title)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Slug)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Slug)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ShortDescription)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ShortDescription)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ThumbnailUrl)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ThumbnailUrl)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DifficultyLevel)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DifficultyLevel)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.EstimatedHours)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.EstimatedHours)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Price)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Price)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsPublished)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsPublished)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsFeatured)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsFeatured)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ViewCount)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ViewCount)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.EnrollmentCount)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.EnrollmentCount)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.AverageRating)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.AverageRating)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.RatingCount)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.RatingCount)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UpdatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UpdatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PublishedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PublishedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedByNavigation)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedByNavigation.UserId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Grade)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Grade.GradeId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Instructor)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Instructor.UserId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Subject)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Subject.SubjectId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UpdatedByNavigation)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UpdatedByNavigation.UserId)
-        </dd>
-    </dl>
+    <div class="row g-3">
+        <!-- Left Column: Course Overview -->
+        <div class="col-12 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <!-- Thumbnail -->
+                    <div class="rounded overflow-hidden mb-3" style="width:100%;height:200px;background:#f3f4f6;">
+                        @if (!string.IsNullOrWhiteSpace(Model.ThumbnailUrl))
+                        {
+                            <img src="@Model.ThumbnailUrl" alt="Course thumbnail" class="w-100 h-100 object-fit-cover" />
+                        }
+                        else
+                        {
+                            <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
+                                <i class="bi bi-book fs-1"></i>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Title & Short Description -->
+                    <h5 class="mb-2">@Model.Title</h5>
+                    @if (!string.IsNullOrWhiteSpace(Model.ShortDescription))
+                    {
+                        <p class="text-muted small">@Model.ShortDescription</p>
+                    }
+
+                    <!-- Status Badges -->
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        @if (isPublished)
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                <i class="bi bi-check-circle"></i> Published
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                <i class="bi bi-file-earmark"></i> Draft
+                            </span>
+                        }
+
+                        @if (isFeatured)
+                        {
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                <i class="bi bi-star-fill"></i> Featured
+                            </span>
+                        }
+                    </div>
+
+                    <hr />
+
+                    <!-- Course Info -->
+                    <div class="mb-2 small text-uppercase text-muted">Course Information</div>
+                    <div class="vstack gap-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Subject:</span>
+                            <span class="fw-semibold">@SubjectDisplay()</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Grade:</span>
+                            <span class="fw-semibold">@GradeDisplay()</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Instructor:</span>
+                            <span class="fw-semibold">@InstructorDisplay()</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Difficulty:</span>
+                            @* Works for both int and int? / short? *@
+                            @if (Model.DifficultyLevel > 0)
+                            {
+                                <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                    Level @Model.DifficultyLevel
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">N/A</span>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Duration:</span>
+                            <span class="fw-semibold">
+                                @(Model.EstimatedHours > 0 ? $"{Model.EstimatedHours} hours" : "-")
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Price:</span>
+                            <span class="fw-semibold">@PriceDisplay(Model.Price)</span>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Statistics -->
+                    <div class="mb-2 small text-uppercase text-muted">Statistics</div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="border rounded p-2 text-center">
+                                <div class="text-primary">
+                                    <i class="bi bi-eye fs-4"></i>
+                                </div>
+                                <div class="fw-bold">@Model.ViewCount</div>
+                                <div class="small text-muted">Views</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 text-center">
+                                <div class="text-success">
+                                    <i class="bi bi-people fs-4"></i>
+                                </div>
+                                <div class="fw-bold">@Model.EnrollmentCount</div>
+                                <div class="small text-muted">Enrollments</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 text-center">
+                                <div class="text-warning">
+                                    <i class="bi bi-star-fill fs-4"></i>
+                                </div>
+                                <div class="fw-bold">@($"{Model.AverageRating:0.0}")</div>
+                                <div class="small text-muted">Rating</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 text-center">
+                                <div class="text-info">
+                                    <i class="bi bi-chat-left-text fs-4"></i>
+                                </div>
+                                <div class="fw-bold">@Model.RatingCount</div>
+                                <div class="small text-muted">Reviews</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Details -->
+        <div class="col-12 col-lg-8">
+            <!-- Description -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="mb-2 small text-uppercase text-muted">
+                        <i class="bi bi-file-text"></i> Full Description
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.Description))
+                    {
+                        <div class="course-description">@Html.Raw(Model.Description)</div>
+                    }
+                    else
+                    {
+                        <div class="text-muted fst-italic">No description available</div>
+                    }
+                </div>
+            </div>
+
+            <!-- Slug & URL -->
+            @if (!string.IsNullOrWhiteSpace(Model.Slug))
+            {
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="mb-2 small text-uppercase text-muted">
+                            <i class="bi bi-link-45deg"></i> URL Slug
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-globe"></i>
+                            </span>
+                            <input type="text" class="form-control" value="@Model.Slug" readonly />
+                            <button class="btn btn-outline-secondary" type="button" onclick="copySlug(event)">
+                                <i class="bi bi-clipboard"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- System Information -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3 small text-uppercase text-muted">
+                        <i class="bi bi-info-circle"></i> System Information
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Created Info -->
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="bi bi-plus-circle text-primary"></i>
+                                    <span class="text-muted">Created</span>
+                                </div>
+                                <div class="fw-semibold mb-2">@DateTimeOrDash(Model.CreatedAt)</div>
+                                <div class="text-muted small">Created by:</div>
+                                <div class="fw-semibold">
+                                    @(
+                                        Model.CreatedByNavigation != null
+                                        ? (string.IsNullOrWhiteSpace(Model.CreatedByNavigation.Username)
+                                        ? $"UserID: {Model.CreatedByNavigation.UserId}"
+                                        : Model.CreatedByNavigation.Username)
+                                        : "-"
+                                        )
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Updated Info -->
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="bi bi-pencil-square text-warning"></i>
+                                    <span class="text-muted">Last Updated</span>
+                                </div>
+                                <div class="fw-semibold mb-2">@DateTimeOrDash(Model.UpdatedAt)</div>
+                                <div class="text-muted small">Updated by:</div>
+                                <div class="fw-semibold">
+                                    @(
+                                        Model.UpdatedByNavigation != null
+                                        ? (string.IsNullOrWhiteSpace(Model.UpdatedByNavigation.Username)
+                                        ? $"UserID: {Model.UpdatedByNavigation.UserId}"
+                                        : Model.UpdatedByNavigation.Username)
+                                        : "-"
+                                        )
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Published Info -->
+                        @if (Model.PublishedAt.HasValue)
+                        {
+                            <div class="col-md-6">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <i class="bi bi-calendar-check text-success"></i>
+                                        <span class="text-muted">Published</span>
+                                    </div>
+                                    <div class="fw-semibold">@DateTimeOrDash(Model.PublishedAt)</div>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Additional Metadata -->
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="bi bi-gear text-secondary"></i>
+                                    <span class="text-muted">Metadata</span>
+                                </div>
+                                <div class="small">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="text-muted">Course ID:</span>
+                                        <span class="fw-semibold">@Model.CourseId</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="text-muted">Subject ID:</span>
+                                        <span class="fw-semibold">@Model.SubjectId</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="text-muted">Grade ID:</span>
+                                        <span class="fw-semibold">@Model.GradeId</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Instructor ID:</span>
+                                        <span class="fw-semibold">@Model.InstructorId</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div> <!-- row -->
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.CourseId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+
+@section Scripts {
+    <script>
+        function copySlug(e) {
+            const slugInput = document.querySelector('input.form-control[readonly]');
+            if (!slugInput) return;
+
+            slugInput.select();
+            document.execCommand('copy');
+
+            const button = e.target.closest('button');
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-check"></i> Copied!';
+            button.classList.add('btn-success');
+            button.classList.remove('btn-outline-secondary');
+
+            setTimeout(() => {
+                button.innerHTML = originalHTML;
+                button.classList.remove('btn-success');
+                button.classList.add('btn-outline-secondary');
+            }, 2000);
+        }
+    </script>
+}
+
+<style>
+    /* Course Details Styles */
+    .course-description {
+        line-height: 1.6;
+        color: #374151;
+    }
+
+        .course-description p {
+            margin-bottom: 1rem;
+        }
+
+        .course-description h1,
+        .course-description h2,
+        .course-description h3 {
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+
+        .course-description ul,
+        .course-description ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+    .card {
+        border: none;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .small.text-uppercase.text-muted {
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .border.rounded.p-3 {
+        background-color: #f9fafb;
+        border-color: #e5e7eb !important;
+        transition: all 0.3s ease;
+    }
+
+        .border.rounded.p-3:hover {
+            background-color: #f3f4f6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+    .badge {
+        padding: 6px 12px;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 8px 16px;
+        font-weight: 600;
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+    .btn-outline-secondary {
+        border-color: #d1d5db;
+        color: #6b7280;
+    }
+
+        .btn-outline-secondary:hover {
+            background-color: #f3f4f6;
+            border-color: #9ca3af;
+            color: #374151;
+        }
+
+    .input-group-text {
+        background-color: #f9fafb;
+        border-color: #e5e7eb;
+    }
+
+    .form-control:read-only {
+        background-color: #f9fafb;
+        border-color: #e5e7eb;
+    }
+
+    /* Statistics Cards */
+    .col-6 .border.rounded.p-2 {
+        background-color: #ffffff;
+        border-color: #e5e7eb !important;
+        transition: all 0.3s ease;
+    }
+
+        .col-6 .border.rounded.p-2:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+    /* Responsive */
+    (max-width: 768px) {
+        .d-flex.gap-2
+
+    {
+        flex-direction: column;
+    }
+
+    .d-flex.gap-2 .btn {
+        width: 100%;
+    }
+
+    }
+</style>

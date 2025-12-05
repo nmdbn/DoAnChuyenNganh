@@ -12,7 +12,7 @@ namespace DoAnChuyenNganh.ViewModels.Statistical
         public int TotalGrades { get; set; }
 
         // Danh sách chi tiết (để hiển thị bảng)
-        public IEnumerable<Course> Courses { get; set; } = new List<Course>();
+        public IEnumerable<DoAnChuyenNganh.Models.Course> Courses { get; set; } = new List<DoAnChuyenNganh.Models.Course>();
         public IEnumerable<Lesson> Lessons { get; set; } = new List<Lesson>();
         public IEnumerable<User> Users { get; set; } = new List<User>();
         public IEnumerable<Subject> Subjects { get; set; } = new List<Subject>();

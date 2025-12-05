@@ -1,0 +1,18 @@
+﻿@model DoAnChuyenNganh.Models.Course
+
+@{
+    var canLearn = ViewBag.CanLearn as bool? ?? false; // nếu bạn có flag riêng
+}
+
+@if (!canLearn && (Model.Price ?? 0) > 0)
+{
+    <form asp-action="PayWithMoMo"
+          asp-controller="Course"
+          method="post"
+          class="d-inline">
+        <input type="hidden" name="courseId" value="@Model.CourseId" />
+        <button type="submit" class="btn btn-warning">
+            <i class="bi bi-wallet2"></i> Thanh toán bằng MoMo
+        </button>
+    </form>
+}

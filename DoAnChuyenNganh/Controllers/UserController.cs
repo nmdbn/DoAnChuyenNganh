@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using DoAnChuyenNganh.Models;
+using Microsoft.AspNetCore.Http; // để dùng HttpContext.Session.GetString
 
 namespace DoAnChuyenNganh.Controllers
 {
@@ -21,7 +22,17 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Users
         public async Task<IActionResult> Index()
         {
-            var doAnChuyenNganhContext = _context.Users.Include(u => u.CreatedByNavigation).Include(u => u.Role).Include(u => u.UpdatedByNavigation);
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            var doAnChuyenNganhContext = _context.Users
+                .Include(u => u.CreatedByNavigation)
+                .Include(u => u.Role)
+                .Include(u => u.UpdatedByNavigation);
+
             ViewBag.Roles = new SelectList(await _context.Roles.ToListAsync(), "RoleId", "RoleName");
             return View(await doAnChuyenNganhContext.ToListAsync());
         }
@@ -29,6 +40,12 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Users/Details/5
         public async Task<IActionResult> Details(int? id)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id == null)
             {
                 return NotFound();
@@ -50,6 +67,12 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Users/Create
         public IActionResult Create()
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId");
             ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleName");
             ViewData["UpdatedBy"] = new SelectList(_context.Users, "UserId", "UserId");
@@ -61,10 +84,17 @@ namespace DoAnChuyenNganh.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("UserId,Username,Email,PasswordHash,PasswordSalt,FirstName,LastName,DateOfBirth,PhoneNumber,AvatarUrl,Bio,RoleId,IsEmailVerified,IsActive,IsLocked,LastLoginAt,LoginAttempts,LockoutUntil,CreatedAt,UpdatedAt,CreatedBy,UpdatedBy")] User user)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Add(user);
                 await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "User created successfully!";
                 return RedirectToAction(nameof(Index));
             }
             ViewData["CreatedBy"] = new SelectList(_context.Users, "UserId", "UserId", user.CreatedBy);
@@ -76,6 +106,12 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Users/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id == null)
             {
                 return NotFound();
@@ -97,6 +133,12 @@ namespace DoAnChuyenNganh.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, User user)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id != user.UserId)
             {
                 return NotFound();
@@ -118,7 +160,8 @@ namespace DoAnChuyenNganh.Controllers
             {
                 var errors = ModelState
                     .Where(x => x.Value.Errors.Count > 0)
-                    .Select(x => new {
+                    .Select(x => new
+                    {
                         Field = x.Key,
                         Errors = x.Value.Errors.Select(e => e.ErrorMessage).ToArray()
                     })
@@ -198,6 +241,12 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Users/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id == null)
             {
                 return NotFound();
@@ -221,6 +270,12 @@ namespace DoAnChuyenNganh.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             var user = await _context.Users.FindAsync(id);
             if (user != null)
             {
@@ -228,14 +283,26 @@ namespace DoAnChuyenNganh.Controllers
             }
 
             await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "User deleted successfully!";
             return RedirectToAction(nameof(Index));
         }
 
+        // =========================
+        // CÁC HÀM KHÁC GIỮ NGUYÊN
+        // =========================
+
+        // POST: Users/ToggleLock - AJAX endpoint
         // POST: Users/ToggleLock - AJAX endpoint
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleLock(int userId)
         {
+            // Chắc chắn chỉ Admin mới gọi được (phòng trường hợp bị call lén)
+            if (!IsAdmin())
+            {
+                return Json(new { success = false, message = "You do not have permission to perform this action." });
+            }
+
             try
             {
                 var user = await _context.Users.FindAsync(userId);
@@ -245,15 +312,41 @@ namespace DoAnChuyenNganh.Controllers
                     return Json(new { success = false, message = "User not found" });
                 }
 
-                // Toggle IsLocked and IsActive (opposite values)
+                // Lấy user hiện đang đăng nhập
+                int? currentUserId = HttpContext.Session.GetInt32("UserId");
+                var currentRoleName = HttpContext.Session.GetString("RoleName");
+
+                // Không cho lock admin khác (RoleId = 4 hoặc RoleName = "Admin")
+                bool targetIsAdmin = user.RoleId == 4 ||
+                                     string.Equals(user.Role?.RoleName, "Admin", StringComparison.OrdinalIgnoreCase);
+
+                if (targetIsAdmin)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "You cannot lock another administrator account."
+                    });
+                }
+
+                // (option) Không cho tự lock chính mình luôn cho chắc
+                if (currentUserId.HasValue && user.UserId == currentUserId.Value)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "You cannot lock your own account."
+                    });
+                }
+
+                // Toggle IsLocked và IsActive
                 user.IsLocked = !user.IsLocked;
                 user.IsActive = !user.IsActive;
                 user.UpdatedAt = DateTime.Now;
 
-                // If locking, set lockout time
                 if (user.IsLocked == true)
                 {
-                    user.LockoutUntil = DateTime.Now.AddYears(100); // Permanent lock
+                    user.LockoutUntil = DateTime.Now.AddYears(100); // coi như khóa vĩnh viễn
                 }
                 else
                 {
@@ -276,6 +369,7 @@ namespace DoAnChuyenNganh.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
+
 
         // POST: Users/ChangeRole - AJAX endpoint
         [HttpPost]
@@ -347,6 +441,15 @@ namespace DoAnChuyenNganh.Controllers
         private bool UserExists(int id)
         {
             return _context.Users.Any(e => e.UserId == id);
+        }
+
+        // Helper method giống SubjectController
+        private bool IsAdmin()
+        {
+            var roleName = HttpContext.Session.GetString("RoleName");
+
+            return !string.IsNullOrEmpty(roleName) &&
+                   roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

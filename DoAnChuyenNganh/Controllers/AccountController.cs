@@ -40,60 +40,60 @@ namespace DoAnChuyenNganh.Controllers
         public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (!ModelState.IsValid)
+                return View(model);
+
+            try
             {
+                var ipAddress = GetIpAddress();
+                var userAgent = GetUserAgent();
+
+                var result = await _authService.AuthenticateAsync(
+                    model.UsernameOrEmail,
+                    model.Password,
+                    ipAddress,
+                    userAgent);
+
+                if (!result.Success || result.User == null)
+                {
+                    // Tạm in message ra log
+                    _logger.LogError("Login failed: {Message}", result.Message);
+                    ModelState.AddModelError(string.Empty, result.Message ?? "Login failed.");
+                    return View(model);
+                }
+
+                var session = await _authService.CreateSessionAsync(
+                    result.User.UserId,
+                    ipAddress,
+                    userAgent,
+                    model.RememberMe);
+
+                SetSessionCookie(session.SessionToken, model.RememberMe);
+
+                HttpContext.Session.SetInt32("UserId", result.User.UserId);
+                HttpContext.Session.SetString("Username", result.User.Username);
+                HttpContext.Session.SetString("Email", result.User.Email);
+                HttpContext.Session.SetString("FullName", $"{result.User.FirstName} {result.User.LastName}");
+                HttpContext.Session.SetString("RoleName", result.User.Role.RoleName);
+                if (!string.IsNullOrEmpty(result.User.AvatarUrl))
+                {
+                    HttpContext.Session.SetString("AvatarUrl", result.User.AvatarUrl);
+                }
+
+                TempData["SuccessMessage"] = "Login successful!";
+
+                if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+                    return Redirect(model.ReturnUrl);
+
+                return RedirectToAction("Index", "Home");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while logging in");
+                ModelState.AddModelError(string.Empty, $"Internal error: {ex.Message}");
                 return View(model);
             }
-
-            var ipAddress = GetIpAddress();
-            var userAgent = GetUserAgent();
-
-            var result = await _authService.AuthenticateAsync(
-                model.UsernameOrEmail,
-                model.Password,
-                ipAddress,
-                userAgent);
-
-            if (!result.Success || result.User == null)
-            {
-                ModelState.AddModelError(string.Empty, result.Message);
-                return View(model);
-            }
-
-            // Create session
-            var session = await _authService.CreateSessionAsync(
-                result.User.UserId,
-                ipAddress,
-                userAgent,
-                model.RememberMe);
-
-            // Set session cookie
-            SetSessionCookie(session.SessionToken, model.RememberMe);
-
-            // Store user info in session
-            HttpContext.Session.SetInt32("UserId", result.User.UserId);
-            HttpContext.Session.SetInt32("RoleId", result.User.RoleId);
-            HttpContext.Session.SetString("Username", result.User.Username);
-            HttpContext.Session.SetString("Email", result.User.Email);
-            HttpContext.Session.SetString("FullName", $"{result.User.FirstName} {result.User.LastName}");
-            HttpContext.Session.SetString("RoleName", result.User.Role.RoleName);
-            if (!string.IsNullOrEmpty(result.User.AvatarUrl))
-            {
-                HttpContext.Session.SetString("AvatarUrl", result.User.AvatarUrl);
-            }
-
-            _logger.LogInformation("Login successful - UserId: {UserId}, RoleId: {RoleId}, Username: {Username}",
-                result.User.UserId, result.User.RoleId, result.User.Username);
-
-            TempData["SuccessMessage"] = "Login successful!";
-
-            // Redirect to return URL or home
-            if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
-            {
-                return Redirect(model.ReturnUrl);
-            }
-
-            return RedirectToAction("Index", "Home");
         }
+
 
         #endregion
 

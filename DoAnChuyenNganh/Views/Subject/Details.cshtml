@@ -1,61 +1,430 @@
 ﻿@model DoAnChuyenNganh.Models.Subject
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Subject Details";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Helper functions
+    string DateTimeOrDash(DateTime? d) => d.HasValue ? d.Value.ToString("dd/MM/yyyy HH:mm") : "-";
+    string TextOrDash(string? s) => string.IsNullOrWhiteSpace(s) ? "-" : s!;
+    bool isActive = Model.IsActive ?? false;
 }
 
-<h1>Details</h1>
+<div class="container py-3">
+    <!-- HEADER -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi bi-book"></i> Subject Details
+            </h2>
+            <div class="text-muted">
+                @TextOrDash(Model.SubjectName) • Code: <span class="fw-semibold font-monospace">@Model.SubjectCode</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Edit" asp-route-id="@Model?.SubjectId" class="btn btn-primary">
+                <i class="bi bi-pencil-square"></i> Edit
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
 
-<div>
-    <h4>Subject</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.SubjectName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.SubjectName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.SubjectCode)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.SubjectCode)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IconUrl)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IconUrl)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsActive)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsActive)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UpdatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UpdatedAt)
-        </dd>
-    </dl>
+    <div class="row g-3">
+        <!-- LEFT COLUMN: Main Info -->
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Subject Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- ICON & NAME -->
+                    <div class="d-flex align-items-center gap-4 mb-4">
+                        <div class="subject-icon-large">
+                            @if (!string.IsNullOrEmpty(Model.IconUrl))
+                            {
+                                <img src="@Model.IconUrl" alt="@Model.SubjectName" class="icon-image"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                <div class="icon-placeholder" style="display: none;">
+                                    @Model.SubjectName.Substring(0, 1).ToUpper()
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="icon-placeholder">
+                                    @Model.SubjectName.Substring(0, 1).ToUpper()
+                                </div>
+                            }
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="info-label">Subject Name</div>
+                            <div class="display-6 mb-2">@TextOrDash(Model.SubjectName)</div>
+                            <div class="info-label">Subject Code</div>
+                            <div class="badge-code-large">@Model.SubjectCode</div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- DESCRIPTION -->
+                    <div class="info-group mb-4">
+                        <label class="info-label">
+                            <i class="bi bi-file-text"></i> Description
+                        </label>
+                        <div class="info-value description-box">
+                            @if (!string.IsNullOrWhiteSpace(Model.Description))
+                            {
+                                @Model.Description
+                            }
+                            else
+                            {
+                                <span class="text-muted fst-italic">No description provided</span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- ICON URL -->
+                    <div class="info-group mb-4">
+                        <label class="info-label">
+                            <i class="bi bi-link-45deg"></i> Icon URL
+                        </label>
+                        @if (!string.IsNullOrWhiteSpace(Model.IconUrl))
+                        {
+                            <div class="d-flex align-items-center gap-2">
+                                <code class="flex-grow-1 p-2 bg-light rounded">@Model.IconUrl</code>
+                                <a href="@Model.IconUrl" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-box-arrow-up-right"></i> Open
+                                </a>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-muted">No icon URL provided</div>
+                        }
+                    </div>
+
+                    <!-- STATUS -->
+                    <div class="info-group">
+                        <label class="info-label">
+                            <i class="bi bi-activity"></i> Status
+                        </label>
+                        <div>
+                            @if (isActive)
+                            {
+                                <span class="badge-custom badge-active">
+                                    <i class="bi bi-check-circle-fill"></i> Active
+                                </span>
+                                <small class="text-muted ms-2">This subject is currently active in the system</small>
+                            }
+                            else
+                            {
+                                <span class="badge-custom badge-inactive">
+                                    <i class="bi bi-x-circle-fill"></i> Inactive
+                                </span>
+                                <small class="text-muted ms-2">This subject is currently inactive</small>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: System Info & Stats -->
+        <div class="col-12 col-lg-4">
+            <!-- SYSTEM INFO CARD -->
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-clock-history"></i> System Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <!-- CREATED -->
+                    <div class="system-info-item">
+                        <div class="system-info-icon bg-success-subtle text-success">
+                            <i class="bi bi-plus-circle"></i>
+                        </div>
+                        <div class="system-info-content">
+                            <div class="system-info-label">Created At</div>
+                            <div class="system-info-value">@DateTimeOrDash(Model.CreatedAt)</div>
+                        </div>
+                    </div>
+
+                    <!-- UPDATED -->
+                    <div class="system-info-item">
+                        <div class="system-info-icon bg-warning-subtle text-warning">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </div>
+                        <div class="system-info-content">
+                            <div class="system-info-label">Last Updated</div>
+                            <div class="system-info-value">@DateTimeOrDash(Model.UpdatedAt)</div>
+                        </div>
+                    </div>
+
+                    <!-- SUBJECT ID -->
+                    <div class="system-info-item">
+                        <div class="system-info-icon bg-primary-subtle text-primary">
+                            <i class="bi bi-hash"></i>
+                        </div>
+                        <div class="system-info-content">
+                            <div class="system-info-label">Subject ID</div>
+                            <div class="system-info-value font-monospace">@Model.SubjectId</div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- QUICK ACTIONS -->
+                    <div class="d-grid gap-2">
+                        <a asp-action="Edit" asp-route-id="@Model.SubjectId"
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-pencil"></i> Edit This Subject
+                        </a>
+                        <a asp-action="Create" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-plus-circle"></i> Create New Subject
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATISTICS CARD -->
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-graph-up"></i> Quick Stats
+                    </h6>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Subject Code:</span>
+                        <code class="badge bg-info-subtle text-info">@Model.SubjectCode</code>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Status:</span>
+                        @if (isActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Has Icon:</span>
+                        @if (!string.IsNullOrWhiteSpace(Model.IconUrl))
+                        {
+                            <span class="text-success"><i class="bi bi-check-circle"></i> Yes</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted"><i class="bi bi-x-circle"></i> No</span>
+                        }
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Has Description:</span>
+                        @if (!string.IsNullOrWhiteSpace(Model.Description))
+                        {
+                            <span class="text-success"><i class="bi bi-check-circle"></i> Yes</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted"><i class="bi bi-x-circle"></i> No</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- RELATED ACTIONS CARD -->
+            <div class="card shadow-sm border-0 mt-3">
+                <div class="card-body">
+                    <h6 class="text-muted mb-3">
+                        <i class="bi bi-link-45deg"></i> Related Actions
+                    </h6>
+                    <div class="d-grid gap-2">
+                        <a href="#" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-collection"></i> View Courses
+                        </a>
+                        <a href="#" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-people"></i> View Students
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.SubjectId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+
+<style>
+    .bg-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        border: none;
+    }
+
+    .card {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .card-header {
+        border-bottom: none;
+    }
+
+    .shadow-sm {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    .info-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .info-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+
+    .info-value {
+        font-size: 1.1rem;
+        color: #1f2937;
+        font-weight: 500;
+    }
+
+    .description-box {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem;
+        line-height: 1.6;
+    }
+
+    /* Subject Icon Large */
+    .subject-icon-large {
+        width: 100px;
+        height: 100px;
+        border-radius: 16px;
+        overflow: hidden;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .icon-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .icon-placeholder {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 3rem;
+    }
+
+    /* Badge Code Large */
+    .badge-code-large {
+        display: inline-block;
+        background: #dbeafe;
+        color: #1e40af;
+        padding: 0.5rem 1.25rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 1rem;
+        font-family: 'Courier New', monospace;
+    }
+
+    .badge-custom {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .badge-active {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-inactive {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    /* System Info Items */
+    .system-info-item {
+        display: flex;
+        align-items: start;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .system-info-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .system-info-content {
+        flex: 1;
+    }
+
+    .system-info-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #6b7280;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.25rem;
+    }
+
+    .system-info-value {
+        font-size: 0.95rem;
+        color: #1f2937;
+        font-weight: 500;
+    }
+
+    .font-monospace {
+        font-family: 'Courier New', Courier, monospace;
+    }
+
+    code {
+        font-size: 0.875rem;
+        word-break: break-all;
+    }
+
+    (max-width: 768px) {
+        .subject-icon-large
+
+    {
+        width: 70px;
+        height: 70px;
+    }
+
+    .icon-placeholder {
+        font-size: 2rem;
+    }
+
+    .display-6 {
+        font-size: 1.5rem !important;
+    }
+
+    }
+</style>

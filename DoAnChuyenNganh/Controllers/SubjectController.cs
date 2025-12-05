@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http; // để dùng HttpContext.Session
 using DoAnChuyenNganh.Models;
 
 namespace DoAnChuyenNganh.Controllers
@@ -21,12 +20,24 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Subject
         public async Task<IActionResult> Index()
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             return View(await _context.Subjects.ToListAsync());
         }
 
         // GET: Subject/Details/5
         public async Task<IActionResult> Details(short? id)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id == null)
             {
                 return NotFound();
@@ -45,20 +56,33 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Subject/Create
         public IActionResult Create()
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             return View();
         }
 
         // POST: Subject/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("SubjectId,SubjectName,SubjectCode,Description,IconUrl,IsActive,CreatedAt,UpdatedAt")] Subject subject)
+        public async Task<IActionResult> Create([Bind("SubjectName,SubjectCode,Description,IconUrl,IsActive")] Subject subject)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (ModelState.IsValid)
             {
+                subject.CreatedAt = DateTime.Now;
+                subject.UpdatedAt = DateTime.Now;
                 _context.Add(subject);
                 await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Subject created successfully!";
                 return RedirectToAction(nameof(Index));
             }
             return View(subject);
@@ -67,6 +91,12 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Subject/Edit/5
         public async Task<IActionResult> Edit(short? id)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id == null)
             {
                 return NotFound();
@@ -81,12 +111,16 @@ namespace DoAnChuyenNganh.Controllers
         }
 
         // POST: Subject/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(short id, [Bind("SubjectId,SubjectName,SubjectCode,Description,IconUrl,IsActive,CreatedAt,UpdatedAt")] Subject subject)
+        public async Task<IActionResult> Edit(short id, [Bind("SubjectId,SubjectName,SubjectCode,Description,IconUrl,IsActive")] Subject subject)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id != subject.SubjectId)
             {
                 return NotFound();
@@ -96,8 +130,10 @@ namespace DoAnChuyenNganh.Controllers
             {
                 try
                 {
+                    subject.UpdatedAt = DateTime.Now;
                     _context.Update(subject);
                     await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Subject updated successfully!";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -118,6 +154,12 @@ namespace DoAnChuyenNganh.Controllers
         // GET: Subject/Delete/5
         public async Task<IActionResult> Delete(short? id)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id == null)
             {
                 return NotFound();
@@ -138,6 +180,12 @@ namespace DoAnChuyenNganh.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(short id)
         {
+            if (!IsAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this area.";
+                return RedirectToAction("Index", "Home");
+            }
+
             var subject = await _context.Subjects.FindAsync(id);
             if (subject != null)
             {
@@ -145,12 +193,21 @@ namespace DoAnChuyenNganh.Controllers
             }
 
             await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Subject deleted successfully!";
             return RedirectToAction(nameof(Index));
         }
 
         private bool SubjectExists(short id)
         {
             return _context.Subjects.Any(e => e.SubjectId == id);
+        }
+
+        // Chỉ cho Admin
+        private bool IsAdmin()
+        {
+            var roleName = HttpContext.Session.GetString("RoleName");
+            return !string.IsNullOrEmpty(roleName) &&
+                   roleName.Equals("Admin", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

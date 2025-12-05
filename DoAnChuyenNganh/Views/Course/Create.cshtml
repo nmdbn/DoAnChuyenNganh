@@ -13,18 +13,36 @@
         </div>
     </div>
 
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle"></i> @TempData["ErrorMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
+    @* @if (TempData["ErrorMessage"] != null) *@
+    @* { *@
+    @*     <div class="alert alert-danger alert-dismissible fade show" role="alert"> *@
+    @*         <i class="bi bi-exclamation-triangle"></i> @TempData["ErrorMessage"] *@
+    @*         <button type="button" class="btn-close" data-bs-dismiss="alert"></button> *@
+    @*     </div> *@
+    @* } *@
 
     <div class="row">
         <div class="col-md-8">
             <form asp-action="Create" method="post">
-                <div asp-validation-summary="All" class="alert alert-danger"></div>
+                @{
+                    var hasModelErrors = !ViewData.ModelState.IsValid &&
+                    ViewData.ModelState.Values.Any(v => v.Errors.Count > 0);
+
+                    var tempError = TempData["ErrorMessage"] as string;
+                }
+
+                @if (hasModelErrors || !string.IsNullOrEmpty(tempError))
+                {
+                    <div class="alert alert-danger mb-3">
+                        @if (!string.IsNullOrEmpty(tempError))
+                        {
+                            <div>@tempError</div>
+                        }
+
+                        <div asp-validation-summary="All" class="mb-0"></div>
+                    </div>
+                }
+
 
                 <div class="card mb-3">
                     <div class="card-header bg-primary text-white">
@@ -87,16 +105,19 @@
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    <label asp-for="InstructorId" class="form-label">Instructor <span class="text-danger">*</span></label>
-                                    <select asp-for="InstructorId" class="form-select" asp-items="ViewBag.InstructorId" required>
-                                        <option value="">-- Select Instructor --</option>
-                                    </select>
-                                    <span asp-validation-for="InstructorId" class="text-danger"></span>
-                                </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label fw-bold text-success">Instructor</label>
+                                <input type="text"
+                                       class="form-control bg-light"
+                                       value="@User.Identity.Name (@ViewData["CurrentUserFullName"])"
+                                       disabled />
+                                <small class="form-text text-muted mt-2">
+                                    <i class="bi bi-info-circle"></i>
+                                    This course will be assigned to <strong>you</strong> as the instructor automatically.
+                                </small>
                             </div>
+                      
 
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
@@ -195,19 +216,30 @@
     }
 
     <script>
-        // Auto-generate slug from title
-        document.getElementById('Title').addEventListener('input', function() {
-            let slug = this.value
+         function slugify(text) {
+            return text
+                .toString()
+                // bỏ dấu tiếng Việt
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                 .toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-                .replace(/đ/g, 'd')
-                .replace(/[^a-z0-9\s-]/g, '')
                 .trim()
-                .replace(/\s+/g, '-');
+                // thay mọi thứ không phải a-z0-9 bằng dấu -
+                .replace(/[^a-z0-9]+/g, '-')
+                // xóa - ở đầu/cuối
+                .replace(/^-+|-+$/g, '');
+        }
 
-            if (!document.getElementById('Slug').value) {
-                document.getElementById('Slug').value = slug;
-            }
+        document.addEventListener('DOMContentLoaded', function () {
+            const titleInput = document.getElementById('Title');
+            const slugInput  = document.getElementById('Slug');
+
+            if (!titleInput || !slugInput) return;
+
+            // auto cập nhật slug khi gõ title
+            titleInput.addEventListener('input', function () {
+                const value = titleInput.value || '';
+                slugInput.value = slugify(value);
+            });
         });
     </script>
 }
