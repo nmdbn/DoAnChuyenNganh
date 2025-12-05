@@ -1,0 +1,187 @@
+@model DoAnChuyenNganh.ViewModels.News.NewsArticleEditViewModel
+@{
+    ViewData["Title"] = "Edit News Article";
+    var categories = ViewBag.Categories as List<DoAnChuyenNganh.Models.NewsCategory>;
+}
+
+<link rel="stylesheet" href="~/css/news.css" />
+
+<div class="news-form-container">
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <!-- Header -->
+                <div class="form-header mb-4">
+                    <h1><i class="bi bi-pencil"></i> Edit News Article</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="@Url.Action("Index", "Home")">Home</a></li>
+                            <li class="breadcrumb-item"><a href="@Url.Action("Admin", "News")">News Management</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Edit Article</li>
+                        </ol>
+                    </nav>
+                </div>
+
+                <!-- Form -->
+                <div class="card">
+                    <div class="card-body">
+                        <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" asp-for="ArticleId" />
+                            <input type="hidden" asp-for="FeaturedImageUrl" id="currentImageUrl" />
+
+                            <div class="mb-3">
+                                <label asp-for="Title" class="form-label">Title <span class="text-danger">*</span></label>
+                                <input asp-for="Title" class="form-control" id="titleInput" />
+                                <span asp-validation-for="Title" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Slug" class="form-label">Slug (URL-friendly)</label>
+                                <input asp-for="Slug" class="form-control" id="slugInput" />
+                                <span asp-validation-for="Slug" class="text-danger"></span>
+                                <small class="form-text text-muted">Leave empty to auto-generate from title</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="CategoryId" class="form-label">Category <span class="text-danger">*</span></label>
+                                <select asp-for="CategoryId" class="form-select">
+                                    <option value="">-- Select Category --</option>
+                                    @if (categories != null)
+                                    {
+                                        @foreach (var category in categories)
+                                        {
+                                            <option value="@category.CategoryId">@category.CategoryName</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="CategoryId" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Excerpt" class="form-label">Excerpt</label>
+                                <textarea asp-for="Excerpt" class="form-control" rows="3"></textarea>
+                                <span asp-validation-for="Excerpt" class="text-danger"></span>
+                                <small class="form-text text-muted">Short summary of the article (max 500 characters)</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Featured Image</label>
+                                @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+                                {
+                                    <div class="mb-2">
+                                        <img src="@Model.FeaturedImageUrl" alt="Current featured image" class="img-thumbnail" style="max-width: 300px;">
+                                        <p class="text-muted small">Current image</p>
+                                    </div>
+                                }
+                                <input type="file" name="featuredImage" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp" id="featuredImageInput" />
+                                <small class="form-text text-muted">Upload a new image to replace the current one. Supported formats: JPG, PNG, GIF, WebP (max 5MB)</small>
+                                <div id="imagePreview" class="mt-2"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Content" class="form-label">Content <span class="text-danger">*</span></label>
+                                <textarea asp-for="Content" class="form-control" id="contentEditor"></textarea>
+                                <span asp-validation-for="Content" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Tags" class="form-label">Tags</label>
+                                <input asp-for="Tags" class="form-control" />
+                                <span asp-validation-for="Tags" class="text-danger"></span>
+                                <small class="form-text text-muted">Separate tags with commas (e.g., announcement, update, event)</small>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input asp-for="IsPublished" class="form-check-input" type="checkbox" />
+                                        <label asp-for="IsPublished" class="form-check-label">
+                                            Published
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input asp-for="IsFeatured" class="form-check-input" type="checkbox" />
+                                        <label asp-for="IsFeatured" class="form-check-label">
+                                            Mark as featured
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <a href="@Url.Action("Admin", "News")" class="btn btn-secondary">
+                                    <i class="bi bi-x-circle"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-circle"></i> Update Article
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/tinymce/js/tinymce/tinymce.min.js"></script>
+    <script>
+        // TinyMCE Editor
+        tinymce.init({
+            selector: '#contentEditor',
+            height: 500,
+            menubar: true,
+            license_key: 'gpl',
+            plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+            ],
+            toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | image | code | help',
+            images_upload_url: '@Url.Action("UploadImage", "News")',
+            automatic_uploads: true,
+            file_picker_types: 'image',
+            relative_urls: false,
+            remove_script_host: false,
+            convert_urls: true,
+            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px }',
+            branding: false,
+            promotion: false
+        });
+
+        // Auto-generate slug from title
+        document.getElementById('titleInput').addEventListener('input', function() {
+            const title = this.value;
+            const slug = title.toLowerCase()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-')
+                .trim();
+            document.getElementById('slugInput').value = slug;
+        });
+
+        // Image preview
+        document.getElementById('featuredImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreview');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" class="img-thumbnail" style="max-width: 300px;"><p class="text-muted small">New image preview</p>`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = '';
+            }
+        });
+    </script>
+}
+
+<script src="~/js/news.js"></script>
+

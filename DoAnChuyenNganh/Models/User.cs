@@ -87,6 +87,10 @@ public partial class User
 
     public virtual ICollection<Lesson> LessonUpdatedByNavigations { get; set; } = new List<Lesson>();
 
+    public virtual ICollection<NewsArticle> NewsArticleAuthors { get; set; } = new List<NewsArticle>();
+
+    public virtual ICollection<NewsArticle> NewsArticleUpdatedByNavigations { get; set; } = new List<NewsArticle>();
+
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     public virtual ICollection<PrivateMessage> PrivateMessageDeletedByNavigations { get; set; } = new List<PrivateMessage>();

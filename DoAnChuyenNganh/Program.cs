@@ -45,6 +45,9 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 // Add Chat Service
 builder.Services.AddScoped<IChatService, ChatService>();
 
+// Add News Service
+builder.Services.AddScoped<INewsService, NewsService>();
+
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 
