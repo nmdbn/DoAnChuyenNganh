@@ -2,7 +2,181 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
+
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        Welcome to <span class="text-gradient">eLearning Platform</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Discover a world of knowledge with our comprehensive courses, interactive forums,
+                        and AI-powered learning assistant. Start your learning journey today!
+                    </p>
+                    <div class="hero-buttons">
+                        @if (Context.Session.GetInt32("UserId").HasValue)
+                        {
+                            <a asp-controller="Course" asp-action="Public" class="btn btn-primary btn-lg">
+                                <i class="bi bi-book"></i> Browse Courses
+                            </a>
+                            <a asp-controller="Forum" asp-action="Index" class="btn btn-outline-primary btn-lg">
+                                <i class="bi bi-megaphone"></i> Join Forum
+                            </a>
+                        }
+                        else
+                        {
+                            <a asp-controller="Account" asp-action="Register" class="btn btn-primary btn-lg">
+                                <i class="bi bi-person-plus"></i> Get Started
+                            </a>
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-lg">
+                                <i class="bi bi-box-arrow-in-right"></i> Login
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-image">
+                    <div class="hero-illustration">
+                        <i class="bi bi-mortarboard-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+    <div class="container">
+        <div class="section-header text-center mb-5">
+            <h2 class="section-title">Why Choose Our Platform?</h2>
+            <p class="section-subtitle">Everything you need for a successful learning experience</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-book-half"></i>
+                    </div>
+                    <h3 class="feature-title">Quality Courses</h3>
+                    <p class="feature-description">
+                        Access a wide range of expertly crafted courses across multiple subjects and grade levels.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h3 class="feature-title">Community Forum</h3>
+                    <p class="feature-description">
+                        Connect with fellow learners, share knowledge, and get help from our vibrant community.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <h3 class="feature-title">AI Assistant</h3>
+                    <p class="feature-description">
+                        Get instant help with our AI-powered chatbot, available 24/7 to answer your questions.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <h3 class="feature-title">Track Progress</h3>
+                    <p class="feature-description">
+                        Monitor your learning journey with detailed progress tracking and performance analytics.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section">
+    <div class="container">
+        <div class="row g-4 text-center">
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-book"></i>
+                    </div>
+                    <h3 class="stat-number">100+</h3>
+                    <p class="stat-label">Courses</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h3 class="stat-number">1000+</h3>
+                    <p class="stat-label">Students</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-person-video3"></i>
+                    </div>
+                    <h3 class="stat-number">50+</h3>
+                    <p class="stat-label">Instructors</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-star-fill"></i>
+                    </div>
+                    <h3 class="stat-number">4.8</h3>
+                    <p class="stat-label">Average Rating</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-card">
+            <div class="row align-items-center">
+                <div class="col-lg-8 mb-3 mb-lg-0">
+                    <h2 class="cta-title">Ready to Start Learning?</h2>
+                    <p class="cta-description">
+                        Join thousands of students already learning on our platform. Get access to quality courses,
+                        expert instructors, and a supportive community.
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    @if (Context.Session.GetInt32("UserId").HasValue)
+                    {
+                        <a asp-controller="Course" asp-action="Public" class="btn btn-light btn-lg">
+                            <i class="bi bi-arrow-right-circle"></i> Explore Courses
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Account" asp-action="Register" class="btn btn-light btn-lg">
+                            <i class="bi bi-arrow-right-circle"></i> Join Now
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

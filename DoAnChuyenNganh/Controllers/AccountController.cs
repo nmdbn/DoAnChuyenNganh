@@ -70,6 +70,7 @@ namespace DoAnChuyenNganh.Controllers
                 SetSessionCookie(session.SessionToken, model.RememberMe);
 
                 HttpContext.Session.SetInt32("UserId", result.User.UserId);
+                HttpContext.Session.SetInt32("RoleId", result.User.RoleId);
                 HttpContext.Session.SetString("Username", result.User.Username);
                 HttpContext.Session.SetString("Email", result.User.Email);
                 HttpContext.Session.SetString("FullName", $"{result.User.FirstName} {result.User.LastName}");
