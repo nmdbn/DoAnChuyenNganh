@@ -1,0 +1,272 @@
+@{
+    ViewData["Title"] = "News Management";
+    var articles = ViewBag.Articles as List<DoAnChuyenNganh.ViewModels.News.NewsArticleAdminViewModel>;
+    var categories = ViewBag.Categories as List<DoAnChuyenNganh.Models.NewsCategory>;
+    var currentPage = ViewBag.CurrentPage as int? ?? 1;
+    var totalPages = ViewBag.TotalPages as int? ?? 1;
+    var totalArticles = ViewBag.TotalArticles as int? ?? 0;
+    var selectedPublishStatus = ViewBag.SelectedPublishStatus as bool?;
+    var selectedCategoryId = ViewBag.SelectedCategoryId as int?;
+    var isAdmin = ViewBag.IsAdmin as bool? ?? false;
+    var isWriter = ViewBag.IsWriter as bool? ?? false;
+}
+
+<link rel="stylesheet" href="~/css/news.css" />
+
+<div class="news-admin-container">
+    <div class="container-fluid mt-4">
+        <!-- Header -->
+        <div class="admin-header mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="bi bi-newspaper"></i> @(isWriter ? "My Articles" : "News Management")</h1>
+                    <p class="text-muted">@(isWriter ? "Manage your news articles" : "Manage news articles and categories")</p>
+                </div>
+                <div>
+                    <a href="@Url.Action("Create", "News")" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Create New Article
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success/Error Messages -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle"></i> @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Filters -->
+        <div class="filter-section mb-4">
+            <form method="get" asp-action="Admin" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Publish Status</label>
+                    <select name="isPublished" class="form-select">
+                        <option value="">All Articles</option>
+                        <option value="true" selected="@(selectedPublishStatus == true)">Published</option>
+                        <option value="false" selected="@(selectedPublishStatus == false)">Unpublished</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Category</label>
+                    <select name="categoryId" class="form-select">
+                        <option value="">All Categories</option>
+                        @if (categories != null)
+                        {
+                            @foreach (var category in categories)
+                            {
+                                <option value="@category.CategoryId" selected="@(selectedCategoryId == category.CategoryId)">
+                                    @category.CategoryName
+                                </option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel"></i> Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="bi bi-file-text text-primary"></i>
+                    <div class="stat-info">
+                        <h3>@totalArticles</h3>
+                        <p>Total Articles</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Articles Table -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Category</th>
+                                <th>Author</th>
+                                <th>Status</th>
+                                <th>Views</th>
+                                <th>Published</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (articles != null && articles.Any())
+                            {
+                                @foreach (var article in articles)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@article.Title</strong>
+                                            @if (article.IsFeatured)
+                                            {
+                                                <span class="badge bg-warning text-dark ms-2">
+                                                    <i class="bi bi-star-fill"></i> Featured
+                                                </span>
+                                            }
+                                            <br>
+                                            <small class="text-muted">@article.Slug</small>
+                                        </td>
+                                        <td>@article.CategoryName</td>
+                                        <td>@article.AuthorName</td>
+                                        <td>
+                                            @if (article.IsPublished)
+                                            {
+                                                <span class="badge bg-success">Published</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Draft</span>
+                                            }
+                                        </td>
+                                        <td>@article.ViewCount</td>
+                                        <td>@article.PublishedAt?.ToString("MMM dd, yyyy")</td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="@Url.Action("Edit", "News", new { id = article.ArticleId })"
+                                                   class="btn btn-sm btn-outline-primary" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                @if (isAdmin)
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-outline-info"
+                                                            onclick="togglePublish(@article.ArticleId)" title="Toggle Publish">
+                                                        <i class="bi bi-@(article.IsPublished ? "eye-slash" : "eye")"></i>
+                                                    </button>
+                                                }
+                                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                                        onclick="deleteArticle(@article.ArticleId, '@article.Title')" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center">
+                                        <div class="alert alert-info mb-0">
+                                            <i class="bi bi-info-circle"></i> No articles found.
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (totalPages > 1)
+                {
+                    <nav aria-label="Article pagination">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("Admin", new { page = currentPage - 1, isPublished = selectedPublishStatus, categoryId = selectedCategoryId })">
+                                    Previous
+                                </a>
+                            </li>
+                            @for (int i = 1; i <= totalPages; i++)
+                            {
+                                <li class="page-item @(currentPage == i ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Admin", new { page = i, isPublished = selectedPublishStatus, categoryId = selectedCategoryId })">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+                            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("Admin", new { page = currentPage + 1, isPublished = selectedPublishStatus, categoryId = selectedCategoryId })">
+                                    Next
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePublish(articleId) {
+        if (!confirm('Are you sure you want to toggle the publish status of this article?')) {
+            return;
+        }
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+        fetch('@Url.Action("TogglePublish", "News")/' + articleId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': token
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while toggling publish status.');
+        });
+    }
+
+    function deleteArticle(articleId, title) {
+        if (!confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+        fetch('@Url.Action("Delete", "News")/' + articleId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': token
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the article.');
+        });
+    }
+</script>
+
+@Html.AntiForgeryToken()
+
+<script src="~/js/news.js"></script>
+
