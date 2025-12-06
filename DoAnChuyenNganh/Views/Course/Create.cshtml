@@ -162,6 +162,15 @@
                             <small class="form-text text-muted">Enter image URL or upload via file manager</small>
                             <span asp-validation-for="ThumbnailUrl" class="text-danger"></span>
                         </div>
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" asp-for="IsPublished" />
+                            <label class="form-check-label" asp-for="IsPublished">
+                                <strong>Published</strong>
+                                <small class="d-block text-muted">
+                                    Make this course visible to students
+                                </small>
+                            </label>
+                        </div>
                     </div>
                 </div>
 

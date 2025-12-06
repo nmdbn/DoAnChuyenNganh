@@ -21,12 +21,15 @@ namespace DoAnChuyenNganh.Controllers
         private readonly IPaypalService _paypalService;
         private readonly DoAnChuyenNganhContext _context;
         private readonly IMomoService _momoService;
-        public CourseController(DoAnChuyenNganhContext context, IMomoService momoService, IPaypalService paypalService, IConfiguration config)
+        private readonly IVnPayService _vnPayService;
+
+        public CourseController(DoAnChuyenNganhContext context, IMomoService momoService, IPaypalService paypalService, IConfiguration config, IVnPayService vnPayService)
         {
             _context = context;
             _momoService = momoService;
             _paypalService = paypalService;
             _config = config;
+            _vnPayService = vnPayService;
         }
 
         // =============================================
@@ -121,9 +124,12 @@ namespace DoAnChuyenNganh.Controllers
         }
 
         // POST: Course/Create
+        // POST: Course/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Title,Slug,Description,ShortDescription,SubjectId,GradeId,ThumbnailUrl,DifficultyLevel,EstimatedHours,Price")] Course course)
+        public async Task<IActionResult> Create(
+            [Bind("Title,Slug,Description,ShortDescription,SubjectId,GradeId,ThumbnailUrl,DifficultyLevel,EstimatedHours,Price,IsPublished")]
+    Course course)
         {
             if (!IsLoggedIn())
             {
@@ -137,7 +143,7 @@ namespace DoAnChuyenNganh.Controllers
                 return RedirectToAction("Public", "Course");
             }
 
-            // CRITICAL: Remove all navigation property validations
+            // Remove validations for navigation & system fields
             ModelState.Remove("InstructorId");
             ModelState.Remove("Instructor");
             ModelState.Remove("Subject");
@@ -169,8 +175,21 @@ namespace DoAnChuyenNganh.Controllers
                 course.CreatedBy = currentUserId;
                 course.CreatedAt = DateTime.Now;
                 course.UpdatedAt = DateTime.Now;
-                course.IsPublished = false;
+
+                // Nếu người tạo KH tick Public thì publish luôn, ngược lại để private
+                var isPublished = course.IsPublished;
+                course.IsPublished = isPublished;
                 course.IsFeatured = false;
+
+                if (isPublished)
+                {
+                    course.PublishedAt = DateTime.Now;
+                }
+                else
+                {
+                    course.PublishedAt = null;
+                }
+
                 course.ViewCount = 0;
                 course.EnrollmentCount = 0;
                 course.AverageRating = 0;
@@ -194,6 +213,7 @@ namespace DoAnChuyenNganh.Controllers
             PopulateDropDownLists(course);
             return View(course);
         }
+
 
         // GET: Course/Edit/5
         public async Task<IActionResult> Edit(int? id)
@@ -913,97 +933,135 @@ namespace DoAnChuyenNganh.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Checkout(CheckoutViewModel model)
         {
-            var userId = GetCurrentUserId();
-            if (userId == 0) return RedirectToAction("Login", "Account");
-
-            var course = await _context.Courses.FindAsync(model.CourseId);
-            if (course == null || !course.IsPublished) return NotFound();
-
-            if (!ModelState.IsValid)
-                return View(model);
-
-            var price = course.Price ?? 0m;
-
-            // Tạo payment record
-            var payment = new Payment
+            try
             {
-                UserId = userId,
-                CourseId = course.CourseId,
-                Amount = price,
-                PaymentMethod = model.PaymentMethod,
-                Status = "Pending",
-                CreatedAt = DateTime.Now,
-                FullName = model.FullName,
-                PhoneNumber = model.PhoneNumber,
-                Province = model.Province,
-                District = model.District,
-                Ward = model.Ward,
-                SpecificAddress = model.SpecificAddress,
-                Note = model.Note
-            };
+                var userId = GetCurrentUserId();
+                if (userId == 0) return RedirectToAction("Login", "Account");
 
-            _context.Payments.Add(payment);
-            await _context.SaveChangesAsync();
+                var course = await _context.Courses.FindAsync(model.CourseId);
+                if (course == null || !course.IsPublished) return NotFound();
 
-            // Xử lý theo phương thức thanh toán
-            switch (model.PaymentMethod)
-            {
-                case "COD":
-                    payment.Status = "Completed";
-                    payment.PaidAt = DateTime.Now;
-                    payment.TransactionId = "COD_" + DateTime.Now.Ticks;
-                    course.EnrollmentCount++;
-                    await _context.SaveChangesAsync();
+                if (!ModelState.IsValid)
+                    return View(model);
 
-                    TempData["SuccessMessage"] = "Đặt hàng COD thành công, khóa học đã được mở.";
-                    return RedirectToAction("PaymentSuccess", new { paymentId = payment.PaymentId });
+                var price = course.Price ?? 0m;
 
-                case "MoMo":
-                    {
-                        // ✅ KHÔNG CẦN TRUYỀN returnUrl, ipnUrl VÀO NỮA
-                        // Service sẽ tự lấy từ appsettings
+                // Tạo payment record
+                var payment = new Payment
+                {
+                    UserId = userId,
+                    CourseId = course.CourseId,
+                    Amount = price,
+                    PaymentMethod = model.PaymentMethod,
+                    Status = "Pending",
+                    CreatedAt = DateTime.Now,
+                    FullName = model.FullName,
+                    PhoneNumber = model.PhoneNumber,
+                    Province = model.Province,
+                    District = model.District,
+                    Ward = model.Ward,
+                    SpecificAddress = model.SpecificAddress,
+                    Note = model.Note
+                };
 
-                        // Fake payment URL (chỉ dùng khi UseSandbox = true)
-                        var fakeUrl = Url.Action(
-                            "FakeMoMoPayment",
-                            "Course",
-                            new { paymentId = payment.PaymentId },
-                            Request.Scheme
-                        );
+                _context.Payments.Add(payment);
+                await _context.SaveChangesAsync();
 
-                        try
+                // Xử lý theo phương thức thanh toán
+                switch (model.PaymentMethod)
+                {
+                    case "COD":
+                        payment.Status = "Completed";
+                        payment.PaidAt = DateTime.Now;
+                        payment.TransactionId = "COD_" + DateTime.Now.Ticks;
+                        course.EnrollmentCount++;
+                        await _context.SaveChangesAsync();
+
+                        TempData["SuccessMessage"] = "Đặt hàng COD thành công, khóa học đã được mở.";
+                        return RedirectToAction("PaymentSuccess", new { paymentId = payment.PaymentId });
+
+                    case "MoMo":
                         {
-                            // Truyền null cho returnUrl và ipnUrl vì service sẽ lấy từ config
-                            var redirectUrl = await _momoService.CreatePaymentUrl(
-                                payment,
-                                null,  // returnUrl
-                                null,  // ipnUrl
-                                fakeUrl
+                            var fakeUrl = Url.Action(
+                                "FakeMoMoPayment",
+                                "Course",
+                                new { paymentId = payment.PaymentId },
+                                Request.Scheme
                             );
 
-                            // Redirect sang trang thanh toán MoMo
-                            return Redirect(redirectUrl);
+                            try
+                            {
+                                var redirectUrl = await _momoService.CreatePaymentUrl(
+                                    payment,
+                                    null,
+                                    null,
+                                    fakeUrl
+                                );
+
+                                return Redirect(redirectUrl);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"❌ MoMo Error: {ex.Message}");
+                                TempData["ErrorMessage"] = $"Lỗi kết nối MoMo: {ex.Message}";
+                                return RedirectToAction("Checkout", new { id = course.CourseId });
+                            }
                         }
-                        catch (Exception ex)
+
+                    case "PayPal":
                         {
-                            TempData["ErrorMessage"] = $"Lỗi kết nối MoMo: {ex.Message}";
-                            return RedirectToAction("Checkout", new { id = course.CourseId });
+                            try
+                            {
+                                var approvalUrl = await _paypalService.CreatePayPalOrder(
+                                    payment,
+                                    Url,
+                                    Request.Scheme
+                                );
+                                return Redirect(approvalUrl);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"❌ PayPal Error: {ex.Message}");
+                                TempData["ErrorMessage"] = $"Lỗi kết nối PayPal: {ex.Message}";
+                                return RedirectToAction("Checkout", new { id = course.CourseId });
+                            }
                         }
-                    }
 
-                case "PayPal":
-                    {
-                        var approvalUrl = await _paypalService.CreatePayPalOrder(
-                            payment,
-                            Url,
-                            Request.Scheme
-                        );
-                        return Redirect(approvalUrl);
-                    }
+                    case "VNPay":
+                        {
+                            try
+                            {
+                                Console.WriteLine("========== STARTING VNPAY PAYMENT ==========");
 
-                default:
-                    TempData["ErrorMessage"] = "Phương thức thanh toán không hợp lệ.";
-                    return RedirectToAction("Checkout", new { id = course.CourseId });
+                                var paymentUrl = _vnPayService.CreatePaymentUrl(payment, HttpContext);
+
+                                Console.WriteLine($"✅ Payment URL created successfully");
+                                Console.WriteLine($"Redirecting to: {paymentUrl}");
+
+                                return Redirect(paymentUrl);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"❌ VNPay Error: {ex.Message}");
+                                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+
+                                TempData["ErrorMessage"] = $"Lỗi kết nối VNPay: {ex.Message}";
+                                return RedirectToAction("Checkout", new { id = course.CourseId });
+                            }
+                        }
+
+                    default:
+                        TempData["ErrorMessage"] = "Phương thức thanh toán không hợp lệ.";
+                        return RedirectToAction("Checkout", new { id = course.CourseId });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Checkout Error: {ex.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+
+                TempData["ErrorMessage"] = "Có lỗi xảy ra trong quá trình thanh toán.";
+                return RedirectToAction("Public");
             }
         }
 
@@ -1438,7 +1496,45 @@ namespace DoAnChuyenNganh.Controllers
                 await _context.SaveChangesAsync();
             }
         }
+        [HttpGet]
+        public async Task<IActionResult> VnPayReturn()
+        {
+            try
+            {
+                Console.WriteLine("========== VNPAY RETURN ==========");
 
+                // In ra tất cả query params để debug
+                foreach (var param in Request.Query)
+                {
+                    Console.WriteLine($"{param.Key}: {param.Value}");
+                }
 
+                var result = _vnPayService.ProcessReturn(Request.Query);
+
+                if (result.Success && result.PaymentId.HasValue)
+                {
+                    TempData["SuccessMessage"] = "Thanh toán VNPay thành công!";
+                    return RedirectToAction("PaymentSuccess", new { paymentId = result.PaymentId });
+                }
+
+                TempData["ErrorMessage"] = result.Message ?? "Thanh toán thất bại";
+                return RedirectToAction("Public");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ VnPayReturn Error: {ex.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi xử lý kết quả thanh toán VNPay.";
+                return RedirectToAction("Public");
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> VnPayIPN()
+        {
+            // VNPay IPN callback (nếu cần)
+            await Task.CompletedTask;
+            return NoContent();
+        }
     }
 }

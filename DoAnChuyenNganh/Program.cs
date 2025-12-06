@@ -53,8 +53,12 @@ builder.Services.AddScoped<IMomoService, MomoService>();            // ĐĂNG K�
 builder.Services.AddScoped<DoAnChuyenNganh.Services.MomoService>();
 builder.Services.AddScoped<IPaypalService, PaypalService>();// (Tùy chọn, để an toàn)
 
+builder.Services.AddScoped<IVnPayService, VnPayService>();
+
+
 // Add News Service
 builder.Services.AddScoped<INewsService, NewsService>();
+
 
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
