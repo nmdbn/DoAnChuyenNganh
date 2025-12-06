@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using DoAnChuyenNganh.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-
+Console.WriteLine("🚀🚀🚀 ỨNG DỤNG ĐÃ KHỞI ĐỘNG 🚀🚀🚀");
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

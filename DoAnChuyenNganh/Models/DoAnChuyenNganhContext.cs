@@ -1103,6 +1103,36 @@ public partial class DoAnChuyenNganhContext : DbContext
                 .HasConstraintName("FK_UserQuizAnswer_GradedBy");
         });
 
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity.ToTable("Payments", "dbo");
+            entity.HasKey(e => e.PaymentId);
+
+            entity.Property(e => e.Amount)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(e => e.PaymentMethod)
+                .HasMaxLength(50)
+                .HasDefaultValue("MoMo");
+
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("Pending");
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETDATE()");
+
+            // Foreign Keys
+            entity.HasOne(p => p.User)
+                .WithMany()
+                .HasForeignKey(p => p.UserId)
+                .HasConstraintName("FK_Payments_User");
+
+            entity.HasOne(p => p.Course)
+                .WithMany()
+                .HasForeignKey(p => p.CourseId)
+                .HasConstraintName("FK_Payments_Course");
+        });
         OnModelCreatingPartial(modelBuilder);
     }
 
