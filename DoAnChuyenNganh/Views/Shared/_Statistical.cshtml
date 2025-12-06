@@ -1,5 +1,5 @@
 ﻿@model DoAnChuyenNganh.ViewModels.Statistical.StatisticalViewModel
-
+@using System.Text.Json
 @{
     ViewData["Title"] = "_Statistical";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -16,6 +16,32 @@
     </div>
 
     <!-- SUMMARY CHART -->
+    <div class="row mt-4">
+        <!-- Doanh thu theo thời gian -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    Revenue over time
+                </div>
+                <div class="card-body">
+                    <canvas id="revenueChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Số khóa học bán theo thời gian -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    Number of courses sold by time
+                </div>
+                <div class="card-body">
+                    <canvas id="salesChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card mb-3 shadow-sm">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Summary Statistics</h5>
@@ -351,7 +377,117 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Hàm show/hide các section bảng
+        // ===== KHAI BÁO DỮ LIỆU TRƯỚC =====
+        const revenueLabels = @Html.Raw(JsonSerializer.Serialize(Model.MonthlyRevenue?.Select(m => m.Month) ?? new List<string>()));
+        const revenueData = @Html.Raw(JsonSerializer.Serialize(Model.MonthlyRevenue?.Select(m => m.Revenue) ?? new List<decimal>()));
+        const salesLabels = @Html.Raw(JsonSerializer.Serialize(Model.MonthlySales?.Select(m => m.Month) ?? new List<string>()));
+        const salesData = @Html.Raw(JsonSerializer.Serialize(Model.MonthlySales?.Select(m => m.SalesCount) ?? new List<int>()));
+
+        // Debug
+        console.log('=== DEBUG CHART DATA ===');
+        console.log('Revenue Labels:', revenueLabels);
+        console.log('Revenue Data:', revenueData);
+        console.log('Sales Labels:', salesLabels);
+        console.log('Sales Data:', salesData);
+
+        // Kiểm tra nếu không có dữ liệu
+        if (!revenueLabels || revenueLabels.length === 0) {
+            console.warn('⚠️ No data available revenue');
+        }
+        if (!salesLabels || salesLabels.length === 0) {
+            console.warn('⚠️ No data available sales');
+        }
+
+        // ===== VẼ BIỂU ĐỒ CHỈ KHI CÓ DỮ LIỆU =====
+        const canvasRevenue = document.getElementById('revenueChart');
+        const canvasSales = document.getElementById('salesChart');
+
+        if (canvasRevenue) {
+            const ctxRevenue = canvasRevenue.getContext('2d');
+            const revenueChart = new Chart(ctxRevenue, {
+                type: 'line', // Đổi sang line để dễ nhìn hơn
+                data: {
+                    labels: revenueLabels,
+                    datasets: [{
+                        label: 'Revenue (VNĐ)',
+                        data: revenueData,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const value = context.raw || 0;
+                                    return ' ' + value.toLocaleString('vi-VN') + ' VNĐ';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return value.toLocaleString('vi-VN');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            console.error('❌ Not found canvas revenueChart');
+        }
+
+        if (canvasSales) {
+            const ctxSales = canvasSales.getContext('2d');
+            const salesChart = new Chart(ctxSales, {
+                type: 'bar',
+                data: {
+                    labels: salesLabels,
+                    datasets: [{
+                        label: 'Number of courses sold',
+                        data: salesData,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            console.error('❌ Not found canvas salesChart');
+        }
+
+        // ===== BIỂU ĐỒ TỔNG QUAN =====
         function showSection(sectionId) {
             const sections = document.querySelectorAll('.data-section');
             sections.forEach(s => s.classList.add('d-none'));
@@ -363,7 +499,6 @@
                 }
             }
 
-            // set active button
             const btns = document.querySelectorAll('[data-target]');
             btns.forEach(btn => {
                 if (btn.getAttribute('data-target') === sectionId) {
@@ -440,7 +575,6 @@
                 }
             });
 
-            // Gán event click cho các nút
             document.querySelectorAll('[data-target]').forEach(btn => {
                 btn.addEventListener('click', function () {
                     const targetId = this.getAttribute('data-target');
@@ -448,7 +582,6 @@
                 });
             });
 
-            // Không hiển thị bảng nào mặc định
             showSection(null);
         })();
     </script>
