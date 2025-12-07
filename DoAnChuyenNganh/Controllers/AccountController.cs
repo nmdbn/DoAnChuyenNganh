@@ -1,11 +1,11 @@
 ﻿using DoAnChuyenNganh.Services;
 using DoAnChuyenNganh.ViewModels.Auth;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-
 namespace DoAnChuyenNganh.Controllers
 {
     public class AccountController : Controller
@@ -55,7 +55,6 @@ namespace DoAnChuyenNganh.Controllers
 
                 if (!result.Success || result.User == null)
                 {
-                    // Tạm in message ra log
                     _logger.LogError("Login failed: {Message}", result.Message);
                     ModelState.AddModelError(string.Empty, result.Message ?? "Login failed.");
                     return View(model);
@@ -69,17 +68,53 @@ namespace DoAnChuyenNganh.Controllers
 
                 SetSessionCookie(session.SessionToken, model.RememberMe);
 
+                // ✅ 1. SET SESSION (for _Layout.cshtml)
                 HttpContext.Session.SetInt32("UserId", result.User.UserId);
                 HttpContext.Session.SetString("Username", result.User.Username);
-
-
                 HttpContext.Session.SetString("Email", result.User.Email);
                 HttpContext.Session.SetString("FullName", $"{result.User.FirstName} {result.User.LastName}");
                 HttpContext.Session.SetString("RoleName", result.User.Role.RoleName);
+
                 if (!string.IsNullOrEmpty(result.User.AvatarUrl))
                 {
                     HttpContext.Session.SetString("AvatarUrl", result.User.AvatarUrl);
                 }
+
+                // ✅ 2. CREATE CLAIMS (for User.Identity & CourseController)
+                var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, result.User.UserId.ToString()),
+            new Claim(ClaimTypes.Name, result.User.Username),
+            new Claim(ClaimTypes.Email, result.User.Email),
+            new Claim(ClaimTypes.Role, result.User.Role.RoleName),
+            new Claim("FullName", $"{result.User.FirstName} {result.User.LastName}")
+        };
+
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var authProperties = new AuthenticationProperties
+                {
+                    IsPersistent = model.RememberMe,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(model.RememberMe ? 30 : 1)
+                };
+
+                // ✅ 3. SIGN IN WITH COOKIE AUTHENTICATION
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
+                    authProperties
+                );
+
+                // ✅ 4. COMMIT SESSION
+                await HttpContext.Session.CommitAsync();
+
+                // ✅ 5. DEBUG LOG
+                Console.WriteLine($"========== LOGIN SUCCESS ==========");
+                Console.WriteLine($"UserId: {result.User.UserId}");
+                Console.WriteLine($"Username: {result.User.Username}");
+                Console.WriteLine($"RoleName: {result.User.Role.RoleName}");
+                Console.WriteLine($"Session UserId: {HttpContext.Session.GetInt32("UserId")}");
+                Console.WriteLine($"Session RoleName: {HttpContext.Session.GetString("RoleName")}");
+                Console.WriteLine($"IsAuthenticated: {User.Identity?.IsAuthenticated}");
 
                 TempData["SuccessMessage"] = "Login successful!";
 
@@ -151,10 +186,13 @@ namespace DoAnChuyenNganh.Controllers
                 await _authService.InvalidateSessionAsync(sessionToken);
             }
 
-            // Clear session
+            // ✅ 1. Clear session
             HttpContext.Session.Clear();
 
-            // Remove cookie
+            // ✅ 2. Sign out from Cookie Authentication
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            // ✅ 3. Remove custom session cookie
             Response.Cookies.Delete(SessionCookieName);
 
             TempData["SuccessMessage"] = "You have been logged out successfully.";
@@ -445,7 +483,6 @@ namespace DoAnChuyenNganh.Controllers
         [HttpGet]
         public async Task<IActionResult> GoogleResponse(string? returnUrl = null)
         {
-            // Authenticate with Google scheme
             var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
 
             if (result?.Succeeded != true || result.Principal == null)
@@ -455,7 +492,6 @@ namespace DoAnChuyenNganh.Controllers
             }
 
             var claims = result.Principal?.Identities.FirstOrDefault()?.Claims;
-
             if (claims == null)
             {
                 TempData["ErrorMessage"] = "Google login failed. Please try again.";
@@ -475,7 +511,6 @@ namespace DoAnChuyenNganh.Controllers
             var ipAddress = GetIpAddress();
             var userAgent = GetUserAgent();
 
-            // Xử lý đăng nhập hoặc tạo user mới
             var resultAuth = await _authService.AuthenticateGoogleAsync(
                 email,
                 name ?? "Google User",
@@ -489,7 +524,6 @@ namespace DoAnChuyenNganh.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
-            // Tạo session và cookie
             var session = await _authService.CreateSessionAsync(
                 resultAuth.User.UserId,
                 ipAddress,
@@ -498,16 +532,40 @@ namespace DoAnChuyenNganh.Controllers
 
             SetSessionCookie(session.SessionToken, rememberMe: true);
 
-            // Lưu session user
+            // ✅ SET SESSION
             HttpContext.Session.SetInt32("UserId", resultAuth.User.UserId);
             HttpContext.Session.SetString("Username", resultAuth.User.Username);
             HttpContext.Session.SetString("Email", resultAuth.User.Email);
             HttpContext.Session.SetString("FullName", $"{resultAuth.User.FirstName} {resultAuth.User.LastName}");
             HttpContext.Session.SetString("RoleName", resultAuth.User.Role?.RoleName ?? "User");
+
             if (!string.IsNullOrEmpty(resultAuth.User.AvatarUrl))
             {
                 HttpContext.Session.SetString("AvatarUrl", resultAuth.User.AvatarUrl);
             }
+
+            // ✅ CREATE CLAIMS & SIGN IN
+            var userClaims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, resultAuth.User.UserId.ToString()),
+        new Claim(ClaimTypes.Name, resultAuth.User.Username),
+        new Claim(ClaimTypes.Email, resultAuth.User.Email),
+        new Claim(ClaimTypes.Role, resultAuth.User.Role?.RoleName ?? "User"),
+        new Claim("FullName", $"{resultAuth.User.FirstName} {resultAuth.User.LastName}")
+    };
+
+            var claimsIdentity = new ClaimsIdentity(userClaims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
+            };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties
+            );
 
             await HttpContext.Session.CommitAsync();
 
@@ -549,7 +607,7 @@ namespace DoAnChuyenNganh.Controllers
             var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
             var name = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
             var providerId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            var picture = claims.FirstOrDefault(c => c.Type == "picture")?.Value; // nếu bạn thêm Field picture
+            var picture = claims.FirstOrDefault(c => c.Type == "picture")?.Value;
 
             if (string.IsNullOrEmpty(providerId))
             {
@@ -561,7 +619,7 @@ namespace DoAnChuyenNganh.Controllers
             var userAgent = GetUserAgent();
 
             var resultAuth = await _authService.AuthenticateFacebookAsync(
-                email ?? providerId, 
+                email ?? providerId,
                 name ?? "Facebook User",
                 providerId,
                 ipAddress,
@@ -581,15 +639,40 @@ namespace DoAnChuyenNganh.Controllers
 
             SetSessionCookie(session.SessionToken, rememberMe: true);
 
+            // ✅ SET SESSION
             HttpContext.Session.SetInt32("UserId", resultAuth.User.UserId);
             HttpContext.Session.SetString("Username", resultAuth.User.Username);
             HttpContext.Session.SetString("Email", resultAuth.User.Email ?? "");
             HttpContext.Session.SetString("FullName", $"{resultAuth.User.FirstName} {resultAuth.User.LastName}");
             HttpContext.Session.SetString("RoleName", resultAuth.User.Role?.RoleName ?? "User");
+
             if (!string.IsNullOrEmpty(picture))
             {
                 HttpContext.Session.SetString("AvatarUrl", picture);
             }
+
+            // ✅ CREATE CLAIMS & SIGN IN
+            var userClaims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, resultAuth.User.UserId.ToString()),
+        new Claim(ClaimTypes.Name, resultAuth.User.Username),
+        new Claim(ClaimTypes.Email, resultAuth.User.Email ?? ""),
+        new Claim(ClaimTypes.Role, resultAuth.User.Role?.RoleName ?? "User"),
+        new Claim("FullName", $"{resultAuth.User.FirstName} {resultAuth.User.LastName}")
+    };
+
+            var claimsIdentity = new ClaimsIdentity(userClaims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
+            };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties
+            );
 
             await HttpContext.Session.CommitAsync();
 
