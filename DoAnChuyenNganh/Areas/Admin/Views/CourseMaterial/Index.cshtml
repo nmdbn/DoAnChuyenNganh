@@ -1,0 +1,142 @@
+﻿@model IEnumerable<DoAnChuyenNganh.Models.CourseMaterial>
+
+@{
+    ViewData["Title"] = "Quản lý tài liệu";
+}
+
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center my-4">
+        <div>
+            <h1 class="mt-4">Kho tài liệu</h1>
+            <p class="text-muted">Quản lý các file đính kèm, tài liệu tham khảo cho khóa học.</p>
+        </div>
+        <a asp-action="Create" class="btn btn-primary shadow-sm">
+            <i class="bi bi-cloud-upload"></i> Tải lên tài liệu
+        </a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <div class="row">
+                <div class="col-md-6 d-flex align-items-center">
+                    <i class="bi bi-folder2-open me-2"></i> <strong>Danh sách file</strong>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-nowrap align-middle mb-0">
+                    <thead class="bg-light text-secondary">
+                        <tr>
+                            <th class="ps-4" style="width: 35%;">Tên tài liệu / Định dạng</th>
+                            <th>Thuộc về (Khóa / Bài)</th>
+                            <th>Trạng thái / Thống kê</th>
+                            <th>Người tạo / Ngày đăng</th>
+                            <th class="text-end pe-4">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            // Logic chọn icon dựa trên loại file
+                            string iconClass = "bi-file-earmark text-secondary";
+                            string typeLower = item.MaterialType?.ToLower() ?? "";
+
+                            if (typeLower.Contains("pdf")) { iconClass = "bi-file-earmark-pdf-fill text-danger"; }
+                            else if (typeLower.Contains("doc") || typeLower.Contains("word")) { iconClass = "bi-file-earmark-word-fill text-primary"; }
+                            else if (typeLower.Contains("xls") || typeLower.Contains("sheet")) { iconClass = "bi-file-earmark-excel-fill text-success"; }
+                            else if (typeLower.Contains("zip") || typeLower.Contains("rar")) { iconClass = "bi-file-earmark-zip-fill text-warning"; }
+                            else if (typeLower.Contains("ppt")) { iconClass = "bi-file-earmark-slides-fill text-warning"; }
+
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="fs-2 me-3">
+                                            <i class="@iconClass"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">@item.MaterialName</div>
+                                            <div class="small text-muted">
+                                                <span class="text-uppercase border px-1 rounded bg-light">@item.MaterialType</span>
+                                                <span class="mx-1">•</span>
+                                                <span>@(item.FileSize) KB</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="d-flex flex-column small">
+                                        <div class="mb-1">
+                                            <i class="bi bi-mortarboard text-muted me-1"></i>
+                                            <span class="fw-semibold">@(item.Course?.Title ?? "Chung")</span>
+                                        </div>
+                                        @if (item.Lesson != null)
+                                        {
+                                            <div class="text-muted">
+                                                <i class="bi bi-caret-right-fill text-secondary" style="font-size: 0.7rem;"></i>
+                                                Bài: @item.Lesson.Title
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic ps-3">-- Không gán bài học --</span>
+                                        }
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="mb-1">
+                                        @if (item.IsPublic == true)
+                                        {
+                                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill">
+                                                <i class="bi bi-globe"></i> Công khai
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill">
+                                                <i class="bi bi-lock"></i> Riêng tư
+                                            </span>
+                                        }
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="bi bi-download me-1"></i> @item.DownloadCount lượt tải
+                                    </div>
+                                </td>
+
+                                <td class="small text-muted">
+                                    <div><i class="bi bi-person me-1"></i> @(item.CreatedByNavigation?.Username ?? "Admin")</div>
+                                    <div><i class="bi bi-clock me-1"></i> @item.CreatedAt?.ToString("dd/MM/yyyy")</div>
+                                </td>
+
+                                <td class="text-end pe-4">
+                                    <div class="btn-group">
+                                        @if (!string.IsNullOrEmpty(item.FileUrl))
+                                        {
+                                            <a href="@item.FileUrl" target="_blank" class="btn btn-sm btn-outline-dark" title="Tải xuống">
+                                                <i class="bi bi-download"></i>
+                                            </a>
+                                        }
+                                        <a asp-action="Edit" asp-route-id="@item.MaterialId" class="btn btn-sm btn-outline-primary" title="Sửa">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@item.MaterialId" class="btn btn-sm btn-outline-info" title="Chi tiết">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.MaterialId" class="btn btn-sm btn-outline-danger" title="Xóa">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white py-3">
+            <small class="text-muted">Hiển thị @Model.Count() tài liệu</small>
+        </div>
+    </div>
+</div>

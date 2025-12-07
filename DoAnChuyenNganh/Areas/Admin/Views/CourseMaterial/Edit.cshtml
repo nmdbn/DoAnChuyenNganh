@@ -1,0 +1,79 @@
+﻿@model DoAnChuyenNganh.Models.CourseMaterial
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<h1>Edit</h1>
+
+<h4>CourseMaterial</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="MaterialId" />
+            <div class="form-group">
+                <label asp-for="CourseId" class="control-label"></label>
+                <select asp-for="CourseId" class="form-control" asp-items="ViewBag.CourseId"></select>
+                <span asp-validation-for="CourseId" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="LessonId" class="control-label"></label>
+                <select asp-for="LessonId" class="form-control" asp-items="ViewBag.LessonId"></select>
+                <span asp-validation-for="LessonId" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="MaterialName" class="control-label"></label>
+                <input asp-for="MaterialName" class="form-control" />
+                <span asp-validation-for="MaterialName" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="MaterialType" class="control-label"></label>
+                <input asp-for="MaterialType" class="form-control" />
+                <span asp-validation-for="MaterialType" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="FileUrl" class="control-label"></label>
+                <input asp-for="FileUrl" class="form-control" />
+                <span asp-validation-for="FileUrl" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="FileSize" class="control-label"></label>
+                <input asp-for="FileSize" class="form-control" />
+                <span asp-validation-for="FileSize" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="DownloadCount" class="control-label"></label>
+                <input asp-for="DownloadCount" class="form-control" />
+                <span asp-validation-for="DownloadCount" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="IsPublic" class="control-label"></label>
+                <input asp-for="IsPublic" class="form-control" />
+                <span asp-validation-for="IsPublic" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CreatedAt" class="control-label"></label>
+                <input asp-for="CreatedAt" class="form-control" />
+                <span asp-validation-for="CreatedAt" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CreatedBy" class="control-label"></label>
+                <select asp-for="CreatedBy" class="form-control" asp-items="ViewBag.CreatedBy"></select>
+                <span asp-validation-for="CreatedBy" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

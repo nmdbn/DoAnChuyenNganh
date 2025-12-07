@@ -1,0 +1,212 @@
+﻿@model DoAnChuyenNganh.Models.Course
+
+@{
+    ViewData["Title"] = "Create Course";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Create New Course</h2>
+            <hr />
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <form asp-action="Create" method="post">
+                <div asp-validation-summary="All" class="alert alert-danger"></div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Basic Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label asp-for="Title" class="form-label">Course Title <span class="text-danger">*</span></label>
+                            <input asp-for="Title" class="form-control" placeholder="Enter course title" required />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Slug" class="form-label">URL Slug</label>
+                            <input asp-for="Slug" class="form-control" placeholder="course-url-slug (leave empty for auto-generate)" />
+                            <small class="form-text text-muted">Optional: Friendly URL for the course</small>
+                            <span asp-validation-for="Slug" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="ShortDescription" class="form-label">Short Description</label>
+                            <textarea asp-for="ShortDescription" class="form-control" rows="2"
+                                      placeholder="Brief description (max 300 characters)" maxlength="300"></textarea>
+                            <span asp-validation-for="ShortDescription" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Description" class="form-label">Full Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="5"
+                                      placeholder="Detailed course description"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Course Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="SubjectId" class="form-label">Subject <span class="text-danger">*</span></label>
+                                    <select asp-for="SubjectId" class="form-select" asp-items="ViewBag.SubjectId" required>
+                                        <option value="">-- Select Subject --</option>
+                                    </select>
+                                    <span asp-validation-for="SubjectId" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="GradeId" class="form-label">Grade Level <span class="text-danger">*</span></label>
+                                    <select asp-for="GradeId" class="form-select" asp-items="ViewBag.GradeId" required>
+                                        <option value="">-- Select Grade --</option>
+                                    </select>
+                                    <span asp-validation-for="GradeId" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="InstructorId" class="form-label">Instructor <span class="text-danger">*</span></label>
+                                    <select asp-for="InstructorId" class="form-select" asp-items="ViewBag.InstructorId" required>
+                                        <option value="">-- Select Instructor --</option>
+                                    </select>
+                                    <span asp-validation-for="InstructorId" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="DifficultyLevel" class="form-label">Difficulty Level</label>
+                                    <select asp-for="DifficultyLevel" class="form-select">
+                                        <option value="">-- Select Difficulty --</option>
+                                        <option value="1">1 - Beginner</option>
+                                        <option value="2">2 - Elementary</option>
+                                        <option value="3">3 - Intermediate</option>
+                                        <option value="4">4 - Advanced</option>
+                                        <option value="5">5 - Expert</option>
+                                    </select>
+                                    <span asp-validation-for="DifficultyLevel" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="EstimatedHours" class="form-label">Estimated Hours</label>
+                                    <input asp-for="EstimatedHours" type="number" step="0.5" min="0" class="form-control"
+                                           placeholder="e.g., 10.5" />
+                                    <span asp-validation-for="EstimatedHours" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Price" class="form-label">Price (VND)</label>
+                                    <input asp-for="Price" type="number" step="1000" min="0" class="form-control"
+                                           placeholder="0 for free course" value="0" />
+                                    <span asp-validation-for="Price" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="ThumbnailUrl" class="form-label">Thumbnail URL</label>
+                            <input asp-for="ThumbnailUrl" class="form-control"
+                                   placeholder="https://example.com/image.jpg" />
+                            <small class="form-text text-muted">Enter image URL or upload via file manager</small>
+                            <span asp-validation-for="ThumbnailUrl" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mb-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i> Create Course
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Tips</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success"></i>
+                            <strong>Title:</strong> Use clear, descriptive course titles
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success"></i>
+                            <strong>Description:</strong> Include learning objectives and prerequisites
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success"></i>
+                            <strong>Thumbnail:</strong> Use high-quality images (recommended: 1280x720px)
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-info-circle text-primary"></i>
+                            Course will be saved as <strong>draft</strong> by default
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-info-circle text-primary"></i>
+                            You can add lessons after creating the course
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Auto-generate slug from title
+        document.getElementById('Title').addEventListener('input', function() {
+            let slug = this.value
+                .toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+                .replace(/đ/g, 'd')
+                .replace(/[^a-z0-9\s-]/g, '')
+                .trim()
+                .replace(/\s+/g, '-');
+
+            if (!document.getElementById('Slug').value) {
+                document.getElementById('Slug').value = slug;
+            }
+        });
+    </script>
+}
