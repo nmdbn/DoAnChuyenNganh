@@ -1,0 +1,241 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">Dashboard</h1>
+            </div>
+        </div>
+    </div>
+</div>
+<section class="content">
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Small boxes (Stat box) -->
+            <div class="row">
+                <!-- Total Users -->
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3>@Model.TotalUsers</h3>
+                            <p>Total Users</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <a href="/Admin/User" class="small-box-footer">
+                            More info <i class="fas fa-arrow-circle-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- New Registrations -->
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3>@Model.NewRegistrations</h3>
+                            <p>New Registrations</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <a href="/Admin/User" class="small-box-footer">
+                            More info <i class="fas fa-arrow-circle-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Active Students -->
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-warning">
+                        <div class="inner">
+                            <h3>@Model.ActiveStudents</h3>
+                            <p>Active Students</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <a href="/Admin/Enrollments" class="small-box-footer">
+                            More info <i class="fas fa-arrow-circle-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Total Courses -->
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3>@Model.TotalCourses</h3>
+                            <p>Total Courses</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <a href="/Admin/Course" class="small-box-footer">
+                            More info <i class="fas fa-arrow-circle-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <!-- /.row -->
+            <!-- Main row -->
+            <div class="row">
+                <section class="col-lg-12 connectedSortable">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-chart-line mr-1"></i> Học viên mới theo tháng</h3>
+                        </div>
+                        <div class="card-body">
+                            <div style="height: 250px;">
+                                <canvas id="studentChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Top 5 khóa học được đăng ký nhiều nhất</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="topCoursesChart" style="height: 300px;"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Chi tiết đăng ký khóa học</h3>
+                        </div>
+                        <div class="card-body table-responsive">
+                            <table id="enrollmentTable" class="table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Ngày đăng ký</th>
+                                        <th>Tiến độ (%)</th>
+                                        <th>Họ và tên</th>
+                                        <th>Email</th>
+                                        <th>Khóa học</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dữ liệu sẽ được fetch và insert vào đây -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <!-- /.row (main row) -->
+        </div><!-- /.container-fluid -->
+    </section>
+</section>
+<script>
+fetch('/Admin/Dashboard/GetStudentByMonth')
+    .then(res => res.json())
+    .then(data => {
+
+        // Lấy nhãn tháng và số lượng từ API
+        const labels = data.map(x => "Tháng " + x.month);
+        const values = data.map(x => x.count);
+
+        const ctx = document.getElementById('studentChart').getContext('2d');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Học viên mới',
+                    data: values,
+                    borderWidth: 2,
+                    fill: false,
+                    borderColor: '#007bff',
+                    tension: 0.3,           // làm đường cong mượt
+                    pointRadius: 5,
+                    pointBackgroundColor: '#007bff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0, // ✔ Không số thập phân
+                            stepSize: 1   // ✔ Tăng theo đơn vị 1
+                        }
+                    }
+                }
+            }
+        });
+    });
+    fetch('/Admin/Dashboard/GetTopCourses')
+        .then(res => res.json())
+        .then(data => {
+            const labels = data.map(x => x.courseName);
+            const values = data.map(x => x.count);
+
+            const ctx = document.getElementById('topCoursesChart').getContext('2d');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Lượt đăng ký',
+                        data: values,
+                        borderWidth: 1,
+                        backgroundColor: '#28a745'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1   
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    document.addEventListener("DOMContentLoaded", function() {
+        fetch('/Admin/Dashboard/GetEnrollmentDetails')
+            .then(response => {
+                if (!response.ok) throw new Error("Network response was not ok");
+                return response.json();
+            })
+            .then(data => {
+                const tbody = document.querySelector("#enrollmentTable tbody");
+                tbody.innerHTML = ""; // Xóa dữ liệu cũ
+                data.forEach(item => {
+                    const fullName = `${item.firstName} ${item.lastName}`;
+                    const row = document.createElement("tr");
+
+                    row.innerHTML = `
+                        <td>${item.enrollmentId}</td>
+                        <td>${formatDate(item.enrolledAt)}</td>
+                        <td>${item.progressPercentage}%</td>
+                        <td>${fullName}</td>
+                        <td>${item.email}</td>
+                        <td>${item.courseTitle}</td>
+                        <td>${item.isActive ? "✔ Active" : "✖ Inactive"}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => console.error("Fetch error:", error));
+    });
+
+    function formatDate(dateStr) {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString("vi-VN") + " " + d.toLocaleTimeString("vi-VN");
+    }
+</script>
+

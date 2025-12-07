@@ -121,8 +121,14 @@ namespace DoAnChuyenNganh.Controllers
 
                 if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                     return Redirect(model.ReturnUrl);
+                var role = result.User.Role?.RoleName ?? "";
+                if (role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+                {
+                    return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+                }
 
                 return RedirectToAction("Index", "Home");
+
             }
             catch (Exception ex)
             {

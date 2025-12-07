@@ -1,0 +1,762 @@
+﻿@model IEnumerable<DoAnChuyenNganh.Models.User>
+
+@{
+    ViewData["Title"] = "User Management";
+}
+
+<link rel="stylesheet" href="~/css/user-management.css" />
+
+<div class="user-management-container">
+    <!-- Header -->
+    <div class="user-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-people"></i> User Management</h1>
+                <p class="text-light">Manage system users and their permissions</p>
+
+            </div>
+            <div>
+                <a href="@Url.Action("Create", "User")" class="btn btn-primary">
+                    <i class="bi bi-person-plus"></i> Add New User
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @Html.AntiForgeryToken()
+
+    <!-- Statistics -->
+    <div class="user-stats">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <i class="bi bi-people-fill"></i>
+                    <div class="stat-info">
+                        <h3>@Model.Count()</h3>
+                        <p>Total Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card stat-success">
+                    <i class="bi bi-check-circle"></i>
+                    <div class="stat-info">
+                        <h3>@Model.Count(u => u.IsActive == true)</h3>
+                        <p>Active Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card stat-danger">
+                    <i class="bi bi-lock"></i>
+                    <div class="stat-info">
+                        <h3>@Model.Count(u => u.IsLocked == true)</h3>
+                        <p>Locked Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card stat-warning">
+                    <i class="bi bi-shield-check"></i>
+                    <div class="stat-info">
+                        <h3>@Model.Count(u => u.RoleId == 4)</h3>
+                        <p>Administrators</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table Section -->
+    <div class="users-section">
+        <div class="section-header">
+            <h2><i class="bi bi-list-ul"></i> User List</h2>
+            <div class="search-filter">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search users...">
+            </div>
+        </div>
+
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table user-table">
+                    <thead>
+                        <tr>
+                            <th><i class="bi bi-person"></i> Username</th>
+                            <th><i class="bi bi-envelope"></i> Email</th>
+                            <th><i class="bi bi-person-badge"></i> Name</th>
+                            <th><i class="bi bi-shield"></i> Role</th>
+                            <th><i class="bi bi-activity"></i> Status</th>
+                            <th><i class="bi bi-clock-history"></i> Last Login</th>
+                            <th class="text-center"><i class="bi bi-gear"></i> Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr id="user-row-@item.UserId" class="user-row">
+                                <td>
+                                    <div class="user-avatar-name">
+                                        @if (!string.IsNullOrEmpty(item.AvatarUrl))
+                                        {
+                                            <img src="@item.AvatarUrl" alt="@item.Username" class="user-avatar-small">
+                                        }
+                                        else
+                                        {
+                                            <div class="user-avatar-placeholder">
+                                                @item.Username.Substring(0, 1).ToUpper()
+                                            </div>
+                                        }
+                                        <strong>@item.Username</strong>
+                                    </div>
+                                </td>
+                                <td>@item.Email</td>
+                                <td>@item.FirstName @item.LastName</td>
+                                <td>
+                                    <select class="form-select role-select" data-user-id="@item.UserId" data-current-role="@item.RoleId" title="Change Role">
+                                        @foreach (var role in ViewBag.Roles as SelectList)
+                                        {
+                                            <option value="@role.Value">@role.Text</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td class="status-cell">
+                                    @if (item.IsLocked == true)
+                                    {
+                                        <span class="status-badge status-locked">
+                                            <i class="bi bi-lock-fill"></i> Locked
+                                        </span>
+                                    }
+                                    else if (item.IsActive == true)
+                                    {
+                                        <span class="status-badge status-active">
+                                            <i class="bi bi-check-circle-fill"></i> Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-inactive">
+                                            <i class="bi bi-x-circle-fill"></i> Inactive
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.LastLoginAt.HasValue)
+                                    {
+                                        <small class="text-muted">@item.LastLoginAt.Value.ToString("MMM dd, yyyy")</small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted">Never</small>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a href="@Url.Action("Details", "User", new { id = item.UserId })"
+                                           class="btn btn-sm btn-info" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        @if (item.IsLocked == true)
+                                        {
+                                            <button class="btn btn-sm btn-success toggle-lock"
+                                                    data-user-id="@item.UserId"
+                                                    data-is-locked="true"
+                                                    title="Unlock User">
+                                                <i class="bi bi-unlock"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-danger toggle-lock"
+                                                    data-user-id="@item.UserId"
+                                                    data-is-locked="false"
+                                                    title="Lock User">
+                                                <i class="bi bi-lock"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No users found in the system.
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Set selected role for each dropdown
+            $('.role-select').each(function () {
+                const currentRoleId = $(this).data('current-role');
+                $(this).val(currentRoleId);
+                $(this).data('previous-value', currentRoleId);
+            });
+
+            // Search functionality
+            $('#searchInput').on('keyup', function () {
+                const value = $(this).val().toLowerCase();
+                $('.user-row').filter(function () {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+                });
+            });
+
+            // Handle toggle lock button click
+            $('.toggle-lock').on('click', function () {
+                const button = $(this);
+                const userId = button.data('user-id');
+                const isCurrentlyLocked = button.data('is-locked');
+
+                // Confirm action
+                const action = isCurrentlyLocked ? 'unlock' : 'lock';
+                if (!confirm(`Are you sure you want to ${action} this user?`)) {
+                    return;
+                }
+
+                // Disable button during request
+                button.prop('disabled', true);
+                button.html('<i class="bi bi-hourglass-split"></i>');
+
+                // Get anti-forgery token
+                const token = $('input[name="__RequestVerificationToken"]').val();
+
+                // Send AJAX request
+                $.ajax({
+                    url: '@Url.Action("ToggleLock", "User")',
+                    type: 'POST',
+                    data: {
+                        userId: userId,
+                        __RequestVerificationToken: token
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            // Update button appearance
+                            const newIsLocked = response.isLocked;
+                            button.data('is-locked', newIsLocked);
+
+                            const row = button.closest('tr');
+                            const statusCell = row.find('.status-cell');
+
+                            if (newIsLocked) {
+                                // User is now locked
+                                button.removeClass('btn-danger').addClass('btn-success');
+                                button.html('<i class="bi bi-unlock"></i>');
+                                button.attr('title', 'Unlock User');
+
+                                // Update status badge
+                                statusCell.html('<span class="status-badge status-locked"><i class="bi bi-lock-fill"></i> Locked</span>');
+                            } else {
+                                // User is now unlocked
+                                button.removeClass('btn-success').addClass('btn-danger');
+                                button.html('<i class="bi bi-lock"></i>');
+                                button.attr('title', 'Lock User');
+
+                                // Update status badge
+                                statusCell.html('<span class="status-badge status-active"><i class="bi bi-check-circle-fill"></i> Active</span>');
+                            }
+
+                            // Update statistics
+                            updateStatistics();
+
+                            // Show success message
+                            showNotification('success', response.message);
+                        } else {
+                            showNotification('error', response.message || 'Failed to update user status');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        showNotification('error', 'An error occurred: ' + error);
+                    },
+                    complete: function () {
+                        // Re-enable button
+                        button.prop('disabled', false);
+                    }
+                });
+            });
+
+            // Handle role change
+            $('.role-select').on('change', function () {
+                const select = $(this);
+                const userId = select.data('user-id');
+                const newRoleId = select.val();
+                const previousRoleId = select.data('previous-value');
+
+                // Find role name for confirmation
+                const selectedOption = select.find('option:selected').text();
+
+                // Confirm action
+                if (!confirm(`Are you sure you want to change this user's role to ${selectedOption}?`)) {
+                    // Revert to previous selection
+                    select.val(previousRoleId);
+                    return;
+                }
+
+                // Store current value as previous
+                select.data('previous-value', newRoleId);
+
+                // Disable select during request
+                select.prop('disabled', true);
+
+                // Get anti-forgery token
+                const token = $('input[name="__RequestVerificationToken"]').val();
+
+                // Send AJAX request
+                $.ajax({
+                    url: '@Url.Action("ChangeRole", "User")',
+                    type: 'POST',
+                    data: {
+                        userId: userId,
+                        roleId: newRoleId,
+                        __RequestVerificationToken: token
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            // Update statistics
+                            updateStatistics();
+
+                            // Show success message
+                            showNotification('success', response.message);
+                        } else {
+                            // Revert to previous selection
+                            select.val(previousRoleId);
+                            showNotification('error', response.message || 'Failed to change user role');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        // Revert to previous selection
+                        select.val(previousRoleId);
+                        showNotification('error', 'An error occurred: ' + error);
+                    },
+                    complete: function () {
+                        // Re-enable select
+                        select.prop('disabled', false);
+                    }
+                });
+            });
+
+            // Update statistics after lock/unlock or role change
+            function updateStatistics() {
+                const totalActive = $('.status-active').length;
+                const totalLocked = $('.status-locked').length;
+                const totalAdmins = $('.role-select option:selected[value="4"]').length;
+
+                $('.stat-success .stat-info h3').text(totalActive);
+                $('.stat-danger .stat-info h3').text(totalLocked);
+                $('.stat-warning .stat-info h3').text(totalAdmins);
+            }
+
+            // Notification function
+            function showNotification(type, message) {
+                const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                const icon = type === 'success' ? 'check-circle' : 'exclamation-triangle';
+
+                const notification = `
+                    <div class="alert ${alertClass} alert-dismissible fade show notification-toast" role="alert">
+                        <i class="bi bi-${icon}"></i> ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+
+                // Remove existing notifications
+                $('.notification-toast').remove();
+
+                // Add new notification at top of container
+                $('.user-management-container').prepend(notification);
+
+                // Auto-dismiss after 3 seconds
+                setTimeout(function () {
+                    $('.notification-toast').fadeOut('slow', function () {
+                        $(this).remove();
+                    });
+                }, 3000);
+            }
+        });
+    </script>
+}
+<style>
+    /* User Management Styles */
+
+    .user-management-container {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* Header Section */
+    .user-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+    }
+
+        .user-header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .user-header p {
+            margin: 5px 0 0;
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .user-header .btn-primary {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+            .user-header .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            }
+
+    /* Statistics Section */
+    .user-stats {
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        transition: all 0.3s ease;
+        margin-bottom: 15px;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card i {
+            font-size: 2.5rem;
+            color: #667eea;
+        }
+
+        .stat-card.stat-success i {
+            color: #10b981;
+        }
+
+        .stat-card.stat-danger i {
+            color: #ef4444;
+        }
+
+        .stat-card.stat-warning i {
+            color: #f59e0b;
+        }
+
+    .stat-info h3 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .stat-info p {
+        margin: 5px 0 0;
+        color: #6b7280;
+        font-size: 0.9rem;
+    }
+
+    /* Users Section */
+    .users-section {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+    .search-filter {
+        max-width: 300px;
+    }
+
+        .search-filter input {
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            padding: 8px 15px;
+        }
+
+            .search-filter input:focus {
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+
+    /* Table Styles */
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .user-table {
+        margin-bottom: 0;
+    }
+
+        .user-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+            .user-table thead th {
+                border: none;
+                padding: 15px;
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 0.85rem;
+                letter-spacing: 0.5px;
+            }
+
+        .user-table tbody tr {
+            border-bottom: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+
+            .user-table tbody tr:hover {
+                background-color: #f9fafb;
+                transform: scale(1.01);
+            }
+
+        .user-table tbody td {
+            padding: 15px;
+            vertical-align: middle;
+        }
+
+    /* User Avatar */
+    .user-avatar-name {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .user-avatar-small {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .user-avatar-placeholder {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    /* Badges */
+    .badge-role {
+        background: #dbeafe;
+        color: #1e40af;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+
+    /* Status Badges */
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .status-active {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-locked {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .status-inactive {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    /* Action Buttons */
+    .btn-group .btn {
+        padding: 6px 12px;
+        border-radius: 6px;
+        margin: 0 2px;
+        transition: all 0.2s ease;
+    }
+
+        .btn-group .btn:hover {
+            transform: translateY(-2px);
+        }
+
+    .btn-info {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+    }
+
+        .btn-info:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+
+    .btn-warning {
+        background: #f59e0b;
+        border-color: #f59e0b;
+        color: white;
+    }
+
+        .btn-warning:hover {
+            background: #d97706;
+            border-color: #d97706;
+        }
+
+    .btn-success {
+        background: #10b981;
+        border-color: #10b981;
+        color: white;
+    }
+
+        .btn-success:hover {
+            background: #059669;
+            border-color: #059669;
+        }
+
+    .btn-danger {
+        background: #ef4444;
+        border-color: #ef4444;
+        color: white;
+    }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
+    /* Role Select */
+    .role-select {
+        max-width: 150px;
+        border-radius: 6px;
+        padding: 5px;
+        font-size: 0.85rem;
+    }
+
+        .role-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+    /* Notifications */
+    .notification-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        animation: slideInRight 0.3s ease-out;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .alert {
+        border-radius: 10px;
+        padding: 15px 20px;
+        border: none;
+    }
+
+        .alert i {
+            font-size: 1.2rem;
+            margin-right: 10px;
+        }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .search-filter {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .user-table {
+        font-size: 0.85rem;
+    }
+
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .btn-group {
+        flex-direction: column;
+    }
+
+        .btn-group .btn {
+            width: 100%;
+            margin: 2px 0;
+        }
+
+    /* Loading State */
+    .btn:disabled,
+    .role-select:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* Empty State */
+    .alert-info {
+        background: #dbeafe;
+        border: 1px solid #93c5fd;
+        color: #1e40af;
+        border-radius: 10px;
+        padding: 20px;
+    }
+
+        .alert-info i {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+</style>

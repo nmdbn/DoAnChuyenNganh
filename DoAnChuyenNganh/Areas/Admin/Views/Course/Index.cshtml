@@ -1,0 +1,115 @@
+﻿@model IEnumerable<DoAnChuyenNganh.Models.Course>
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "Quản lý khóa học";
+    var cultureInfo = new CultureInfo("vi-VN");
+}
+
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center my-4">
+        <div>
+            <h1 class="mt-4">Danh sách khóa học</h1>
+            <p class="text-muted">Quản lý tất cả các khóa học hiện có trên hệ thống.</p>
+        </div>
+        <a asp-action="Create" class="btn btn-primary shadow-sm">
+            <i class="bi bi-plus-lg"></i> Thêm khóa học mới
+        </a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <div class="row">
+                <div class="col-md-6 d-flex align-items-center">
+                    <i class="bi bi-table me-2"></i> <strong>Dữ liệu khóa học</strong>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-nowrap align-middle mb-0">
+                    <thead class="bg-light text-secondary">
+                        <tr>
+                            <th class="ps-4" style="width: 40%;">Tên khóa học / Phân loại</th>
+                            <th>Học phí</th>
+                            <th>Trạng thái</th>
+                            <th>Thống kê</th>
+                            <th>Ngày tạo</th>
+                            <th class="text-end pe-4">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark fs-6">@item.Title</div>
+                                    <div class="small text-muted mt-1">
+                                        <i class="bi bi-folder2-open me-1"></i> @(item.Subject?.SubjectName ?? "N/A")
+                                        <span class="mx-2">•</span>
+                                        <i class="bi bi-bar-chart me-1"></i> @(item.Grade?.GradeName ?? "N/A")
+                                    </div>
+                                </td>
+
+                                <td class="fw-bold text-success">
+                                    @((item.Price ?? 0).ToString("C0", cultureInfo))
+                                </td>
+
+                                <td>
+                                    @if (item.IsPublished == true)
+                                    {
+                                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3">
+                                            Công khai
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">
+                                            Nháp
+                                        </span>
+                                    }
+                                    @if (item.IsFeatured == true)
+                                    {
+                                        <span class="badge bg-warning text-dark ms-1" title="Nổi bật"><i class="bi bi-star-fill"></i></span>
+                                    }
+                                </td>
+
+                                <td>
+                                    <div class="d-flex flex-column small">
+                                        <span><i class="bi bi-people me-1"></i> @item.EnrollmentCount HV</span>
+                                        <span class="text-warning">
+                                            <i class="bi bi-star-fill"></i>
+                                            @(item.AverageRating?.ToString("0.0") ?? "0.0")
+                                            <span class="text-muted">(@item.RatingCount)</span>
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <td class="text-muted small">
+                                    @item.CreatedAt?.ToString("dd/MM/yyyy")
+                                </td>
+
+                                <td class="text-end pe-4">
+                                    <div class="btn-group">
+                                        <a asp-action="Edit" asp-route-id="@item.CourseId" class="btn btn-sm btn-outline-primary" title="Sửa">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@item.CourseId" class="btn btn-sm btn-outline-info" title="Chi tiết">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.CourseId" class="btn btn-sm btn-outline-danger" title="Xóa">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white py-3">
+            <small class="text-muted">Hiển thị @Model.Count() khóa học</small>
+        </div>
+    </div>
+</div>

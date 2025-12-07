@@ -1,0 +1,114 @@
+﻿@model IEnumerable<DoAnChuyenNganh.Models.Subject>
+
+@{
+    ViewData["Title"] = "Quản lý môn học";
+}
+
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center my-4">
+        <div>
+            <h1 class="mt-4">Danh mục môn học</h1>
+            <p class="text-muted">Quản lý các môn học và lĩnh vực đào tạo.</p>
+        </div>
+        <a asp-action="Create" class="btn btn-primary shadow-sm">
+            <i class="bi bi-plus-lg"></i> Thêm môn học
+        </a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <div class="row">
+                <div class="col-md-6 d-flex align-items-center">
+                    <i class="bi bi-bookmarks me-2"></i> <strong>Danh sách môn học</strong>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-nowrap align-middle mb-0">
+                    <thead class="bg-light text-secondary">
+                        <tr>
+                            <th class="ps-4" style="width: 350px;">Tên môn / Mã môn</th>
+                            <th>Mô tả</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tạo</th>
+                            <th class="text-end pe-4">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-shrink-0 me-3">
+                                            @if (!string.IsNullOrEmpty(item.IconUrl))
+                                            {
+                                                <img src="@item.IconUrl" alt="Icon" class="rounded-circle border" style="width: 45px; height: 45px; object-fit: cover; padding: 2px;">
+                                            }
+                                            else
+                                            {
+                                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center text-primary border" style="width: 45px; height: 45px;">
+                                                    <i class="bi bi-book-half fs-5"></i>
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <div>
+                                            <div class="fw-bold text-dark">@item.SubjectName</div>
+                                            <span class="badge bg-light text-dark border border-secondary border-opacity-25">
+                                                Code: @item.SubjectCode
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="text-muted small text-wrap" style="max-width: 350px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                        @(item.Description ?? "Chưa có mô tả")
+                                    </div>
+                                </td>
+
+                                <td>
+                                    @if (item.IsActive == true)
+                                    {
+                                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3">
+                                            <i class="bi bi-check-circle-fill me-1"></i> Hoạt động
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">
+                                            <i class="bi bi-pause-circle-fill me-1"></i> Tạm ngưng
+                                        </span>
+                                    }
+                                </td>
+
+                                <td class="text-muted small">
+                                    <i class="bi bi-calendar3 me-1"></i> @item.CreatedAt?.ToString("dd/MM/yyyy")
+                                </td>
+
+                                <td class="text-end pe-4">
+                                    <div class="btn-group">
+                                        <a asp-action="Edit" asp-route-id="@item.SubjectId" class="btn btn-sm btn-outline-primary" title="Sửa">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@item.SubjectId" class="btn btn-sm btn-outline-info" title="Chi tiết">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.SubjectId" class="btn btn-sm btn-outline-danger" title="Xóa">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white py-3">
+            <small class="text-muted">Tổng số: <strong>@Model.Count()</strong> môn học</small>
+        </div>
+    </div>
+</div>
