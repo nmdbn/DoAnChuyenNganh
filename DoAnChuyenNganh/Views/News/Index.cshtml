@@ -1,0 +1,208 @@
+@model DoAnChuyenNganh.ViewModels.News.NewsIndexViewModel
+@{
+    ViewData["Title"] = "News";
+}
+
+<link rel="stylesheet" href="~/css/news.css" />
+
+<div class="news-container">
+    <!-- News Header -->
+    <div class="news-header">
+        <div class="container">
+            <h1><i class="bi bi-newspaper"></i> Latest News</h1>
+            <p>Stay updated with the latest announcements and updates</p>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-lg-8">
+                <!-- Featured Articles -->
+                @if (Model.FeaturedArticles.Any() && Model.CurrentPage == 1)
+                {
+                    <div class="featured-section mb-4">
+                        <h2 class="section-title">
+                            <i class="bi bi-star-fill text-warning"></i> Featured News
+                        </h2>
+                        <div class="row">
+                            @foreach (var article in Model.FeaturedArticles.Take(3))
+                            {
+                                <div class="col-md-@(Model.FeaturedArticles.Count == 1 ? "12" : "6") mb-3">
+                                    <div class="featured-card">
+                                        @if (!string.IsNullOrEmpty(article.FeaturedImageUrl))
+                                        {
+                                            <img src="@article.FeaturedImageUrl" alt="@article.Title" class="featured-image">
+                                        }
+                                        <div class="featured-content">
+                                            <span class="badge bg-primary">@article.CategoryName</span>
+                                            <h3>
+                                                <a href="@Url.Action("Details", "News", new { slug = article.Slug })">
+                                                    @article.Title
+                                                </a>
+                                            </h3>
+                                            @if (!string.IsNullOrEmpty(article.Excerpt))
+                                            {
+                                                <p class="excerpt">@article.Excerpt</p>
+                                            }
+                                            <div class="article-meta">
+                                                <span><i class="bi bi-person"></i> @article.AuthorName</span>
+                                                <span><i class="bi bi-calendar"></i> @article.PublishedAt?.ToString("MMM dd, yyyy")</span>
+                                                <span><i class="bi bi-eye"></i> @article.ViewCount</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Search and Filter -->
+                <div class="search-filter-section mb-4">
+                    <form method="get" asp-action="Index" class="row g-3">
+                        <div class="col-md-6">
+                            <input type="text" name="search" class="form-control" placeholder="Search news..." value="@Model.SearchTerm">
+                        </div>
+                        <div class="col-md-4">
+                            <select name="categoryId" class="form-select">
+                                <option value="">All Categories</option>
+                                @foreach (var category in Model.Categories)
+                                {
+                                    <option value="@category.CategoryId" selected="@(Model.SelectedCategoryId == category.CategoryId)">
+                                        @category.CategoryName
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- All Articles -->
+                <div class="articles-section">
+                    <h2 class="section-title">All News</h2>
+                    @if (Model.Articles.Any())
+                    {
+                        <div class="row">
+                            @foreach (var article in Model.Articles)
+                            {
+                                <div class="col-md-6 mb-4">
+                                    <div class="article-card">
+                                        @if (!string.IsNullOrEmpty(article.FeaturedImageUrl))
+                                        {
+                                            <img src="@article.FeaturedImageUrl" alt="@article.Title" class="article-image">
+                                        }
+                                        <div class="article-body">
+                                            <span class="badge bg-secondary mb-2">@article.CategoryName</span>
+                                            <h4>
+                                                <a href="@Url.Action("Details", "News", new { slug = article.Slug })">
+                                                    @article.Title
+                                                </a>
+                                            </h4>
+                                            @if (!string.IsNullOrEmpty(article.Excerpt))
+                                            {
+                                                <p class="excerpt">@article.Excerpt</p>
+                                            }
+                                            <div class="article-meta">
+                                                <span><i class="bi bi-person"></i> @article.AuthorName</span>
+                                                <span><i class="bi bi-calendar"></i> @article.PublishedAt?.ToString("MMM dd, yyyy")</span>
+                                                <span><i class="bi bi-eye"></i> @article.ViewCount</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Pagination -->
+                        @if (Model.TotalPages > 1)
+                        {
+                            <nav aria-label="News pagination">
+                                <ul class="pagination justify-content-center">
+                                    <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                        <a class="page-link" href="@Url.Action("Index", new { page = Model.CurrentPage - 1, categoryId = Model.SelectedCategoryId, search = Model.SearchTerm })">
+                                            Previous
+                                        </a>
+                                    </li>
+                                    @for (int i = 1; i <= Model.TotalPages; i++)
+                                    {
+                                        <li class="page-item @(Model.CurrentPage == i ? "active" : "")">
+                                            <a class="page-link" href="@Url.Action("Index", new { page = i, categoryId = Model.SelectedCategoryId, search = Model.SearchTerm })">
+                                                @i
+                                            </a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                        <a class="page-link" href="@Url.Action("Index", new { page = Model.CurrentPage + 1, categoryId = Model.SelectedCategoryId, search = Model.SearchTerm })">
+                                            Next
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        }
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No news articles found.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Hot Articles -->
+                @if (Model.HotArticles.Any())
+                {
+                    <div class="sidebar-section mb-4">
+                        <h3 class="sidebar-title">
+                            <i class="bi bi-fire text-danger"></i> Trending News
+                        </h3>
+                        <div class="hot-articles">
+                            @foreach (var article in Model.HotArticles)
+                            {
+                                <div class="hot-article-item">
+                                    <a href="@Url.Action("Details", "News", new { slug = article.Slug })">
+                                        <h5>@article.Title</h5>
+                                    </a>
+                                    <div class="article-meta-small">
+                                        <span><i class="bi bi-eye"></i> @article.ViewCount</span>
+                                        <span><i class="bi bi-calendar"></i> @article.PublishedAt?.ToString("MMM dd")</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Categories -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <i class="bi bi-folder"></i> Categories
+                    </h3>
+                    <div class="category-list">
+                        <a href="@Url.Action("Index")" class="category-item @(Model.SelectedCategoryId == null ? "active" : "")">
+                            All Categories
+                        </a>
+                        @foreach (var category in Model.Categories)
+                        {
+                            <a href="@Url.Action("Index", new { categoryId = category.CategoryId })"
+                               class="category-item @(Model.SelectedCategoryId == category.CategoryId ? "active" : "")">
+                                @category.CategoryName
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/news.js"></script>
+

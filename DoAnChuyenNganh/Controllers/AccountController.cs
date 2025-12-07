@@ -70,6 +70,7 @@ namespace DoAnChuyenNganh.Controllers
 
                 // ✅ 1. SET SESSION (for _Layout.cshtml)
                 HttpContext.Session.SetInt32("UserId", result.User.UserId);
+                HttpContext.Session.SetInt32("RoleId", result.User.RoleId);
                 HttpContext.Session.SetString("Username", result.User.Username);
                 HttpContext.Session.SetString("Email", result.User.Email);
                 HttpContext.Session.SetString("FullName", $"{result.User.FirstName} {result.User.LastName}");
@@ -534,6 +535,7 @@ namespace DoAnChuyenNganh.Controllers
 
             // ✅ SET SESSION
             HttpContext.Session.SetInt32("UserId", resultAuth.User.UserId);
+            HttpContext.Session.SetInt32("RoleId", resultAuth.User.RoleId);
             HttpContext.Session.SetString("Username", resultAuth.User.Username);
             HttpContext.Session.SetString("Email", resultAuth.User.Email);
             HttpContext.Session.SetString("FullName", $"{resultAuth.User.FirstName} {resultAuth.User.LastName}");
@@ -568,6 +570,9 @@ namespace DoAnChuyenNganh.Controllers
             );
 
             await HttpContext.Session.CommitAsync();
+
+            _logger.LogInformation("Google login successful - UserId: {UserId}, RoleId: {RoleId}, Username: {Username}",
+                resultAuth.User.UserId, resultAuth.User.RoleId, resultAuth.User.Username);
 
             TempData["SuccessMessage"] = "Login with Google successful!";
 
@@ -615,11 +620,18 @@ namespace DoAnChuyenNganh.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                email = $"{providerId}@facebook.local";
+            }
+
             var ipAddress = GetIpAddress();
             var userAgent = GetUserAgent();
 
             var resultAuth = await _authService.AuthenticateFacebookAsync(
+
                 email ?? providerId,
+
                 name ?? "Facebook User",
                 providerId,
                 ipAddress,
@@ -641,6 +653,7 @@ namespace DoAnChuyenNganh.Controllers
 
             // ✅ SET SESSION
             HttpContext.Session.SetInt32("UserId", resultAuth.User.UserId);
+            HttpContext.Session.SetInt32("RoleId", resultAuth.User.RoleId);
             HttpContext.Session.SetString("Username", resultAuth.User.Username);
             HttpContext.Session.SetString("Email", resultAuth.User.Email ?? "");
             HttpContext.Session.SetString("FullName", $"{resultAuth.User.FirstName} {resultAuth.User.LastName}");
@@ -675,6 +688,9 @@ namespace DoAnChuyenNganh.Controllers
             );
 
             await HttpContext.Session.CommitAsync();
+
+            _logger.LogInformation("Facebook login successful - UserId: {UserId}, RoleId: {RoleId}, Username: {Username}",
+                resultAuth.User.UserId, resultAuth.User.RoleId, resultAuth.User.Username);
 
             TempData["SuccessMessage"] = "Login with Facebook successful!";
 
