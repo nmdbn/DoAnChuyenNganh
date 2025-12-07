@@ -1,0 +1,220 @@
+@model DoAnChuyenNganh.ViewModels.Auth.UserProfileViewModel
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+
+<div class="profile-container">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert-auth alert-auth-success">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    <div class="profile-header">
+        @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+        {
+            <img src="@Model.AvatarUrl" alt="Profile Avatar" class="profile-avatar" />
+        }
+        else
+        {
+            <div class="profile-avatar-placeholder">
+                @Model.FirstName.Substring(0, 1)@Model.LastName.Substring(0, 1)
+            </div>
+        }
+
+        <div class="profile-info">
+            <h2>@Model.FirstName @Model.LastName</h2>
+            <p class="profile-meta">
+                <span><strong>Username:</strong> @Model.Username</span>
+                <span><strong>Role:</strong> @Model.RoleName</span>
+                @if (Model.IsEmailVerified)
+                {
+                    <span style="color: #28a745;">✓ Email Verified</span>
+                }
+                else
+                {
+                    <span style="color: #ffc107;">⚠ Email Not Verified</span>
+                }
+            </p>
+            <p class="profile-meta">
+                <span><strong>Member Since:</strong> @Model.CreatedAt?.ToString("MMMM dd, yyyy")</span>
+                @if (Model.LastLoginAt.HasValue)
+                {
+                    <span><strong>Last Login:</strong> @Model.LastLoginAt.Value.ToString("MMMM dd, yyyy HH:mm")</span>
+                }
+            </p>
+        </div>
+    </div>
+
+    <div class="profile-card">
+        <h3>Edit Profile</h3>
+
+        @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+        {
+            <div class="alert-auth alert-auth-error">
+                <ul style="margin: 0; padding-left: 20px;">
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <li>@error.ErrorMessage</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <form asp-action="Profile" asp-controller="Account" method="post" class="auth-form" enctype="multipart/form-data">
+            <input type="hidden" asp-for="UserId" />
+            <input type="hidden" asp-for="IsEmailVerified" />
+            <input type="hidden" asp-for="RoleName" />
+            <input type="hidden" asp-for="CreatedAt" />
+            <input type="hidden" asp-for="LastLoginAt" />
+
+            <div class="form-group">
+                <label>Profile Avatar</label>
+                <div class="avatar-upload-container">
+                    <div class="avatar-preview" id="avatar-preview">
+                        @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+                        {
+                            <img src="@Model.AvatarUrl" alt="Current Avatar" id="avatar-preview-img" />
+                        }
+                        else
+                        {
+                            <div class="avatar-placeholder" id="avatar-placeholder">
+                                <i class="bi bi-person-circle"></i>
+                            </div>
+                        }
+                    </div>
+                    <div class="avatar-upload-controls">
+                        <input type="file" id="avatar-file-selector" class="form-control"
+                               accept=".jpg,.jpeg,.png,.gif" onchange="initAvatarCrop(this)" />
+                        <input type="hidden" name="AvatarFile" id="avatar-file-input" />
+                        <small class="form-text text-muted">
+                            Allowed formats: JPG, PNG, GIF. Max 2MB. Image will be cropped to 200x200px.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="Username"></label>
+                        <input asp-for="Username" class="form-control" placeholder="Username" />
+                        <span asp-validation-for="Username" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="Email"></label>
+                        <input asp-for="Email" class="form-control" placeholder="Email" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="FirstName"></label>
+                        <input asp-for="FirstName" class="form-control" placeholder="First Name" />
+                        <span asp-validation-for="FirstName" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="LastName"></label>
+                        <input asp-for="LastName" class="form-control" placeholder="Last Name" />
+                        <span asp-validation-for="LastName" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="PhoneNumber"></label>
+                        <input asp-for="PhoneNumber" class="form-control" placeholder="Phone Number" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="DateOfBirth"></label>
+                        <input asp-for="DateOfBirth" class="form-control" type="date" />
+                        <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="AvatarUrl"></label>
+                <input asp-for="AvatarUrl" class="form-control" placeholder="Avatar URL" />
+                <span asp-validation-for="AvatarUrl" class="text-danger"></span>
+                <small class="form-text text-muted">Enter a URL to your profile picture</small>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Bio"></label>
+                <textarea asp-for="Bio" class="form-control" rows="4" placeholder="Tell us about yourself..."></textarea>
+                <span asp-validation-for="Bio" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <button type="submit" class="btn-auth-primary">Update Profile</button>
+                </div>
+                <div class="col-md-6">
+                    <a asp-action="ChangePassword" asp-controller="Account" class="btn-auth-primary" style="background: #6c757d; text-align: center; display: block; text-decoration: none;">
+                        Change Password
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Avatar Cropping Modal -->
+<div class="modal fade" id="avatarCropModal" tabindex="-1" aria-labelledby="avatarCropModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="avatarCropModalLabel">Crop Avatar Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="crop-container">
+                    <img id="crop-image" src="" alt="Crop preview" style="max-width: 100%;">
+                </div>
+                <div class="crop-controls mt-3">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="cropperZoom(0.1)">
+                        <i class="bi bi-zoom-in"></i> Zoom In
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="cropperZoom(-0.1)">
+                        <i class="bi bi-zoom-out"></i> Zoom Out
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="cropperRotate(90)">
+                        <i class="bi bi-arrow-clockwise"></i> Rotate
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="cropperReset()">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="applyCrop()">Apply Crop</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <!-- Cropper.js CSS and JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <script src="~/js/auth.js" asp-append-version="true"></script>
+}
+

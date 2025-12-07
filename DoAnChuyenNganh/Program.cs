@@ -76,10 +76,10 @@ builder.Services.AddAuthentication(options =>
         options.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"]!;
         options.CallbackPath = "/signin-facebook";
         options.Scope.Add("public_profile");
-        options.Scope.Add("email");  
+        options.Scope.Add("email");
         options.Fields.Add("name");
         options.Fields.Add("email");
-        options.Fields.Add("picture");      
+        options.Fields.Add("picture");
     });
 
 var app = builder.Build();
@@ -104,6 +104,15 @@ app.MapStaticAssets();
 // Map SignalR Hubs
 app.MapHub<NotificationHub>("/notificationHub");
 app.MapHub<ChatHub>("/chatHub");
+
+app.MapAreaControllerRoute(
+    name: "AdminArea",
+    areaName: "Admin",
+    pattern: "Admin/{controller=Dashboard}/{action=Index}/{id?}");
+
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
 
 app.MapControllerRoute(
     name: "default",

@@ -1,0 +1,150 @@
+﻿@model DoAnChuyenNganh.Models.Course
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h1>Details</h1>
+
+<div>
+    <h4>Course</h4>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Title)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Title)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Slug)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Slug)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Description)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Description)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.ShortDescription)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.ShortDescription)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.ThumbnailUrl)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.ThumbnailUrl)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.DifficultyLevel)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.DifficultyLevel)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.EstimatedHours)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.EstimatedHours)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Price)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Price)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.IsPublished)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.IsPublished)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.IsFeatured)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.IsFeatured)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.ViewCount)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.ViewCount)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.EnrollmentCount)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.EnrollmentCount)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.AverageRating)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.AverageRating)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.RatingCount)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.RatingCount)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.CreatedAt)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.CreatedAt)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.UpdatedAt)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.UpdatedAt)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.PublishedAt)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.PublishedAt)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.CreatedByNavigation)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.CreatedByNavigation.UserId)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Grade)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Grade.GradeId)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Instructor)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Instructor.UserId)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Subject)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Subject.SubjectId)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.UpdatedByNavigation)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.UpdatedByNavigation.UserId)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model?.CourseId">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>

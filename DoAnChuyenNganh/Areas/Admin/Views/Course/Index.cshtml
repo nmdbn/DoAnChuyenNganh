@@ -1,0 +1,161 @@
+﻿@model IEnumerable<DoAnChuyenNganh.Models.Course>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Title)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Slug)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Description)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ShortDescription)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ThumbnailUrl)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.DifficultyLevel)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EstimatedHours)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Price)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.IsPublished)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.IsFeatured)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ViewCount)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EnrollmentCount)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.AverageRating)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.RatingCount)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CreatedAt)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UpdatedAt)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PublishedAt)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CreatedByNavigation)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Grade)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Instructor)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Subject)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UpdatedByNavigation)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Title)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Slug)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Description)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ShortDescription)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ThumbnailUrl)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DifficultyLevel)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EstimatedHours)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Price)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.IsPublished)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.IsFeatured)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ViewCount)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EnrollmentCount)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.AverageRating)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.RatingCount)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CreatedAt)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.UpdatedAt)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PublishedAt)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CreatedByNavigation.UserId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Grade.GradeId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Instructor.UserId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Subject.SubjectId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.UpdatedByNavigation.UserId)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.CourseId">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.CourseId">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.CourseId">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
