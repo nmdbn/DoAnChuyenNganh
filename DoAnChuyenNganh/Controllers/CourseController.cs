@@ -477,20 +477,20 @@ namespace DoAnChuyenNganh.Controllers
 
             if (course == null) return NotFound();
 
-            // Tăng view
+            // Tăng view count
             course.ViewCount++;
             _context.Update(course);
             await _context.SaveChangesAsync();
 
             var userId = GetCurrentUserId();
-            var price = course.Price.GetValueOrDefault(0m); // xử lý nullable
+            var price = course.Price.GetValueOrDefault(0m);
 
-            if (userId > 0)
+            // ✅ CASE 1: KHÓA HỌC MIỄN PHÍ
+            if (price <= 0)
             {
-                // --------- CASE 1: KHÓA HỌC FREE (Price <= 0) ---------
-                if (price <= 0)
+                if (userId > 0)
                 {
-                    // Nếu chưa có payment nào (kể cả free) thì tạo 1 payment free
+                    // Tạo payment miễn phí nếu chưa có
                     var existingPayment = await _context.Payments
                         .FirstOrDefaultAsync(p =>
                             p.UserId == userId &&
@@ -515,11 +515,19 @@ namespace DoAnChuyenNganh.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    // Free course → luôn được học như đã thanh toán
-                    return View("Learning", course);
+                    // Free course → vào học luôn
+                    return RedirectToAction("Learning", new { id = course.CourseId });
                 }
 
-                // --------- CASE 2: KHÓA HỌC CÓ THU PHÍ ---------
+                // Chưa login → yêu cầu đăng nhập
+                TempData["ErrorMessage"] = "Please login to access this free course.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // ✅ CASE 2: KHÓA HỌC CÓ PHÍ
+            if (userId > 0)
+            {
+                // Kiểm tra user này đã thanh toán chưa
                 bool hasPaid = await _context.Payments
                     .AnyAsync(p =>
                         p.UserId == userId &&
@@ -530,11 +538,10 @@ namespace DoAnChuyenNganh.Controllers
                 {
                     // Đã thanh toán → vào học
                     return RedirectToAction("Learning", new { id = course.CourseId });
-
                 }
             }
 
-            // Chưa login hoặc chưa thanh toán (với course có phí) → hiển thị trang PublicDetails
+            // Chưa thanh toán hoặc chưa login → hiển thị trang chi tiết
             return View("PublicDetails", course);
         }
 
@@ -592,19 +599,22 @@ namespace DoAnChuyenNganh.Controllers
         // AUTHORIZATION HELPERS
         // =============================================
 
-        private bool IsLoggedIn()
-        {
-            //var userId = GetCurrentUserId();
-            //return userId > 0;
-            return User.Identity.IsAuthenticated;
-        }
-
         private int GetCurrentUserId()
         {
-            //var userId = HttpContext.Session.GetInt32("UserId");
-            //return userId.GetValueOrDefault(0);
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            return int.TryParse(userIdClaim, out int id) ? id : 1;
+
+            if (int.TryParse(userIdClaim, out int id))
+            {
+                return id;
+            }
+
+            // ✅ Trả về 0 nếu không tìm thấy (thay vì 1)
+            return 0;
+        }
+
+        private bool IsLoggedIn()
+        {
+            return User.Identity.IsAuthenticated && GetCurrentUserId() > 0;
         }
 
         private bool IsAdminOrInstructor()
@@ -936,7 +946,19 @@ namespace DoAnChuyenNganh.Controllers
             try
             {
                 var userId = GetCurrentUserId();
-                if (userId == 0) return RedirectToAction("Login", "Account");
+
+                // ✅ Debug: In ra console
+                Console.WriteLine($"========== CHECKOUT DEBUG ==========");
+                Console.WriteLine($"UserID from claim: {userId}");
+                Console.WriteLine($"CourseID: {model.CourseId}");
+                Console.WriteLine($"Payment Method: {model.PaymentMethod}");
+
+                if (userId == 0)
+                {
+                    Console.WriteLine("❌ ERROR: UserID is 0!");
+                    TempData["ErrorMessage"] = "Cannot identify user. Please login again.";
+                    return RedirectToAction("Login", "Account");
+                }
 
                 var course = await _context.Courses.FindAsync(model.CourseId);
                 if (course == null || !course.IsPublished) return NotFound();
@@ -946,10 +968,10 @@ namespace DoAnChuyenNganh.Controllers
 
                 var price = course.Price ?? 0m;
 
-                // Tạo payment record
+                // ✅ Tạo payment với UserID đúng
                 var payment = new Payment
                 {
-                    UserId = userId,
+                    UserId = userId, // Đảm bảo dùng userId lấy từ claim
                     CourseId = course.CourseId,
                     Amount = price,
                     PaymentMethod = model.PaymentMethod,
@@ -966,6 +988,10 @@ namespace DoAnChuyenNganh.Controllers
 
                 _context.Payments.Add(payment);
                 await _context.SaveChangesAsync();
+
+                // ✅ Debug: Kiểm tra payment đã lưu
+                Console.WriteLine($"✅ Payment created with ID: {payment.PaymentId}");
+                Console.WriteLine($"✅ Payment UserID: {payment.UserId}");
 
                 // Xử lý theo phương thức thanh toán
                 switch (model.PaymentMethod)
@@ -1148,10 +1174,15 @@ namespace DoAnChuyenNganh.Controllers
         public async Task<IActionResult> Learning(int id, int? lessonId, int? attemptId)
         {
             var userId = GetCurrentUserId();
-            if (userId == 0)
-                return RedirectToAction("Login", "Account");
 
-            // Lấy course + lessons đã publish
+            // ✅ Kiểm tra đăng nhập
+            if (userId == 0)
+            {
+                TempData["ErrorMessage"] = "Please login to access this course.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Lấy course
             var course = await _context.Courses
                 .Include(c => c.Lessons.Where(l => l.IsPublished == true))
                 .FirstOrDefaultAsync(c => c.CourseId == id && c.IsPublished == true);
@@ -1159,7 +1190,26 @@ namespace DoAnChuyenNganh.Controllers
             if (course == null)
                 return NotFound();
 
-            // Đảm bảo Enrollment tồn tại
+            var price = course.Price.GetValueOrDefault(0m);
+
+            // ✅ Kiểm tra quyền truy cập
+            if (price > 0)
+            {
+                // Khóa học có phí → phải thanh toán mới được học
+                bool hasPaid = await _context.Payments
+                    .AnyAsync(p =>
+                        p.UserId == userId &&
+                        p.CourseId == id &&
+                        p.Status == "Completed");
+
+                if (!hasPaid)
+                {
+                    TempData["ErrorMessage"] = "You must purchase this course before accessing it.";
+                    return RedirectToAction("PublicDetails", new { id = course.CourseId });
+                }
+            }
+
+            // ✅ Đảm bảo Enrollment tồn tại
             var enrollment = await _context.Enrollments
                 .FirstOrDefaultAsync(e => e.UserId == userId && e.CourseId == id);
 
@@ -1193,7 +1243,6 @@ namespace DoAnChuyenNganh.Controllers
             var currentLessonId = lessonId ?? lessons.First().LessonId;
             var currentLesson = lessons.FirstOrDefault(l => l.LessonId == currentLessonId);
 
-            // Lấy course material của lesson hiện tại
             var currentMaterials = await _context.CourseMaterials
                 .Where(m => m.CourseId == id && m.LessonId == currentLessonId)
                 .OrderBy(m => m.MaterialName)
@@ -1227,7 +1276,7 @@ namespace DoAnChuyenNganh.Controllers
             enrollment.LastAccessedAt = DateTime.Now;
             await _context.SaveChangesAsync();
 
-            // Map bài nào đã có progress
+            // Map progress
             var lessonIds = lessons.Select(l => l.LessonId).ToList();
             var lessonProgresses = await _context.LessonProgresses
                 .Where(p => p.EnrollmentId == enrollment.EnrollmentId &&
@@ -1238,15 +1287,12 @@ namespace DoAnChuyenNganh.Controllers
                 .GroupBy(p => p.LessonId)
                 .ToDictionary(g => g.Key, g => g.Any());
 
-            // ======================
-            // PHẦN QUẢN LÝ QUIZ
-            // ======================
+            // Quiz logic (giữ nguyên như cũ)
             TakeQuizViewModel? quizToTake = null;
             QuizResultViewModel? quizResult = null;
 
             if (currentLesson != null && currentLesson.LessonType == "quiz")
             {
-                // Nếu có attemptId => show result
                 if (attemptId.HasValue)
                 {
                     var attempt = await _context.UserQuizAttempts
@@ -1295,7 +1341,6 @@ namespace DoAnChuyenNganh.Controllers
                 }
                 else
                 {
-                    // Chưa làm => tạo attempt mới + load quiz để làm
                     var quiz = await _context.Quizzes
                         .Include(q => q.QuizQuestions)
                             .ThenInclude(q => q.QuizAnswers)
@@ -1361,6 +1406,7 @@ namespace DoAnChuyenNganh.Controllers
 
             return View(vm);
         }
+
 
         // === ACTION SUBMIT QUIZ (bạn đã có – giữ nguyên là tốt nhất) ===
         [HttpPost]
@@ -1535,6 +1581,35 @@ namespace DoAnChuyenNganh.Controllers
             // VNPay IPN callback (nếu cần)
             await Task.CompletedTask;
             return NoContent();
+        }
+        // Thêm vào CourseController để debug
+        [HttpGet]
+        public IActionResult DebugAuth()
+        {
+            var userId = GetCurrentUserId();
+            var isAuthenticated = User.Identity.IsAuthenticated;
+            var roleName = HttpContext.Session.GetString("RoleName");
+            var sessionUserId = HttpContext.Session.GetInt32("UserId");
+
+            var claims = User.Claims.Select(c => new
+            {
+                Type = c.Type,
+                Value = c.Value
+            }).ToList();
+
+            var debugInfo = new
+            {
+                IsAuthenticated = isAuthenticated,
+                UserIdFromClaim = userId,
+                RoleNameFromSession = roleName ?? "NULL",
+                UserIdFromSession = sessionUserId?.ToString() ?? "NULL",
+                IsLoggedIn = IsLoggedIn(),
+                IsAdminOrInstructor = IsAdminOrInstructor(),
+                IsAdmin = IsAdmin(),
+                Claims = claims
+            };
+
+            return Json(debugInfo);
         }
     }
 }
