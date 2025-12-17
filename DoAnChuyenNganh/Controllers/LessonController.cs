@@ -1517,5 +1517,78 @@ namespace DoAnChuyenNganh.Controllers
                 throw;
             }
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateInline(
+    int courseId,
+    string title,
+    string lessonType,
+    string? content,
+    string? videoUrl,
+    bool isPublished,
+    bool isPreviewable)
+        {
+            if (!HasInstructorOrAdminPermission())
+                return Json(new { success = false, message = "Permission denied." });
+
+            if (courseId <= 0)
+                return Json(new { success = false, message = "CourseId invalid." });
+
+            if (string.IsNullOrWhiteSpace(title))
+                return Json(new { success = false, message = "Title is required." });
+
+            lessonType = (lessonType ?? "text").Trim().ToLower();
+            var allowedTypes = new[] { "text", "video", "quiz" };
+            if (!allowedTypes.Contains(lessonType))
+                return Json(new { success = false, message = "LessonType invalid." });
+
+            var currentUserId = GetCurrentUserId();
+            var course = await _context.Courses.AsNoTracking().FirstOrDefaultAsync(c => c.CourseId == courseId);
+            if (course == null)
+                return Json(new { success = false, message = "Course not found." });
+
+            if (!IsAdmin() && course.InstructorId != currentUserId)
+                return Json(new { success = false, message = "You can only add lessons to your own course." });
+
+            try
+            {
+                // ✅ FIX: Luôn lấy order tiếp theo để tránh conflict
+                var nextOrder = await GetNextLessonOrderAsync(courseId);
+
+                var lesson = new Lesson
+                {
+                    CourseId = courseId,
+                    Title = title.Trim(),
+                    Content = content,
+                    LessonType = lessonType,
+                    LessonOrder = (short)nextOrder, // ✅ Dùng nextOrder
+                    VideoUrl = lessonType == "video" ? videoUrl : null,
+                    IsPublished = isPublished,
+                    IsPreviewable = isPreviewable,
+                    CreatedBy = currentUserId,
+                    UpdatedBy = currentUserId,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                };
+
+                _context.Lessons.Add(lesson);
+                await _context.SaveChangesAsync();
+
+                return Json(new
+                {
+                    success = true,
+                    lessonId = lesson.LessonId,
+                    lessonOrder = lesson.LessonOrder,
+                    title = lesson.Title,
+                    lessonType = lesson.LessonType
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"CreateInline Error: {ex.Message}");
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
     }
 }
