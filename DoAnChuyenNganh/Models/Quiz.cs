@@ -36,7 +36,35 @@ namespace DoAnChuyenNganh.Models
     // Bảng QuizQuestion
     public partial class QuizQuestion
     {
+        //public int QuestionId { get; set; }
+        //public int QuizId { get; set; }
+
+        //[Required]
+        //public string QuestionText { get; set; } = null!;
+
+        //[Required]
+        //[StringLength(20)]
+        //public string QuestionType { get; set; } = "multiple_choice"; // "multiple_choice" hoặc "essay"
+
+        //public int QuestionOrder { get; set; }
+        //public int Points { get; set; } = 10;
+        //public string? Explanation { get; set; }
+        //public DateTime? CreatedAt { get; set; }
+
+        //// Navigation
+        //public virtual Quiz Quiz { get; set; } = null!;
+        //public virtual ICollection<QuizAnswer> QuizAnswers { get; set; } = new List<QuizAnswer>();
+        //public virtual ICollection<UserQuizAnswer> UserQuizAnswers { get; set; } = new List<UserQuizAnswer>();
+        public QuizQuestion()
+        {
+            QuizAnswers = new HashSet<QuizAnswer>();
+            UserQuizAnswers = new HashSet<UserQuizAnswer>();
+        }
+
+        [Key]
         public int QuestionId { get; set; }
+
+        [Required]
         public int QuizId { get; set; }
 
         [Required]
@@ -44,17 +72,26 @@ namespace DoAnChuyenNganh.Models
 
         [Required]
         [StringLength(20)]
-        public string QuestionType { get; set; } = "multiple_choice"; // "multiple_choice" hoặc "essay"
+        public string QuestionType { get; set; } = "multiple_choice"; // 'multiple_choice' hoặc 'essay'
 
+        [Required]
         public int QuestionOrder { get; set; }
-        public int Points { get; set; } = 10;
-        public string? Explanation { get; set; }
-        public DateTime? CreatedAt { get; set; }
 
-        // Navigation
+        public int Points { get; set; } = 10;
+
+        public string? Explanation { get; set; }
+
+        // NEW: Biến để đánh dấu câu hỏi có nhiều đáp án đúng
+        public bool AllowMultipleCorrect { get; set; } = false;
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        // Navigation Properties
+        [ForeignKey("QuizId")]
         public virtual Quiz Quiz { get; set; } = null!;
-        public virtual ICollection<QuizAnswer> QuizAnswers { get; set; } = new List<QuizAnswer>();
-        public virtual ICollection<UserQuizAnswer> UserQuizAnswers { get; set; } = new List<UserQuizAnswer>();
+
+        public virtual ICollection<QuizAnswer> QuizAnswers { get; set; }
+        public virtual ICollection<UserQuizAnswer> UserQuizAnswers { get; set; }
     }
 
     // Bảng QuizAnswer - Tối đa 4 đáp án, 1 đúng
@@ -68,7 +105,7 @@ namespace DoAnChuyenNganh.Models
 
         public bool IsCorrect { get; set; }
 
-        [Range(1, 4)]
+        [Range(1, 5)]
         public byte AnswerOrder { get; set; }
         //[ForeignKey(nameof(QuestionId))]
         //public virtual QuizQuestion QuizQuestion { get; set; } = null!;

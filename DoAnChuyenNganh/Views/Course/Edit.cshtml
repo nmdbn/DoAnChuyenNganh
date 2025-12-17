@@ -33,9 +33,8 @@
     <div class="row g-4">
         <!-- Left Column: Form -->
         <div class="col-lg-8">
-            <form asp-action="Edit" method="post">
+            <form asp-action="Edit" method="post" enctype="multipart/form-data">
                 <input type="hidden" asp-for="CourseId" />
-                <div asp-validation-summary="All" class="alert alert-danger"></div>
 
                 <!-- Basic Information -->
                 <div class="card mb-4">
@@ -120,7 +119,7 @@
                                     <br />
                                     <small class="text-muted">
                                         <i class="bi bi-info-circle"></i>
-                                        The course creator will be the only student. Cannot be changed after creation.
+                                        The course creator cannot be changed after creation.
                                     </small>
                                 </div>
                                 <input type="hidden" asp-for="InstructorId" />
@@ -168,29 +167,69 @@
                             </div>
                         </div>
 
+                        <!-- ✅ THUMBNAIL UPLOAD & PREVIEW -->
                         <div class="form-group mb-3">
-                            <label asp-for="ThumbnailUrl" class="form-label fw-semibold">
-                                <i class="bi bi-image"></i> Thumbnail URL
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-image"></i> Thumbnail Image
                             </label>
-                            <input asp-for="ThumbnailUrl" class="form-control"
-                                   placeholder="https://example.com/image.jpg" />
-                            <small class="form-text text-muted">
-                                Recommended size: 1280x720px (16:9 ratio)
-                            </small>
-                            <span asp-validation-for="ThumbnailUrl" class="text-danger"></span>
-                        </div>
 
-                        @if (!string.IsNullOrEmpty(Model.ThumbnailUrl))
-                        {
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Current Thumbnail:</label>
-                                <div>
-                                    <img src="@Model.ThumbnailUrl" alt="Course thumbnail"
-                                         class="img-thumbnail" style="max-width: 300px;"
-                                         onerror="this.src='https://via.placeholder.com/300x169?text=Invalid+Image'" />
+                            <!-- Current Thumbnail -->
+                            @if (!string.IsNullOrEmpty(Model.ThumbnailUrl))
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small">Current Thumbnail:</label>
+                                    <div>
+                                        <img id="currentThumbnail"
+                                             src="@Model.ThumbnailUrl"
+                                             alt="Current thumbnail"
+                                             class="img-thumbnail"
+                                             style="max-width: 300px; max-height: 200px; object-fit: cover;"
+                                             onerror="this.src='https://via.placeholder.com/300x169?text=Invalid+Image'" />
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- File Upload -->
+                            <div class="mb-2">
+                                <input type="file"
+                                       id="thumbnailFileInput"
+                                       name="ThumbnailFile"
+                                       class="form-control"
+                                       accept="image/*" />
+                                <small class="text-muted">
+                                    Upload new image: JPG, PNG, GIF, WEBP (Max: 5MB)
+                                </small>
+                            </div>
+
+                            <!-- URL Input -->
+                            <div class="mb-2">
+                                <input asp-for="ThumbnailUrl"
+                                       id="thumbnailUrlInput"
+                                       class="form-control"
+                                       placeholder="Or paste new image URL here" />
+                                <small class="form-text text-muted">
+                                    You can upload a file OR paste a direct URL
+                                </small>
+                                <span asp-validation-for="ThumbnailUrl" class="text-danger"></span>
+                            </div>
+
+                            <!-- New Image Preview -->
+                            <div id="thumbnailPreviewContainer" style="display: none;">
+                                <label class="form-label text-success small">New Preview:</label>
+                                <div class="position-relative" style="max-width: 400px;">
+                                    <img id="thumbnailPreview"
+                                         src=""
+                                         alt="New thumbnail preview"
+                                         class="img-thumbnail w-100"
+                                         style="max-height: 300px; object-fit: cover;" />
+                                    <button type="button"
+                                            id="removeThumbnailBtn"
+                                            class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2">
+                                        <i class="bi bi-x-circle"></i> Remove
+                                    </button>
                                 </div>
                             </div>
-                        }
+                        </div>
                     </div>
                 </div>
 
@@ -266,40 +305,121 @@
     }
 
     <script>
-        // Character counter for short description
-        document.getElementById('ShortDescription')?.addEventListener('input', function() {
-            document.getElementById('charCount').textContent = this.value.length;
-        });
+        document.addEventListener('DOMContentLoaded', function () {
+            const fileInput = document.getElementById('thumbnailFileInput');
+            const urlInput = document.getElementById('thumbnailUrlInput');
+            const previewContainer = document.getElementById('thumbnailPreviewContainer');
+            const previewImg = document.getElementById('thumbnailPreview');
+            const removeBtn = document.getElementById('removeThumbnailBtn');
+            const currentThumbnail = document.getElementById('currentThumbnail');
 
-        // Auto-generate slug from title if slug is empty
-        document.getElementById('Title')?.addEventListener('input', function() {
+            // Character counter
+            const shortDescInput = document.getElementById('ShortDescription');
+            const charCount = document.getElementById('charCount');
+            if (shortDescInput && charCount) {
+                shortDescInput.addEventListener('input', function () {
+                    charCount.textContent = this.value.length;
+                });
+            }
+
+            // Auto-generate slug
+            const titleInput = document.getElementById('Title');
             const slugInput = document.getElementById('Slug');
-            if (slugInput && !slugInput.value) {
-                let slug = this.value
-                    .toLowerCase()
-                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                    .replace(/đ/g, 'd')
-                    .replace(/[^a-z0-9\s-]/g, '')
-                    .trim()
-                    .replace(/\s+/g, '-');
+            if (titleInput && slugInput) {
+                titleInput.addEventListener('input', function () {
+                    if (!slugInput.value || slugInput.value === slugify(titleInput.dataset.original || '')) {
+                        let slug = this.value
+                            .toLowerCase()
+                            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                            .replace(/đ/g, 'd')
+                            .replace(/[^a-z0-9\s-]/g, '')
+                            .trim()
+                            .replace(/\s+/g, '-');
 
-                slugInput.value = slug;
+                        slugInput.value = slug;
+                    }
+                });
+            }
+
+            // ✅ FILE UPLOAD PREVIEW
+            if (fileInput) {
+                fileInput.addEventListener('change', function (e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        // Validate file type
+                        if (!file.type.startsWith('image/')) {
+                            alert('Please select an image file');
+                            fileInput.value = '';
+                            return;
+                        }
+
+                        // Validate file size (5MB)
+                        if (file.size > 5 * 1024 * 1024) {
+                            alert('File size must be less than 5MB');
+                            fileInput.value = '';
+                            return;
+                        }
+
+                        // Preview image
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            previewImg.src = e.target.result;
+                            previewContainer.style.display = 'block';
+                            urlInput.value = file.name; // Show filename
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            // ✅ URL INPUT PREVIEW
+            if (urlInput) {
+                urlInput.addEventListener('input', function () {
+                    const url = urlInput.value.trim();
+                    if (url && url !== currentThumbnail?.src) {
+                        // Clear file input if user is pasting URL
+                        if (fileInput) {
+                            fileInput.value = '';
+                        }
+
+                        // Preview image from URL
+                        previewImg.src = url;
+                        previewImg.onerror = function () {
+                            previewContainer.style.display = 'none';
+                        };
+                        previewImg.onload = function () {
+                            previewContainer.style.display = 'block';
+                        };
+                    } else if (!url) {
+                        previewContainer.style.display = 'none';
+                    }
+                });
+            }
+
+            // ✅ REMOVE BUTTON
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function () {
+                    previewContainer.style.display = 'none';
+                    previewImg.src = '';
+                    urlInput.value = currentThumbnail ? currentThumbnail.src : '';
+                    fileInput.value = '';
+                });
             }
         });
 
-        // Preview thumbnail
-        document.getElementById('ThumbnailUrl')?.addEventListener('change', function() {
-            const url = this.value;
-            const previewImg = document.querySelector('.img-thumbnail');
-            if (previewImg) {
-                previewImg.src = url;
-            }
-        });
+        function slugify(text) {
+            return text
+                .toString()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+        }
     </script>
 }
 
 <style>
-    /* Edit Course Styles */
     .card {
         border: none;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
@@ -314,40 +434,10 @@
         padding: 1rem 1.25rem;
     }
 
-    .bg-gradient-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-
-    .bg-gradient-warning {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        color: white;
-    }
-
-    .bg-gradient-info {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    }
-
-    .form-label.fw-semibold {
-        color: #374151;
-        margin-bottom: 0.5rem;
-    }
-
-    .form-control,
-    .form-select {
-        border-radius: 8px;
-        border: 1px solid #d1d5db;
-        padding: 0.625rem 0.875rem;
-    }
-
-        .form-control:focus,
-        .form-select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-    .form-control-lg {
-        padding: 0.75rem 1rem;
-        font-size: 1.1rem;
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
     .btn-primary {
@@ -362,119 +452,13 @@
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
 
-    .btn-outline-secondary {
-        border-color: #d1d5db;
-        color: #6b7280;
+    #thumbnailPreview,
+    #currentThumbnail {
+        transition: transform 0.3s ease;
     }
 
-        .btn-outline-secondary:hover {
-            background-color: #f3f4f6;
-            border-color: #9ca3af;
-            color: #374151;
+        #thumbnailPreview:hover,
+        #currentThumbnail:hover {
+            transform: scale(1.02);
         }
-
-    .btn-info {
-        background-color: #3b82f6;
-        border-color: #3b82f6;
-        color: white;
-    }
-
-        .btn-info:hover {
-            background-color: #2563eb;
-            border-color: #2563eb;
-        }
-
-    /* Sidebar Styles */
-    .sticky-sidebar {
-        position: sticky;
-        top: 20px;
-    }
-
-    .stat-item {
-        padding: 0.5rem;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-    }
-
-        .stat-item:hover {
-            background-color: #f9fafb;
-        }
-
-    .progress {
-        border-radius: 10px;
-        background-color: #e5e7eb;
-    }
-
-    .progress-bar {
-        border-radius: 10px;
-        transition: width 0.6s ease;
-    }
-
-    .badge {
-        padding: 0.375rem 0.75rem;
-        font-weight: 500;
-        border-radius: 12px;
-    }
-
-    /* Quick Actions Buttons */
-    .btn-outline-primary,
-    .btn-outline-info,
-    .btn-outline-success,
-    .btn-outline-secondary,
-    .btn-outline-danger {
-        border-width: 1.5px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-        .btn-outline-primary:hover,
-        .btn-outline-info:hover,
-        .btn-outline-success:hover,
-        .btn-outline-secondary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .btn-outline-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-        }
-
-    /* Form Switch */
-    .form-check-input:checked {
-        background-color: #667eea;
-        border-color: #667eea;
-    }
-
-    .form-check-input:focus {
-        box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
-    }
-
-    /* Responsive */
-    (max-width: 991px) {
-        .sticky-sidebar
-
-    {
-        position: relative;
-        top: 0;
-    }
-
-    }
-
-    (max-width: 768px) {
-        .d-flex.gap-2.justify-content-between
-
-    {
-        flex-direction: column;
-    }
-
-    .d-flex.gap-2.justify-content-between > div {
-        width: 100%;
-    }
-
-    .btn-lg {
-        width: 100%;
-    }
-
-    }
 </style>

@@ -1,161 +1,616 @@
-﻿@model DoAnChuyenNganh.Models.Lesson
+﻿@model DoAnChuyenNganh.ViewModels.Course.LessonQuizUpsertViewModel
 
 @{
-    ViewData["Title"] = "Edit lesson";
+    ViewData["Title"] = "Edit Lesson";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container py-3">
-    <!-- HEADER -->
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <div>
-            <h2 class="mb-1">Edit lesson</h2>
-            <p class="text-muted mb-0">Update lesson information</p>
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2><i class="bi bi-pencil-square"></i> Edit Lesson</h2>
+            <p class="text-muted">Update lesson information</p>
         </div>
-        <a asp-action="Index" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> Back to list
-        </a>
+        <div class="col-md-4 text-md-end">
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
     </div>
 
-    <div class="row justify-content-center">
-        <div class="col-lg-8 col-md-10">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <form asp-action="Edit">
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-                        <input type="hidden" asp-for="LessonId" />
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="bi bi-exclamation-triangle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 
-                        <!-- BASIC INFO -->
-                        <h5 class="mb-3">Basic information</h5>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label asp-for="CourseId" class="form-label">Course</label>
-                                <select asp-for="CourseId" class="form-select" asp-items="ViewBag.CourseId">
-                                    <option value="">-- Select course --</option>
-                                </select>
-                                <span asp-validation-for="CourseId" class="text-danger"></span>
-                            </div>
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 
-                            <div class="col-md-6">
-                                <label asp-for="LessonOrder" class="form-label">Lesson order</label>
-                                <input asp-for="LessonOrder" class="form-control" type="number" />
-                                <span asp-validation-for="LessonOrder" class="text-danger"></span>
-                            </div>
+    <form id="lessonForm" asp-action="Edit" asp-route-id="@Model.LessonId" method="post" enctype="multipart/form-data">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <input type="hidden" asp-for="LessonId" />
+
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Lesson Information</h5>
+            </div>
+            <div class="card-body">
+                <!-- BASIC INFO -->
+                <h6 class="section-title">Basic Information</h6>
+                <hr />
+
+                <div class="form-group mb-3">
+                    <label asp-for="Title" class="form-label">
+                        Lesson Title <span class="text-danger">*</span>
+                    </label>
+                    <input asp-for="Title" class="form-control form-control-lg" />
+                    <span asp-validation-for="Title" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Content" class="form-label">Lesson Content</label>
+                    <textarea asp-for="Content" class="form-control" rows="5"
+                              placeholder="Nội dung bài học (có thể để trống nếu chỉ có quiz)"></textarea>
+                    <span asp-validation-for="Content" class="text-danger"></span>
+                </div>
+
+                <!-- COURSE & ORDER -->
+                <h6 class="section-title mt-4">Course & Order</h6>
+                <hr />
+
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="form-group mb-3">
+                            <label asp-for="CourseId" class="form-label">
+                                Course <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="CourseId" class="form-select" asp-items="ViewBag.CourseId" id="courseSelect">
+                                <option value="">-- Select Course --</option>
+                            </select>
+                            <span asp-validation-for="CourseId" class="text-danger"></span>
                         </div>
-
-                        <div class="mb-3">
-                            <label asp-for="Title" class="form-label">Title</label>
-                            <input asp-for="Title" class="form-control" placeholder="Enter lesson title" />
-                            <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group mb-3">
+                            <label asp-for="LessonOrder" class="form-label">
+                                Lesson Order <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="LessonOrder" class="form-control" type="number" min="1" />
+                            <span asp-validation-for="LessonOrder" class="text-danger"></span>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="mb-3">
-                            <label asp-for="Content" class="form-label">Content</label>
-                            <textarea asp-for="Content" class="form-control" rows="4" placeholder="Lesson content or description"></textarea>
-                            <span asp-validation-for="Content" class="text-danger"></span>
-                        </div>
+                <!-- TYPE & DURATION -->
+                <h6 class="section-title mt-4">Lesson Type & Media</h6>
+                <hr />
 
-                        <!-- TYPE & VIDEO -->
-                        <h5 class="mb-3 mt-4">Lesson & video</h5>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label asp-for="LessonType" class="form-label">Lesson type</label>
-                                <select asp-for="LessonType" class="form-select">
-                                    <option value="">-- Select Type --</option>
-                                    <option value="text">Text</option>
-                                    <option value="video">Video</option>
-                                    <option value="quiz">Quiz</option>
-                                    <option value="assignment">Assignment</option>
-                                </select>
-                                <span asp-validation-for="LessonType" class="text-danger"></span>
-                            </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="LessonType" class="form-label">Lesson Type</label>
+                        <select asp-for="LessonType" class="form-select" id="lessonTypeSelect">
+                            <option value="text">Text</option>
+                            <option value="video">Video</option>
+                            <option value="quiz">Quiz</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="VideoDuration" class="form-label">Duration (seconds)</label>
+                        <input asp-for="VideoDuration" class="form-control" type="number" min="0" />
+                    </div>
+                </div>
 
-                            <div class="col-md-6">
-                                <label asp-for="VideoDuration" class="form-label">Video duration (seconds)</label>
-                                <input asp-for="VideoDuration" class="form-control" type="number" min="0" />
-                                <span asp-validation-for="VideoDuration" class="text-danger"></span>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label asp-for="VideoUrl" class="form-label">Video URL</label>
-                            <input asp-for="VideoUrl" class="form-control" placeholder="https://..." />
-                            <span asp-validation-for="VideoUrl" class="text-danger"></span>
-                        </div>
-
-                        <!-- FLAGS -->
-                        <h5 class="mb-3 mt-4">Visibility & access</h5>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <div class="form-check form-switch">
-                                    <input type="checkbox"
-                                           class="form-check-input"
-                                           id="IsPreviewable"
-                                           name="IsPreviewable"
-                                           value="true"
-                                    @(Model?.IsPreviewable == true ? "checked" : "") />
-                                    <input type="hidden" name="IsPreviewable" value="false" />
-                                    <label class="form-check-label" for="IsPreviewable">Allow preview</label>
+                <!-- FILE UPLOAD -->
+                <div class="card border-primary mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <i class="bi bi-cloud-upload"></i> Upload Media File
+                    </div>
+                    <div class="card-body">
+                        @if (!string.IsNullOrEmpty(Model.VideoUrl))
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted">
+                                    <i class="bi bi-file-earmark-check"></i> Current Media:
+                                </label>
+                                <div class="current-media-wrapper">
+                                    <img id="currentThumbnail"
+                                         src="@Model.VideoUrl"
+                                         alt="Current media"
+                                         class="img-thumbnail"
+                                         style="max-width: 100%; max-height: 250px; object-fit: contain;"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                                    <div style="display:none;" class="alert alert-info">
+                                        <i class="bi bi-link-45deg"></i> <strong>URL:</strong>
+                                        <a href="@Model.VideoUrl" target="_blank" class="text-break">@Model.VideoUrl</a>
+                                    </div>
                                 </div>
-                                <span asp-validation-for="IsPreviewable" class="text-danger"></span>
                             </div>
+                            <hr />
+                        }
 
+                        <div class="row">
                             <div class="col-md-6">
-                                <div class="form-check form-switch">
-                                    <input type="checkbox"
-                                           class="form-check-input"
-                                           id="IsPublished"
-                                           name="IsPublished"
-                                           value="true"
-                                    @(Model?.IsPublished == true ? "checked" : "") />
-                                    <input type="hidden" name="IsPublished" value="false" />
-                                    <label class="form-check-label" for="IsPublished">Published</label>
-                                </div>
-                                <span asp-validation-for="IsPublished" class="text-danger"></span>
-                            </div>
-                        </div>
-
-                        <!-- AUDIT INFO (Read-only display) -->
-                        <h5 class="mb-3 mt-4">Audit information</h5>
-                        <div class="alert alert-light">
-                            <div class="row">
-                                <div class="col-md-6 mb-2">
-                                    <strong>Created at:</strong><br />
-                                    <span class="text-muted">@Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</span>
-                                </div>
-                                <div class="col-md-6 mb-2">
-                                    <strong>Created by:</strong><br />
-                                    <span class="text-muted">@Model.CreatedByNavigation?.Username</span>
-                                </div>
-                            </div>
-                            <div class="row mt-2">
-                                <div class="col-12">
-                                    <small class="text-info">
-                                        <i class="bi bi-info-circle"></i>
-                                        Last update information will be automatically recorded when you save changes.
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">
+                                        <i class="bi bi-file-earmark-arrow-up"></i> Choose File
+                                    </label>
+                                    <input type="file" id="thumbnailFileInput" name="ThumbnailFile"
+                                           class="form-control" accept="image/*,video/*" />
+                                    <span asp-validation-for="ThumbnailFile" class="text-danger"></span>
+                                    <small class="text-muted d-block mt-2">
+                                        Supported: JPG, PNG, GIF, MP4, AVI, MOV (Max: 100MB)
                                     </small>
                                 </div>
+                                <div class="text-center my-2">
+                                    <span class="badge bg-secondary">OR</span>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">
+                                        <i class="bi bi-link-45deg"></i> Paste Media URL
+                                    </label>
+                                    <input asp-for="VideoUrl" id="thumbnailUrlInput" class="form-control" />
+                                    <span asp-validation-for="VideoUrl" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="thumbnailPreviewContainer" style="display: none;">
+                                    <label class="form-label text-success">
+                                        <i class="bi bi-eye"></i> Preview:
+                                    </label>
+                                    <div class="position-relative preview-wrapper">
+                                        <img id="thumbnailPreview" src="" alt="Preview"
+                                             class="img-thumbnail w-100" style="max-height: 250px;" />
+                                        <button type="button" id="removeThumbnailBtn"
+                                                class="btn btn-danger btn-sm position-absolute"
+                                                style="top: 5px; right: 5px;">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- ACTIONS -->
-                        <div class="d-flex justify-content-end gap-2">
-                            <a asp-action="Index" class="btn btn-outline-secondary">
-                                Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save"></i> Save changes
-                            </button>
+                <!-- VISIBILITY -->
+                <h6 class="section-title mt-4">Visibility & Preview</h6>
+                <hr />
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-check form-switch">
+                            <input type="checkbox" class="form-check-input"
+                                   asp-for="IsPreviewable" id="IsPreviewable" />
+                            <label class="form-check-label" for="IsPreviewable">
+                                <i class="bi bi-eye"></i> Allow Free Preview
+                            </label>
                         </div>
-                    </form>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch">
+                            <input type="checkbox" class="form-check-input"
+                                   asp-for="IsPublished" id="IsPublished" />
+                            <label class="form-check-label" for="IsPublished">
+                                <i class="bi bi-broadcast"></i> Publish Lesson
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- QUIZ EDITOR - CHỈ HIỂN THỊ KHI CHỌN QUIZ -->
+        <div id="quizEditorSection" class="card border-warning mb-3" style="display:none;">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-question-circle"></i> Quiz Editor</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Quiz Title</label>
+                        <input asp-for="QuizTitle" class="form-control"
+                               placeholder="Will auto-fill from lesson title" />
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch mt-4">
+                            <input type="checkbox" class="form-check-input"
+                                   asp-for="IsRandomOrder" id="IsRandomOrder" />
+                            <label class="form-check-label" for="IsRandomOrder">
+                                Random Question Order
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Quiz Description</label>
+                    <textarea asp-for="QuizDescription" class="form-control" rows="2"></textarea>
+                </div>
+
+                <hr />
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Questions</h6>
+                    <button type="button" id="addQuestionBtn" class="btn btn-success btn-sm">
+                        <i class="bi bi-plus-circle"></i> Add Question
+                    </button>
+                </div>
+
+                <div id="questionsContainer">
+                    <!-- Questions will be added here dynamically -->
+                </div>
+
+                <div id="noQuestionsMessage" class="alert alert-info text-center">
+                    <i class="bi bi-info-circle"></i> No questions yet. Click "Add Question" to start.
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mb-4">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-save"></i> Update Lesson
+            </button>
+            <a asp-action="Index" class="btn btn-secondary btn-lg">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+        </div>
+    </form>
 </div>
 
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script>
+        let questionIndex = 0;
+        const existingQuizData = @Html.Raw(ViewData["ExistingQuizData"] ?? "null");
+
+        $(document).ready(function () {
+            // Toggle Quiz Editor
+            $('#lessonTypeSelect').on('change', function () {
+                if ($(this).val() === 'quiz') {
+                    $('#quizEditorSection').slideDown();
+                } else {
+                    $('#quizEditorSection').slideUp();
+                }
+            });
+
+            // Load existing quiz data if available
+            if (existingQuizData && existingQuizData.Questions) {
+                $('#quizEditorSection').show();
+                $('#noQuestionsMessage').hide();
+
+                existingQuizData.Questions.forEach((question, index) => {
+                    addQuestion(question);
+                });
+            }
+
+            // Check initial lesson type
+            if ($('#lessonTypeSelect').val() === 'quiz') {
+                $('#quizEditorSection').show();
+            }
+
+            // Add Question
+            $('#addQuestionBtn').on('click', function () {
+                addQuestion(null);
+            });
+
+            // File Preview
+            setupFilePreview();
+
+            // Form submit validation
+            $('#lessonForm').on('submit', function(e) {
+                if ($('#lessonTypeSelect').val() === 'quiz') {
+                    var questionCount = $('.question-card').length;
+                    if (questionCount === 0) {
+                        e.preventDefault();
+                        alert('Vui lòng thêm ít nhất 1 câu hỏi cho quiz!');
+                        return false;
+                    }
+                }
+            });
+        });
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function addQuestion(existingQuestion = null) {
+            $('#noQuestionsMessage').hide();
+
+            const qId = existingQuestion ? existingQuestion.QuestionId : '';
+            const qText = existingQuestion ? escapeHtml(existingQuestion.QuestionText) : '';
+            const qType = existingQuestion ? existingQuestion.QuestionType : 'multiple_choice';
+            const qPoints = existingQuestion ? existingQuestion.Points : 10;
+            const qExplanation = existingQuestion ? escapeHtml(existingQuestion.Explanation || '') : '';
+
+            const questionHtml = `
+                <div class="card mb-3 question-card" data-question-index="${questionIndex}">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <span><strong>Question ${questionIndex + 1}</strong></span>
+                        <button type="button" class="btn btn-danger btn-sm remove-question-btn">
+                            <i class="bi bi-trash"></i> Remove
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        ${qId ? `<input type="hidden" name="Questions[${questionIndex}].QuestionId" value="${qId}" />` : ''}
+
+                        <div class="mb-3">
+                            <label class="form-label">Question Text <span class="text-danger">*</span></label>
+                            <input type="text" name="Questions[${questionIndex}].QuestionText"
+                                   class="form-control" value="${qText}" required />
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Question Type</label>
+                                <select name="Questions[${questionIndex}].QuestionType" class="form-select">
+                                    <option value="multiple_choice" ${qType === 'multiple_choice' ? 'selected' : ''}>Multiple Choice</option>
+                                    <option value="essay" ${qType === 'essay' ? 'selected' : ''}>Essay</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Points</label>
+                                <input type="number" name="Questions[${questionIndex}].Points"
+                                       class="form-control" value="${qPoints}" min="1" max="100" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Explanation (optional)</label>
+                            <textarea name="Questions[${questionIndex}].Explanation"
+                                      class="form-control" rows="2">${qExplanation}</textarea>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0">
+                                Answers (Min: 2, Max: 5)
+                                <span class="badge bg-info text-dark" id="correctCount-${questionIndex}">0 correct</span>
+                            </label>
+                            <button type="button" class="btn btn-sm btn-primary add-answer-btn">
+                                <i class="bi bi-plus"></i> Add Answer
+                            </button>
+                        </div>
+
+                        <div class="answers-container" data-question-index="${questionIndex}">
+                            <!-- Answers will be added here -->
+                        </div>
+
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            Chọn ≥2 đáp án đúng → học viên có thể chọn nhiều đáp án. Chọn 1 đáp án đúng → chỉ chọn 1.
+                        </small>
+                    </div>
+                </div>
+            `;
+
+            $('#questionsContainer').append(questionHtml);
+
+            // Add existing answers or default 2 answers
+            if (existingQuestion && existingQuestion.Answers && existingQuestion.Answers.length > 0) {
+                existingQuestion.Answers.forEach((answer, index) => {
+                    addAnswer(questionIndex, answer);
+                });
+            } else {
+                addAnswer(questionIndex, null);
+                addAnswer(questionIndex, null);
+            }
+
+            // Setup remove question
+            $(`[data-question-index="${questionIndex}"] .remove-question-btn`).on('click', function () {
+                if (confirm('Are you sure you want to remove this question?')) {
+                    $(this).closest('.question-card').remove();
+                    updateQuestionNumbers();
+                    if ($('.question-card').length === 0) {
+                        $('#noQuestionsMessage').show();
+                    }
+                }
+            });
+
+            // Setup add answer
+            $(`[data-question-index="${questionIndex}"] .add-answer-btn`).on('click', function () {
+                const qIndex = $(this).closest('.question-card').data('question-index');
+                const answersCount = $(this).closest('.card-body')
+                    .find('.answers-container .answer-item').length;
+
+                if (answersCount < 5) {
+                    addAnswer(qIndex, null);
+                } else {
+                    alert('Maximum 5 answers per question');
+                }
+            });
+
+            questionIndex++;
+        }
+
+        function addAnswer(qIndex, existingAnswer = null) {
+            const answersContainer = $(`.answers-container[data-question-index="${qIndex}"]`);
+            const answerIndex = answersContainer.find('.answer-item').length;
+
+            const aId = existingAnswer ? existingAnswer.AnswerId : '';
+            const aText = existingAnswer ? escapeHtml(existingAnswer.AnswerText) : '';
+            const aCorrect = existingAnswer ? existingAnswer.IsCorrect : false;
+            const aOrder = existingAnswer ? existingAnswer.AnswerOrder : (answerIndex + 1);
+
+            const answerHtml = `
+                <div class="answer-item input-group mb-2">
+                    ${aId ? `<input type="hidden" name="Questions[${qIndex}].Answers[${answerIndex}].AnswerId" value="${aId}" />` : ''}
+
+                    <div class="input-group-text">
+                        <input type="checkbox"
+                               id="Questions_${qIndex}_Answers_${answerIndex}_IsCorrect"
+                               class="form-check-input mt-0 correct-checkbox"
+                               data-question-index="${qIndex}"
+                               data-answer-index="${answerIndex}"
+                               ${aCorrect ? 'checked' : ''}
+                               title="Mark as correct answer" />
+                        <input type="hidden"
+                               name="Questions[${qIndex}].Answers[${answerIndex}].IsCorrect"
+                               value="${aCorrect ? 'true' : 'false'}"
+                               class="is-correct-hidden" />
+                    </div>
+                    <input type="text"
+                           name="Questions[${qIndex}].Answers[${answerIndex}].AnswerText"
+                           class="form-control"
+                           value="${aText}"
+                           placeholder="Answer ${answerIndex + 1}" required />
+                    <input type="hidden"
+                           name="Questions[${qIndex}].Answers[${answerIndex}].AnswerOrder"
+                           value="${aOrder}" />
+                    <button type="button" class="btn btn-outline-danger remove-answer-btn"
+                            title="Remove answer">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+
+            answersContainer.append(answerHtml);
+
+            // Setup checkbox change handler
+            const checkbox = answersContainer.find('.answer-item:last .correct-checkbox');
+            const hiddenField = answersContainer.find('.answer-item:last .is-correct-hidden');
+
+            checkbox.on('change', function () {
+                const qIndex = $(this).data('question-index');
+                if ($(this).is(':checked')) {
+                    hiddenField.val('true');
+                } else {
+                    hiddenField.val('false');
+                }
+                updateCorrectCount(qIndex);
+            });
+
+            // Setup remove answer
+            answersContainer.find('.answer-item:last .remove-answer-btn').on('click', function () {
+                const answersCount = answersContainer.find('.answer-item').length;
+                if (answersCount > 2) {
+                    $(this).closest('.answer-item').remove();
+                    updateAnswerOrders(qIndex);
+                    updateCorrectCount(qIndex);
+                } else {
+                    alert('Minimum 2 answers required');
+                }
+            });
+
+            updateCorrectCount(qIndex);
+        }
+
+        function updateCorrectCount(qIndex) {
+            const correctCount = $(`.answers-container[data-question-index="${qIndex}"] .correct-checkbox:checked`).length;
+            $(`#correctCount-${qIndex}`).text(`${correctCount} correct`);
+
+            if (correctCount === 0) {
+                $(`#correctCount-${qIndex}`).removeClass('bg-info bg-success').addClass('bg-danger');
+            } else if (correctCount === 1) {
+                $(`#correctCount-${qIndex}`).removeClass('bg-danger bg-success').addClass('bg-info');
+            } else {
+                $(`#correctCount-${qIndex}`).removeClass('bg-danger bg-info').addClass('bg-success');
+            }
+        }
+
+        function updateQuestionNumbers() {
+            $('.question-card').each(function (index) {
+                $(this).find('.card-header span strong').text(`Question ${index + 1}`);
+            });
+        }
+
+        function updateAnswerOrders(qIndex) {
+            $(`.answers-container[data-question-index="${qIndex}"] .answer-item`).each(function (index) {
+                $(this).find('input[type="text"]').attr('placeholder', `Answer ${index + 1}`);
+                $(this).find('input[name*="AnswerOrder"]').val(index + 1);
+            });
+        }
+
+        function setupFilePreview() {
+            const originalUrl = $('#thumbnailUrlInput').val();
+
+            $('#thumbnailFileInput').on('change', function (e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        $('#thumbnailPreview').attr('src', e.target.result);
+                        $('#thumbnailPreviewContainer').show();
+                        $('#thumbnailUrlInput').val('');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            $('#thumbnailUrlInput').on('input', function () {
+                const url = $(this).val().trim();
+                if (url && url !== originalUrl) {
+                    $('#thumbnailPreview').attr('src', url);
+                    $('#thumbnailPreviewContainer').show();
+                    $('#thumbnailFileInput').val('');
+                }
+            });
+
+            $('#removeThumbnailBtn').on('click', function () {
+                $('#thumbnailPreviewContainer').hide();
+                $('#thumbnailPreview').attr('src', '');
+                $('#thumbnailUrlInput').val(originalUrl);
+                $('#thumbnailFileInput').val('');
+            });
+        }
+    </script>
+
+    <style>
+        .section-title {
+            font-weight: 600;
+            color: #374151;
+            margin-top: 5px;
+        }
+
+        .question-card {
+            border-left: 4px solid #ffc107;
+        }
+
+        .answer-item {
+            transition: all 0.2s;
+        }
+
+            .answer-item:hover {
+                background-color: #f8f9fa;
+            }
+
+        .form-check-input {
+            cursor: pointer;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.35em 0.65em;
+        }
+
+        .current-media-wrapper {
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f9fafb;
+            padding: 10px;
+        }
+
+        #currentThumbnail {
+            transition: transform 0.3s ease;
+        }
+
+            #currentThumbnail:hover {
+                transform: scale(1.02);
+            }
+    </style>
 }

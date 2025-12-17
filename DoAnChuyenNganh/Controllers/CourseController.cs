@@ -12,6 +12,7 @@ using System.Security.Claims;
 using Newtonsoft.Json;
 using System.IO;
 using System.Security.Cryptography;
+using CourseQuizVM = DoAnChuyenNganh.ViewModels.Course;
 
 namespace DoAnChuyenNganh.Controllers
 {
@@ -22,14 +23,16 @@ namespace DoAnChuyenNganh.Controllers
         private readonly DoAnChuyenNganhContext _context;
         private readonly IMomoService _momoService;
         private readonly IVnPayService _vnPayService;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public CourseController(DoAnChuyenNganhContext context, IMomoService momoService, IPaypalService paypalService, IConfiguration config, IVnPayService vnPayService)
+        public CourseController(DoAnChuyenNganhContext context, IMomoService momoService, IPaypalService paypalService, IConfiguration config, IVnPayService vnPayService, IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
             _momoService = momoService;
             _paypalService = paypalService;
             _config = config;
             _vnPayService = vnPayService;
+            _webHostEnvironment = webHostEnvironment;
         }
 
         // =============================================
@@ -51,13 +54,27 @@ namespace DoAnChuyenNganh.Controllers
                 return RedirectToAction("Public", "Course");
             }
 
-            var courses = _context.Courses
+            var userId = GetCurrentUserId();
+            var isAdmin = IsAdmin();
+
+            IQueryable<Course> courses = _context.Courses
                 .Include(c => c.CreatedByNavigation)
                 .Include(c => c.Grade)
                 .Include(c => c.Instructor)
                 .Include(c => c.Subject)
-                .Include(c => c.UpdatedByNavigation)
-                .OrderByDescending(c => c.CreatedAt);
+                .Include(c => c.UpdatedByNavigation);
+
+            // ✅ Instructor chỉ thấy course của họ
+            if (!isAdmin)
+            {
+                courses = courses.Where(c => c.InstructorId == userId);
+            }
+
+            courses = courses.OrderByDescending(c => c.CreatedAt);
+
+            // (optional) dùng cho view để ẩn/hiện nút
+            ViewBag.IsAdmin = isAdmin;
+            ViewBag.CurrentUserId = userId;
 
             return View(await courses.ToListAsync());
         }
@@ -123,13 +140,12 @@ namespace DoAnChuyenNganh.Controllers
             return View();
         }
 
-        // POST: Course/Create
-        // POST: Course/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(
             [Bind("Title,Slug,Description,ShortDescription,SubjectId,GradeId,ThumbnailUrl,DifficultyLevel,EstimatedHours,Price,IsPublished")]
-    Course course)
+            Course course,
+            IFormFile ThumbnailFile) // ✅ Thêm parameter
         {
             if (!IsLoggedIn())
             {
@@ -143,7 +159,7 @@ namespace DoAnChuyenNganh.Controllers
                 return RedirectToAction("Public", "Course");
             }
 
-            // Remove validations for navigation & system fields
+            // Remove validations
             ModelState.Remove("InstructorId");
             ModelState.Remove("Instructor");
             ModelState.Remove("Subject");
@@ -171,12 +187,32 @@ namespace DoAnChuyenNganh.Controllers
                     return RedirectToAction("Login", "Account");
                 }
 
+                // ✅ XỬ LÝ UPLOAD FILE
+                string uploadedFileUrl = null;
+                long fileSize = 0;
+
+                if (ThumbnailFile != null && ThumbnailFile.Length > 0)
+                {
+                    var uploadResult = await UploadThumbnailFile(ThumbnailFile);
+                    if (uploadResult.success)
+                    {
+                        uploadedFileUrl = uploadResult.url;
+                        fileSize = ThumbnailFile.Length;
+                        course.ThumbnailUrl = uploadedFileUrl; // Gán URL vào course
+                    }
+                    else
+                    {
+                        TempData["ErrorMessage"] = uploadResult.error;
+                        PopulateDropDownLists(course);
+                        return View(course);
+                    }
+                }
+
                 course.InstructorId = currentUserId;
                 course.CreatedBy = currentUserId;
                 course.CreatedAt = DateTime.Now;
                 course.UpdatedAt = DateTime.Now;
 
-                // Nếu người tạo KH tick Public thì publish luôn, ngược lại để private
                 var isPublished = course.IsPublished;
                 course.IsPublished = isPublished;
                 course.IsFeatured = false;
@@ -199,15 +235,28 @@ namespace DoAnChuyenNganh.Controllers
                 _context.Add(course);
                 await _context.SaveChangesAsync();
 
+                // ✅ LƯU VÀO BẢNG COURSEMATERIALS
+                if (!string.IsNullOrEmpty(uploadedFileUrl))
+                {
+                    var material = new CourseMaterial
+                    {
+                        CourseId = course.CourseId,
+                        LessonId = null,
+                        MaterialName = "Course Thumbnail",
+                        MaterialType = "image",
+                        FileUrl = uploadedFileUrl,
+                        FileSize = fileSize,
+                        IsPublic = true,
+                        CreatedAt = DateTime.Now,
+                        CreatedBy = currentUserId
+                    };
+
+                    _context.CourseMaterials.Add(material);
+                    await _context.SaveChangesAsync();
+                }
+
                 TempData["SuccessMessage"] = $"Course \"{course.Title}\" created successfully!";
                 return RedirectToAction(nameof(Index));
-            }
-
-            // Debug ModelState errors
-            var errors = ModelState.Values.SelectMany(v => v.Errors);
-            foreach (var error in errors)
-            {
-                System.Diagnostics.Debug.WriteLine($"ModelState Error: {error.ErrorMessage}");
             }
 
             PopulateDropDownLists(course);
@@ -252,7 +301,11 @@ namespace DoAnChuyenNganh.Controllers
         // POST: Course/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("CourseId,Title,Slug,Description,ShortDescription,SubjectId,GradeId,ThumbnailUrl,DifficultyLevel,EstimatedHours,Price,IsPublished,IsFeatured")] Course course)
+        public async Task<IActionResult> Edit(
+            int id,
+            [Bind("CourseId,Title,Slug,Description,ShortDescription,SubjectId,GradeId,ThumbnailUrl,DifficultyLevel,EstimatedHours,Price,IsPublished,IsFeatured")]
+            Course course,
+            IFormFile ThumbnailFile) // ✅ Thêm parameter
         {
             if (!IsLoggedIn())
             {
@@ -273,7 +326,7 @@ namespace DoAnChuyenNganh.Controllers
 
             course.InstructorId = existingCourse.InstructorId;
 
-            // CRITICAL: Remove all navigation property validations
+            // Remove validations
             ModelState.Remove("InstructorId");
             ModelState.Remove("Instructor");
             ModelState.Remove("Subject");
@@ -291,6 +344,38 @@ namespace DoAnChuyenNganh.Controllers
                 try
                 {
                     var currentUserId = GetCurrentUserId();
+
+                    // ✅ XỬ LÝ UPLOAD FILE MỚI
+                    if (ThumbnailFile != null && ThumbnailFile.Length > 0)
+                    {
+                        var uploadResult = await UploadThumbnailFile(ThumbnailFile);
+                        if (uploadResult.success)
+                        {
+                            course.ThumbnailUrl = uploadResult.url;
+
+                            // ✅ LƯU VÀO COURSEMATERIALS
+                            var material = new CourseMaterial
+                            {
+                                CourseId = course.CourseId,
+                                LessonId = null,
+                                MaterialName = "Course Thumbnail - Updated",
+                                MaterialType = "image",
+                                FileUrl = uploadResult.url,
+                                FileSize = ThumbnailFile.Length,
+                                IsPublic = true,
+                                CreatedAt = DateTime.Now,
+                                CreatedBy = currentUserId
+                            };
+
+                            _context.CourseMaterials.Add(material);
+                        }
+                        else
+                        {
+                            TempData["ErrorMessage"] = uploadResult.error;
+                            PopulateDropDownLists(course);
+                            return View(course);
+                        }
+                    }
 
                     course.CreatedAt = existingCourse.CreatedAt;
                     course.CreatedBy = existingCourse.CreatedBy;
@@ -328,6 +413,58 @@ namespace DoAnChuyenNganh.Controllers
 
             PopulateDropDownLists(course);
             return View(course);
+        }
+
+        // ✅ HELPER METHOD - UPLOAD FILE
+        private async Task<(bool success, string url, string error)> UploadThumbnailFile(IFormFile file)
+        {
+            try
+            {
+                // Kiểm tra file type
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+                if (!allowedExtensions.Contains(extension))
+                {
+                    return (false, null, "Only image files are allowed (jpg, jpeg, png, gif, webp)");
+                }
+
+                // Kiểm tra file size (max 5MB)
+                if (file.Length > 5 * 1024 * 1024)
+                {
+                    return (false, null, "File size must be less than 5MB");
+                }
+
+                // Tạo tên file unique
+                var fileName = $"course_{Guid.NewGuid()}{extension}";
+
+                // Đường dẫn thư mục lưu file
+                var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "courses");
+
+                // Tạo thư mục nếu chưa tồn tại
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                // Đường dẫn file đầy đủ
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                // Lưu file
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Trả về URL tương đối
+                var fileUrl = $"/uploads/courses/{fileName}";
+
+                return (true, fileUrl, null);
+            }
+            catch (Exception ex)
+            {
+                return (false, null, $"Error uploading file: {ex.Message}");
+            }
         }
 
         // GET: Course/Delete/5
@@ -1288,8 +1425,9 @@ namespace DoAnChuyenNganh.Controllers
                 .ToDictionary(g => g.Key, g => g.Any());
 
             // Quiz logic (giữ nguyên như cũ)
-            TakeQuizViewModel? quizToTake = null;
-            QuizResultViewModel? quizResult = null;
+            CourseQuizVM.TakeQuizViewModel? quizToTake = null;
+            CourseQuizVM.QuizResultViewModel? quizResult = null;
+
 
             if (currentLesson != null && currentLesson.LessonType == "quiz")
             {
@@ -1306,37 +1444,59 @@ namespace DoAnChuyenNganh.Controllers
 
                     if (attempt != null)
                     {
-                        quizResult = new QuizResultViewModel
+                        quizResult = new CourseQuizVM.QuizResultViewModel
                         {
                             AttemptId = attempt.AttemptId,
-                            StudentName = $"{attempt.User.FirstName} {attempt.User.LastName}",
                             QuizTitle = attempt.Quiz.Title,
                             SubmittedAt = attempt.SubmittedAt,
                             TotalScore = attempt.TotalScore,
                             MaxScore = attempt.MaxScore,
                             PercentageScore = attempt.PercentageScore,
                             Status = attempt.Status,
-                            Questions = attempt.UserQuizAnswers.Select(ua => new QuizQuestionResultViewModel
-                            {
-                                QuestionId = ua.QuestionId,
-                                QuestionText = ua.Question.QuestionText,
-                                QuestionType = ua.Question.QuestionType,
-                                Points = ua.Question.Points,
-                                EarnedPoints = ua.EarnedPoints,
-                                IsCorrect = ua.IsCorrect,
-                                Explanation = ua.Question.Explanation,
-                                SelectedAnswerId = ua.SelectedAnswerId,
-                                CorrectAnswerId = ua.Question.QuizAnswers.FirstOrDefault(a => a.IsCorrect)?.AnswerId,
-                                Answers = ua.Question.QuizAnswers.Select(a => new QuizAnswerTakeViewModel
-                                {
-                                    AnswerId = a.AnswerId,
-                                    AnswerText = a.AnswerText
-                                }).ToList(),
-                                EssayAnswer = ua.EssayAnswer,
-                                TeacherFeedback = ua.TeacherFeedback,
-                                GradedAt = ua.GradedAt
-                            }).ToList()
+
+                            Questions = attempt.UserQuizAnswers
+        .GroupBy(ua => ua.QuestionId)
+        .Select(g =>
+        {
+            var any = g.First();
+            var q = any.Question;
+
+            var selectedIds = g.Where(x => x.SelectedAnswerId.HasValue)
+                               .Select(x => x.SelectedAnswerId!.Value)
+                               .Distinct()
+                               .ToList();
+
+            var correctIds = q.QuizAnswers
+                              .Where(a => a.IsCorrect)
+                              .Select(a => a.AnswerId)
+                              .ToList();
+
+            // điểm: lấy max EarnedPoints trong group (vì mình set 1 row đại diện)
+            var earned = g.Max(x => x.EarnedPoints);
+
+
+            return new CourseQuizVM.QuizQuestionResultViewModel
+            {
+                QuestionId = q.QuestionId,
+                QuestionText = q.QuestionText,
+                QuestionType = q.QuestionType,
+                Points = q.Points,
+                EarnedPoints = earned,
+                SelectedAnswerIds = selectedIds,
+                CorrectAnswerIds = correctIds,
+                Explanation = q.Explanation,
+                Answers = q.QuizAnswers
+                    .OrderBy(a => a.AnswerOrder)
+                    .Select(a => new CourseQuizVM.QuizAnswerTakeViewModel
+                    {
+                        AnswerId = a.AnswerId,
+                        AnswerText = a.AnswerText
+                    }).ToList()
+            };
+        })
+        .ToList()
                         };
+
                     }
                 }
                 else
@@ -1364,29 +1524,25 @@ namespace DoAnChuyenNganh.Controllers
                             ? quiz.QuizQuestions.OrderBy(_ => Guid.NewGuid()).ToList()
                             : quiz.QuizQuestions.OrderBy(q => q.QuestionOrder).ToList();
 
-                        quizToTake = new TakeQuizViewModel
+                        quizToTake = new CourseQuizVM.TakeQuizViewModel
                         {
-                            QuizId = quiz.QuizId,
                             AttemptId = attempt.AttemptId,
-                            Title = quiz.Title,
-                            Description = quiz.Description,
                             LessonTitle = currentLesson.Title,
                             CourseTitle = course.Title,
-                            Questions = questions.Select(q => new QuizQuestionTakeViewModel
+                            Questions = questions.Select(q => new CourseQuizVM.QuizQuestionTakeViewModel
                             {
                                 QuestionId = q.QuestionId,
                                 QuestionText = q.QuestionText,
                                 QuestionType = q.QuestionType,
                                 Points = q.Points,
-                                Answers = q.QuestionType == "multiple_choice"
-                                    ? q.QuizAnswers
-                                        .OrderBy(a => a.AnswerOrder)
-                                        .Select(a => new QuizAnswerTakeViewModel
-                                        {
-                                            AnswerId = a.AnswerId,
-                                            AnswerText = a.AnswerText
-                                        }).ToList()
-                                    : new List<QuizAnswerTakeViewModel>()
+                                AllowMultipleCorrect = q.QuizAnswers.Count(a => a.IsCorrect) > 1,
+                                Answers = q.QuizAnswers
+                                    .OrderBy(a => a.AnswerOrder)
+                                    .Select(a => new CourseQuizVM.QuizAnswerTakeViewModel
+                                    {
+                                        AnswerId = a.AnswerId,
+                                        AnswerText = a.AnswerText
+                                    }).ToList()
                             }).ToList()
                         };
                     }
@@ -1414,7 +1570,7 @@ namespace DoAnChuyenNganh.Controllers
         public async Task<IActionResult> SubmitQuizFromLearning(
     int courseId,
     int lessonId,
-    SubmitQuizViewModel model)
+    CourseQuizVM.SubmitQuizViewModel model)
         {
             if (model.Answers == null || model.Answers.Count == 0)
             {
@@ -1424,43 +1580,56 @@ namespace DoAnChuyenNganh.Controllers
 
             try
             {
-                // 1. Lưu câu trả lời của user
+                var existing = await _context.UserQuizAnswers
+                    .Where(x => x.AttemptId == model.AttemptId)
+                    .ToListAsync();
+
+                if (existing.Any())
+                {
+                    _context.UserQuizAnswers.RemoveRange(existing);
+                    await _context.SaveChangesAsync();
+                }
+
                 foreach (var ans in model.Answers)
                 {
-                    if (ans.SelectedAnswerId.HasValue || !string.IsNullOrWhiteSpace(ans.EssayAnswer))
+                    // Essay
+                    if (!string.IsNullOrWhiteSpace(ans.EssayAnswer))
                     {
-                        var userAnswer = new UserQuizAnswer
+                        _context.UserQuizAnswers.Add(new UserQuizAnswer
                         {
                             AttemptId = model.AttemptId,
                             QuestionId = ans.QuestionId,
-                            SelectedAnswerId = ans.SelectedAnswerId,
                             EssayAnswer = ans.EssayAnswer,
                             CreatedAt = DateTime.Now
-                        };
+                        });
+                        continue;
+                    }
 
-                        _context.UserQuizAnswers.Add(userAnswer);
+                    // Multiple choice (single/multi)
+                    if (ans.SelectedAnswerIds != null && ans.SelectedAnswerIds.Any())
+                    {
+                        foreach (var selectedId in ans.SelectedAnswerIds.Distinct())
+                        {
+                            _context.UserQuizAnswers.Add(new UserQuizAnswer
+                            {
+                                AttemptId = model.AttemptId,
+                                QuestionId = ans.QuestionId,
+                                SelectedAnswerId = selectedId,
+                                CreatedAt = DateTime.Now
+                            });
+                        }
                     }
                 }
 
                 await _context.SaveChangesAsync();
 
-                // 2. CHẤM ĐIỂM BẰNG C# (không dùng stored procedure)
                 await GradeQuizAnswers(model.AttemptId);
 
                 TempData["SuccessMessage"] = "Quiz đã được nộp thành công! Xem kết quả bên dưới.";
-
-                return RedirectToAction("Learning", new
-                {
-                    id = courseId,
-                    lessonId = lessonId,
-                    attemptId = model.AttemptId
-                });
+                return RedirectToAction("Learning", new { id = courseId, lessonId, attemptId = model.AttemptId });
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack: {ex.StackTrace}");
-
                 TempData["ErrorMessage"] = "Lỗi khi nộp quiz: " + ex.Message;
                 return RedirectToAction("Learning", new { id = courseId, lessonId });
             }
@@ -1470,78 +1639,99 @@ namespace DoAnChuyenNganh.Controllers
         /// </summary>
         private async Task GradeQuizAnswers(int attemptId)
         {
-            // Lấy tất cả câu trả lời của user trong lần làm bài này
-            var userAnswers = await _context.UserQuizAnswers
+            // Lấy toàn bộ câu trả lời user (nhiều dòng / 1 question cho multi)
+            var userRows = await _context.UserQuizAnswers
                 .Include(ua => ua.Question)
                 .Where(ua => ua.AttemptId == attemptId)
                 .ToListAsync();
 
+            // Group theo câu hỏi
+            var byQuestion = userRows
+                .GroupBy(x => x.QuestionId)
+                .ToList();
+
             decimal totalScore = 0;
             int maxScore = 0;
 
-            // Duyệt qua từng câu trả lời
-            foreach (var userAnswer in userAnswers)
+            foreach (var g in byQuestion)
             {
-                maxScore += userAnswer.Question.Points;
+                var question = g.First().Question;
+                if (question == null) continue;
 
-                // Chỉ chấm câu trắc nghiệm (multiple_choice)
-                if (userAnswer.Question.QuestionType == "multiple_choice"
-                    && userAnswer.SelectedAnswerId.HasValue)
+                maxScore += question.Points;
+
+                // Essay: chưa tự chấm
+                if (question.QuestionType == "essay")
                 {
-                    // Kiểm tra đáp án có đúng không
-                    var correctAnswer = await _context.QuizAnswers
-                        .FirstOrDefaultAsync(a =>
-                            a.QuestionId == userAnswer.QuestionId &&
-                            a.IsCorrect == true);
-
-                    if (correctAnswer != null && userAnswer.SelectedAnswerId == correctAnswer.AnswerId)
+                    foreach (var row in g)
                     {
-                        // Đúng -> cho điểm đầy đủ
-                        userAnswer.IsCorrect = true;
-                        userAnswer.EarnedPoints = userAnswer.Question.Points;
-                        totalScore += userAnswer.Question.Points;
+                        row.IsCorrect = null;
+                        row.EarnedPoints = 0;
                     }
-                    else
+                    continue;
+                }
+
+                // Multiple choice
+                var selectedIds = g
+                    .Where(x => x.SelectedAnswerId.HasValue)
+                    .Select(x => x.SelectedAnswerId!.Value)
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToList();
+
+                var correctIds = await _context.QuizAnswers
+                    .Where(a => a.QuestionId == question.QuestionId && a.IsCorrect)
+                    .Select(a => a.AnswerId)
+                    .OrderBy(x => x)
+                    .ToListAsync();
+
+                // FULL MATCH: đúng tất cả và không chọn dư
+                bool isCorrect =
+                    selectedIds.Count == correctIds.Count &&
+                    !selectedIds.Except(correctIds).Any();
+
+                if (isCorrect)
+                {
+                    totalScore += question.Points;
+
+                    // set điểm cho 1 row đại diện, các row khác 0 để khỏi cộng dồn
+                    bool first = true;
+                    foreach (var row in g)
                     {
-                        // Sai -> 0 điểm
-                        userAnswer.IsCorrect = false;
-                        userAnswer.EarnedPoints = 0;
+                        row.IsCorrect = true;
+                        row.EarnedPoints = first ? question.Points : 0;
+                        first = false;
                     }
                 }
-                // Essay questions không tự động chấm (teacher chấm sau)
-                else if (userAnswer.Question.QuestionType == "essay")
+                else
                 {
-                    userAnswer.IsCorrect = null; // Chưa chấm
-                    userAnswer.EarnedPoints = 0; // Chờ teacher chấm
+                    foreach (var row in g)
+                    {
+                        row.IsCorrect = false;
+                        row.EarnedPoints = 0;
+                    }
                 }
             }
 
-            // Cập nhật điểm vào database
-            _context.UserQuizAnswers.UpdateRange(userAnswers);
+            _context.UserQuizAnswers.UpdateRange(userRows);
             await _context.SaveChangesAsync();
 
-            // Cập nhật kết quả vào UserQuizAttempt
-            var attempt = await _context.UserQuizAttempts
-                .FirstOrDefaultAsync(a => a.AttemptId == attemptId);
-
+            var attempt = await _context.UserQuizAttempts.FirstOrDefaultAsync(a => a.AttemptId == attemptId);
             if (attempt != null)
             {
                 attempt.TotalScore = totalScore;
                 attempt.MaxScore = maxScore;
                 attempt.PercentageScore = maxScore > 0 ? (totalScore * 100 / maxScore) : 0;
 
-                // Kiểm tra xem có essay chưa chấm không
-                bool hasUngraduatedEssay = userAnswers.Any(ua =>
-                    ua.Question.QuestionType == "essay" &&
-                    ua.GradedBy == null);
-
-                attempt.Status = hasUngraduatedEssay ? "submitted" : "graded";
+                bool hasEssay = byQuestion.Any(g => g.First().Question?.QuestionType == "essay");
+                attempt.Status = hasEssay ? "submitted" : "graded";
                 attempt.SubmittedAt = DateTime.Now;
 
                 _context.UserQuizAttempts.Update(attempt);
                 await _context.SaveChangesAsync();
             }
         }
+
         [HttpGet]
         public async Task<IActionResult> VnPayReturn()
         {
@@ -1611,5 +1801,6 @@ namespace DoAnChuyenNganh.Controllers
 
             return Json(debugInfo);
         }
+
     }
 }

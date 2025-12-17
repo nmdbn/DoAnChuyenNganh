@@ -1,4 +1,5 @@
 ﻿using DoAnChuyenNganh.Models;
+using DoAnChuyenNganh.ViewModels.Course;
 
 namespace DoAnChuyenNganh.ViewModels.CoursesViewModels
 {
@@ -11,8 +12,9 @@ namespace DoAnChuyenNganh.ViewModels.CoursesViewModels
         public Dictionary<int, bool> HasProgressForLesson { get; set; } = new();
         public int EnrollmentId { get; set; }
         public int? QuizId { get; set; }
-        public TakeQuizViewModel? QuizToTake { get; set; }
-        public QuizResultViewModel? QuizResult { get; set; }
+        public DoAnChuyenNganh.ViewModels.Course.TakeQuizViewModel? QuizToTake { get; set; }
+        public DoAnChuyenNganh.ViewModels.Course.QuizResultViewModel? QuizResult { get; set; }
+
         public Lesson CurrentLesson =>
             Lessons?.FirstOrDefault(l => l.LessonId == (CurrentLessonId ?? 0))
             ?? Lessons.FirstOrDefault();

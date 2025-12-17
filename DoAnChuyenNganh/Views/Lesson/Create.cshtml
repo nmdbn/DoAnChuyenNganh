@@ -1,4 +1,4 @@
-﻿@model DoAnChuyenNganh.Models.Lesson
+﻿@model DoAnChuyenNganh.ViewModels.Course.LessonQuizUpsertViewModel
 
 @{
     ViewData["Title"] = "Create Lesson";
@@ -6,15 +6,12 @@
 }
 
 <div class="container mt-4">
-    <!-- Header -->
     <div class="row mb-3">
         <div class="col-md-8">
-            <h2>
-                <i class="bi bi-plus-circle"></i> Create New Lesson
-            </h2>
+            <h2><i class="bi bi-plus-circle"></i> Create New Lesson</h2>
             <p class="text-muted">Add a new lesson to your course</p>
         </div>
-        <div class="col-md-4 text-md-end text-start">
+        <div class="col-md-4 text-md-end">
             <a asp-action="Index" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Back to List
             </a>
@@ -23,242 +20,219 @@
 
     @if (TempData["ErrorMessage"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show">
             <i class="bi bi-exclamation-triangle"></i> @TempData["ErrorMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
-    <div class="row">
-        <!-- LEFT: FORM -->
-        <div class="col-md-8">
-            <form asp-action="Create" method="post">
-                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <form id="lessonForm" asp-action="Create" method="post" enctype="multipart/form-data">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-                <div class="card mb-3">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Lesson Information</h5>
+            </div>
+            <div class="card-body">
+                <!-- BASIC INFO -->
+                <h6 class="section-title">Basic Information</h6>
+                <hr />
+
+                <div class="form-group mb-3">
+                    <label asp-for="Title" class="form-label">
+                        Lesson Title <span class="text-danger">*</span>
+                    </label>
+                    <input asp-for="Title" class="form-control form-control-lg" />
+                    <span asp-validation-for="Title" class="text-danger"></span>
+                </div>
+
+                <!-- ✅ FIX: KHÔNG ẨN CONTENT KHI CHỌN QUIZ -->
+                <div class="form-group mb-3">
+                    <label asp-for="Content" class="form-label">Lesson Content</label>
+                    <textarea asp-for="Content" class="form-control" rows="5"
+                              placeholder="Nội dung bài học (có thể để trống nếu chỉ có quiz)"></textarea>
+                    <span asp-validation-for="Content" class="text-danger"></span>
+                </div>
+
+                <!-- COURSE & ORDER -->
+                <h6 class="section-title mt-4">Course & Order</h6>
+                <hr />
+
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="form-group mb-3">
+                            <label asp-for="CourseId" class="form-label">
+                                Course <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="CourseId" class="form-select" asp-items="ViewBag.CourseId" id="courseSelect">
+                                <option value="">-- Select Course --</option>
+                            </select>
+                            <span asp-validation-for="CourseId" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group mb-3">
+                            <label asp-for="LessonOrder" class="form-label">
+                                Lesson Order <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="LessonOrder" class="form-control" type="number" min="1" />
+                            <small class="text-muted">Để trống để tự động lấy số tiếp theo</small>
+                            <span asp-validation-for="LessonOrder" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TYPE & DURATION -->
+                <h6 class="section-title mt-4">Lesson Type & Media</h6>
+                <hr />
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="LessonType" class="form-label">Lesson Type</label>
+                        <select asp-for="LessonType" class="form-select" id="lessonTypeSelect">
+                            <option value="text">Text</option>
+                            <option value="video">Video</option>
+                            <option value="quiz">Quiz</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="VideoDuration" class="form-label">Duration (seconds)</label>
+                        <input asp-for="VideoDuration" class="form-control" type="number" min="0" />
+                    </div>
+                </div>
+
+                <!-- FILE UPLOAD -->
+                <div class="card border-primary mb-3">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">Lesson Information</h5>
+                        <i class="bi bi-cloud-upload"></i> Upload Media File
                     </div>
                     <div class="card-body">
-                        <!-- BASIC INFO -->
-                        <h6 class="section-title">Basic Information</h6>
-                        <hr class="mt-1" />
-
-                        <div class="form-group mb-3">
-                            <label asp-for="Title" class="form-label">
-                                Lesson Title <span class="text-danger">*</span>
-                            </label>
-                            <input asp-for="Title" class="form-control form-control-lg" placeholder="Enter lesson title" />
-                            <span asp-validation-for="Title" class="text-danger"></span>
-                        </div>
-
-                        <div class="form-group mb-4">
-                            <label asp-for="Content" class="form-label">Lesson Content</label>
-                            <textarea asp-for="Content" class="form-control" rows="5"
-                                      placeholder="Describe the lesson content, learning objectives, or notes..."></textarea>
-                            <span asp-validation-for="Content" class="text-danger"></span>
-                        </div>
-
-                        <!-- COURSE & ORDER -->
-                        <h6 class="section-title">Course & Order</h6>
-                        <hr class="mt-1" />
-
                         <div class="row">
-                            <div class="col-md-7">
-                                <div class="form-group mb-3">
-                                    <label asp-for="CourseId" class="form-label">
-                                        Course <span class="text-danger">*</span>
-                                    </label>
-                                    <select asp-for="CourseId" class="form-select" asp-items="ViewBag.CourseId">
-                                        <option value="">-- Select Course --</option>
-                                    </select>
-                                    <span asp-validation-for="CourseId" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="col-md-5">
-                                <div class="form-group mb-3">
-                                    <label asp-for="LessonOrder" class="form-label">
-                                        Lesson Order <span class="text-danger">*</span>
-                                    </label>
-                                    <input asp-for="LessonOrder" class="form-control" type="number" min="1"
-                                           placeholder="1, 2, 3..." />
-                                    <span asp-validation-for="LessonOrder" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- TYPE & VIDEO -->
-                        <h6 class="section-title">Lesson Type & Video</h6>
-                        <hr class="mt-1" />
-
-                        <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label asp-for="LessonType" class="form-label"></label>
-                                    <select asp-for="LessonType" class="form-select" id="lessonTypeSelect">
-                                        <option value="text">Text</option>
-                                        <option value="video">Video</option>
-                                        <option value="quiz">Quiz</option>
-                                    </select>
+                                    <label class="form-label fw-semibold">
+                                        <i class="bi bi-file-earmark-arrow-up"></i> Choose File
+                                    </label>
+                                    <input type="file" id="thumbnailFileInput" name="ThumbnailFile"
+                                           class="form-control" accept="image/*,video/*" />
+                                    <small class="text-muted d-block mt-2">
+                                        Supported: JPG, PNG, GIF, MP4, AVI, MOV (Max: 100MB)
+                                    </small>
                                 </div>
-
-                                <!-- CÁC FIELD QUẢN LÝ VIDEO, CONTENT... -->
-
-                                <div id="quizEditor" class="card mt-3" style="display:none;">
-                                    <div class="card-header">
-                                        <strong>Quiz for this lesson</strong>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="mb-3">
-                                            <label class="form-label">
-                                                Questions (use format: Câu 1, a/b/c/d)
-                                            </label>
-                                            <textarea name="quizRawText" class="form-control" rows="10"
-                                                      placeholder="Ví dụ:
-Câu 1: Vai trò chính của ứng dụng mạng là gì?
-
-a. Cung cấp các dịch vụ mạng cho người dùng
-b. Quản lý các tài nguyên mạng
-c. Giúp người dùng truy cập vào các thông tin trên mạng
-d. Tất cả các ý trên
-
-Câu 2: Mạng máy tính là gì?
-
-a. ...
-b. ...
-c. ...
-d. ..."></textarea>
-                                        </div>
-
-                                        <div class="mb-3">
-                                            <label class="form-label">
-                                                Answer key (ví dụ: <code>1.d 2.d</code>)
-                                            </label>
-                                            <input type="text" name="quizAnswerKey" class="form-control"
-                                                   placeholder="1.d 2.d 3.a" />
-                                            <small class="text-muted">
-                                                Format: số câu + chữ a/b/c/d.
-                                                Ví dụ: <strong>1.d 2.b 3.a</strong>
-                                            </small>
-                                        </div>
-                                    </div>
+                                <div class="text-center my-2">
+                                    <span class="badge bg-secondary">OR</span>
                                 </div>
-                            </div>
-
-                            <div class="col-md-8">
-                                <div class="form-group mb-3">
-                                    <label asp-for="VideoUrl" class="form-label">Video URL</label>
-                                    <input asp-for="VideoUrl" class="form-control"
-                                           placeholder="https://example.com/video.mp4" />
-                                    <small class="form-text text-muted">Only required for video lessons</small>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">
+                                        <i class="bi bi-link-45deg"></i> Paste Media URL
+                                    </label>
+                                    <input asp-for="VideoUrl" id="thumbnailUrlInput" class="form-control" />
                                     <span asp-validation-for="VideoUrl" class="text-danger"></span>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="row mb-4">
                             <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    <label asp-for="VideoDuration" class="form-label">Duration (seconds)</label>
-                                    <input asp-for="VideoDuration" class="form-control" type="number" min="0"
-                                           placeholder="e.g., 600" />
-                                    <span asp-validation-for="VideoDuration" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- VISIBILITY & PREVIEW -->
-                        <h6 class="section-title">Visibility & Preview</h6>
-                        <hr class="mt-1" />
-
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="form-check form-switch">
-                                    <input type="checkbox"
-                                           class="form-check-input"
-                                           id="IsPreviewable"
-                                           name="IsPreviewable"
-                                           value="true"
-                                    @(Model?.IsPreviewable == true ? "checked" : "") />
-                                    <input type="hidden" name="IsPreviewable" value="false" />
-                                    <label class="form-check-label" for="IsPreviewable">
-                                        Allow Free Preview
+                                <div id="thumbnailPreviewContainer" style="display: none;">
+                                    <label class="form-label text-success">
+                                        <i class="bi bi-eye"></i> Preview:
                                     </label>
+                                    <div class="position-relative preview-wrapper">
+                                        <img id="thumbnailPreview" src="" alt="Preview"
+                                             class="img-thumbnail w-100" style="max-height: 250px;" />
+                                        <button type="button" id="removeThumbnailBtn"
+                                                class="btn btn-danger btn-sm position-absolute"
+                                                style="top: 5px; right: 5px;">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <span asp-validation-for="IsPreviewable" class="text-danger"></span>
                             </div>
-
-                            <div class="col-md-6">
-                                <div class="form-check form-switch">
-                                    <input type="checkbox"
-                                           class="form-check-input"
-                                           id="IsPublished"
-                                           name="IsPublished"
-                                           value="true"
-                                    @(Model?.IsPublished != false ? "checked" : "") />
-                                    <input type="hidden" name="IsPublished" value="false" />
-                                    <label class="form-check-label" for="IsPublished">
-                                        Publish Lesson
-                                    </label>
-                                </div>
-                                <span asp-validation-for="IsPublished" class="text-danger"></span>
-                            </div>
-                        </div>
-
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i>
-                            <strong>Note:</strong> Creator and updater information will be automatically recorded based on your logged-in account.
                         </div>
                     </div>
                 </div>
 
-                <div class="d-flex gap-2 mb-4">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="bi bi-save"></i> Create Lesson
-                    </button>
-                    <a asp-action="Index" class="btn btn-secondary btn-lg">
-                        <i class="bi bi-x-circle"></i> Cancel
-                    </a>
-                </div>
-            </form>
-        </div>
+                <!-- VISIBILITY -->
+                <h6 class="section-title mt-4">Visibility & Preview</h6>
+                <hr />
 
-        <!-- RIGHT: TIPS -->
-        <div class="col-md-4">
-            <div class="card mb-3">
-                <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0">
-                        <i class="bi bi-lightbulb"></i> Tips
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <ul class="list-unstyled mb-0">
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle text-success"></i>
-                            <strong>Title:</strong> Make it clear and descriptive
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle text-success"></i>
-                            <strong>Order:</strong> Keep lessons in a logical sequence (1, 2, 3...)
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle text-success"></i>
-                            <strong>Type:</strong> Use video for demos, text for theory, quiz for practice
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-info-circle text-primary"></i>
-                            <strong>Preview:</strong> Mark some lessons as preview to attract learners
-                        </li>
-                        <li>
-                            <i class="bi bi-info-circle text-primary"></i>
-                            <strong>Draft:</strong> Uncheck "Publish" to save as draft
-                        </li>
-                    </ul>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-check form-switch">
+                            <input type="checkbox" class="form-check-input"
+                                   asp-for="IsPreviewable" id="IsPreviewable" />
+                            <label class="form-check-label" for="IsPreviewable">
+                                <i class="bi bi-eye"></i> Allow Free Preview
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch">
+                            <input type="checkbox" class="form-check-input"
+                                   asp-for="IsPublished" id="IsPublished" checked />
+                            <label class="form-check-label" for="IsPublished">
+                                <i class="bi bi-broadcast"></i> Publish Lesson
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- ✅ FIX: QUIZ EDITOR - CHỈ HIỂN THỊ KHI CHỌN QUIZ -->
+        <div id="quizEditorSection" class="card border-warning mb-3" style="display:none;">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-question-circle"></i> Quiz Editor</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Quiz Title</label>
+                        <input asp-for="QuizTitle" class="form-control"
+                               placeholder="Will auto-fill from lesson title" />
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch mt-4">
+                            <input type="checkbox" class="form-check-input"
+                                   asp-for="IsRandomOrder" id="IsRandomOrder" />
+                            <label class="form-check-label" for="IsRandomOrder">
+                                Random Question Order
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Quiz Description</label>
+                    <textarea asp-for="QuizDescription" class="form-control" rows="2"></textarea>
+                </div>
+
+                <hr />
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Questions</h6>
+                    <button type="button" id="addQuestionBtn" class="btn btn-success btn-sm">
+                        <i class="bi bi-plus-circle"></i> Add Question
+                    </button>
+                </div>
+
+                <div id="questionsContainer">
+                    <!-- Questions will be added here dynamically -->
+                </div>
+
+                <div id="noQuestionsMessage" class="alert alert-info text-center">
+                    <i class="bi bi-info-circle"></i> No questions yet. Click "Add Question" to start.
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mb-4">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-save"></i> Create Lesson
+            </button>
+            <a asp-action="Index" class="btn btn-secondary btn-lg">
+                <i class="bi bi-x-circle"></i> Cancel
+            </a>
+        </div>
+    </form>
 </div>
 
 @section Scripts {
@@ -267,54 +241,286 @@ d. ..."></textarea>
     }
 
     <script>
-        const select = document.getElementById('lessonTypeSelect');
-        const quizBox = document.getElementById('quizEditor');
+        let questionIndex = 0;
 
-        function toggleQuizBox() {
-            if (!select) return;
-            quizBox.style.display = (select.value === 'quiz') ? 'block' : 'none';
+        $(document).ready(function () {
+            // ✅ FIX: Toggle Quiz Editor - CHỈ HIỂN THỊ KHI CHỌN QUIZ
+            $('#lessonTypeSelect').on('change', function () {
+                if ($(this).val() === 'quiz') {
+                    $('#quizEditorSection').slideDown();
+                } else {
+                    $('#quizEditorSection').slideUp();
+                }
+            });
+
+            // Add Question
+            $('#addQuestionBtn').on('click', function () {
+                addQuestion();
+            });
+
+            // File Preview
+            setupFilePreview();
+
+            // Form submit validation
+            $('#lessonForm').on('submit', function(e) {
+                console.log('Form submitting...');
+                console.log('LessonType:', $('#lessonTypeSelect').val());
+                console.log('Questions count:', $('.question-card').length);
+
+                // Validate quiz if type is quiz
+                if ($('#lessonTypeSelect').val() === 'quiz') {
+                    var questionCount = $('.question-card').length;
+                    if (questionCount === 0) {
+                        e.preventDefault();
+                        alert('Vui lòng thêm ít nhất 1 câu hỏi cho quiz!');
+                        return false;
+                    }
+                }
+            });
+        });
+
+        function addQuestion() {
+            $('#noQuestionsMessage').hide();
+
+            const questionHtml = `
+                <div class="card mb-3 question-card" data-question-index="${questionIndex}">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <span><strong>Question ${questionIndex + 1}</strong></span>
+                        <button type="button" class="btn btn-danger btn-sm remove-question-btn">
+                            <i class="bi bi-trash"></i> Remove
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Question Text <span class="text-danger">*</span></label>
+                            <input type="text" name="Questions[${questionIndex}].QuestionText"
+                                   class="form-control" required />
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Question Type</label>
+                                <select name="Questions[${questionIndex}].QuestionType" class="form-select">
+                                    <option value="multiple_choice">Multiple Choice</option>
+                                    <option value="essay">Essay</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Points</label>
+                                <input type="number" name="Questions[${questionIndex}].Points"
+                                       class="form-control" value="10" min="1" max="100" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Explanation (optional)</label>
+                            <textarea name="Questions[${questionIndex}].Explanation"
+                                      class="form-control" rows="2"></textarea>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0">
+                                Answers (Min: 2, Max: 5)
+                                <span class="badge bg-info text-dark" id="correctCount-${questionIndex}">0 correct</span>
+                            </label>
+                            <button type="button" class="btn btn-sm btn-primary add-answer-btn">
+                                <i class="bi bi-plus"></i> Add Answer
+                            </button>
+                        </div>
+
+                        <div class="answers-container" data-question-index="${questionIndex}">
+                            <!-- Answers will be added here -->
+                        </div>
+
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            Chọn ≥2 đáp án đúng → học viên có thể chọn nhiều đáp án. Chọn 1 đáp án đúng → chỉ chọn 1.
+                        </small>
+                    </div>
+                </div>
+            `;
+
+            $('#questionsContainer').append(questionHtml);
+
+            // Add default 2 answers
+            addAnswer(questionIndex);
+            addAnswer(questionIndex);
+
+            // Setup remove question
+            $(`[data-question-index="${questionIndex}"] .remove-question-btn`).on('click', function () {
+                $(this).closest('.question-card').remove();
+                updateQuestionNumbers();
+                if ($('.question-card').length === 0) {
+                    $('#noQuestionsMessage').show();
+                }
+            });
+
+            // Setup add answer
+            $(`[data-question-index="${questionIndex}"] .add-answer-btn`).on('click', function () {
+                const qIndex = $(this).closest('.question-card').data('question-index');
+                const answersCount = $(this).closest('.card-body')
+                    .find('.answers-container .answer-item').length;
+
+                if (answersCount < 5) {
+                    addAnswer(qIndex);
+                } else {
+                    alert('Maximum 5 answers per question');
+                }
+            });
+
+            questionIndex++;
         }
 
-        if (select) {
-            select.addEventListener('change', toggleQuizBox);
-            toggleQuizBox();
+        function addAnswer(qIndex) {
+            const answersContainer = $(`.answers-container[data-question-index="${qIndex}"]`);
+            const answerIndex = answersContainer.find('.answer-item').length;
+
+            const answerHtml = `
+                <div class="answer-item input-group mb-2">
+                    <div class="input-group-text">
+                        <input type="checkbox"
+                               id="Questions_${qIndex}_Answers_${answerIndex}_IsCorrect"
+                               class="form-check-input mt-0 correct-checkbox"
+                               data-question-index="${qIndex}"
+                               data-answer-index="${answerIndex}"
+                               title="Mark as correct answer" />
+                        <input type="hidden"
+                               name="Questions[${qIndex}].Answers[${answerIndex}].IsCorrect"
+                               value="false"
+                               class="is-correct-hidden" />
+                    </div>
+                    <input type="text"
+                           name="Questions[${qIndex}].Answers[${answerIndex}].AnswerText"
+                           class="form-control"
+                           placeholder="Answer ${answerIndex + 1}" required />
+                    <input type="hidden"
+                           name="Questions[${qIndex}].Answers[${answerIndex}].AnswerOrder"
+                           value="${answerIndex + 1}" />
+                    <button type="button" class="btn btn-outline-danger remove-answer-btn"
+                            title="Remove answer">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `;
+
+            answersContainer.append(answerHtml);
+
+            // ✅ FIX: Setup checkbox change handler to update hidden field
+            const checkbox = answersContainer.find('.answer-item:last .correct-checkbox');
+            const hiddenField = answersContainer.find('.answer-item:last .is-correct-hidden');
+
+            checkbox.on('change', function () {
+                const qIndex = $(this).data('question-index');
+                if ($(this).is(':checked')) {
+                    hiddenField.val('true');
+                } else {
+                    hiddenField.val('false');
+                }
+                updateCorrectCount(qIndex);
+            });
+
+            // Setup remove answer
+            answersContainer.find('.answer-item:last .remove-answer-btn').on('click', function () {
+                const answersCount = answersContainer.find('.answer-item').length;
+                if (answersCount > 2) {
+                    $(this).closest('.answer-item').remove();
+                    updateAnswerOrders(qIndex);
+                    updateCorrectCount(qIndex);
+                } else {
+                    alert('Minimum 2 answers required');
+                }
+            });
+
+            updateCorrectCount(qIndex);
+        }
+
+        // ✅ NEW: Update correct answer count badge
+        function updateCorrectCount(qIndex) {
+            const correctCount = $(`.answers-container[data-question-index="${qIndex}"] .correct-checkbox:checked`).length;
+            $(`#correctCount-${qIndex}`).text(`${correctCount} correct`);
+
+            if (correctCount === 0) {
+                $(`#correctCount-${qIndex}`).removeClass('bg-info bg-success').addClass('bg-danger');
+            } else if (correctCount === 1) {
+                $(`#correctCount-${qIndex}`).removeClass('bg-danger bg-success').addClass('bg-info');
+            } else {
+                $(`#correctCount-${qIndex}`).removeClass('bg-danger bg-info').addClass('bg-success');
+            }
+        }
+
+        function updateQuestionNumbers() {
+            $('.question-card').each(function (index) {
+                $(this).find('.card-header span strong').text(`Question ${index + 1}`);
+            });
+        }
+
+        function updateAnswerOrders(qIndex) {
+            $(`.answers-container[data-question-index="${qIndex}"] .answer-item`).each(function (index) {
+                $(this).find('input[type="text"]').attr('placeholder', `Answer ${index + 1}`);
+                $(this).find('input[name*="AnswerOrder"]').val(index + 1);
+            });
+        }
+
+        function setupFilePreview() {
+            $('#thumbnailFileInput').on('change', function (e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        $('#thumbnailPreview').attr('src', e.target.result);
+                        $('#thumbnailPreviewContainer').show();
+                        $('#thumbnailUrlInput').val('');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            $('#thumbnailUrlInput').on('input', function () {
+                const url = $(this).val().trim();
+                if (url) {
+                    $('#thumbnailPreview').attr('src', url);
+                    $('#thumbnailPreviewContainer').show();
+                    $('#thumbnailFileInput').val('');
+                }
+            });
+
+            $('#removeThumbnailBtn').on('click', function () {
+                $('#thumbnailPreviewContainer').hide();
+                $('#thumbnailPreview').attr('src', '');
+                $('#thumbnailUrlInput').val('');
+                $('#thumbnailFileInput').val('');
+            });
         }
     </script>
-}
 
-<style>
-    .section-title {
-        font-weight: 600;
-        color: #374151;
-        margin-top: 5px;
-    }
-
-    .form-label {
-        font-weight: 600;
-        color: #374151;
-    }
-
-    .form-control,
-    .form-select {
-        border-radius: 8px;
-    }
-
-        .form-control:focus,
-        .form-select:focus {
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-            border-color: #667eea;
+    <style>
+        .section-title {
+            font-weight: 600;
+            color: #374151;
+            margin-top: 5px;
         }
 
-    .alert-danger {
-        border-radius: 10px;
-    }
+        .question-card {
+            border-left: 4px solid #ffc107;
+        }
 
-    (max-width: 768px) {
-        .btn-lg
+        .answer-item {
+            transition: all 0.2s;
+        }
 
-    {
-        width: 100%;
-    }
+            .answer-item:hover {
+                background-color: #f8f9fa;
+            }
 
-    }
-</style>
+        .form-check-input {
+            cursor: pointer;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.35em 0.65em;
+        }
+    </style>
+}
