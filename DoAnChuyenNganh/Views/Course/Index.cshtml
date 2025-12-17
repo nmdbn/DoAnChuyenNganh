@@ -5,6 +5,10 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+@{
+    var isAdmin = (ViewBag.IsAdmin as bool?) ?? false;
+    var currentUserId = (int)(ViewBag.CurrentUserId ?? 0);
+}
 <div class="course-management-container">
     <!-- Header -->
     <div class="course-header">
@@ -243,18 +247,21 @@
                                            title="View Details">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <a asp-action="Edit"
-                                           asp-route-id="@item.CourseId"
-                                           class="btn btn-sm btn-warning"
-                                           title="Edit Course">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <a asp-action="Delete"
-                                           asp-route-id="@item.CourseId"
-                                           class="btn btn-sm btn-danger"
-                                           title="Delete Course">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
+                                        @if (isAdmin || item.InstructorId == currentUserId)
+                                        {
+                                            <a asp-action="Edit"
+                                               asp-route-id="@item.CourseId"
+                                               class="btn btn-sm btn-warning"
+                                               title="Edit Course">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a asp-action="Delete"
+                                               asp-route-id="@item.CourseId"
+                                               class="btn btn-sm btn-danger"
+                                               title="Delete Course">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        }
                                     </div>
                                 </td>
                             </tr>

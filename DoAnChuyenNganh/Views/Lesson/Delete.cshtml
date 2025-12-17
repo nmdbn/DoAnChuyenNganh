@@ -1,100 +1,370 @@
 ﻿@model DoAnChuyenNganh.Models.Lesson
 
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Delete Lesson";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Safe date formatter
+    string SafeDate(object? dateValue)
+    {
+        if (dateValue is DateTime dt)
+            return $"{dt:dd/MM/yyyy HH:mm}";
+        if (dateValue != null)
+            return dateValue.ToString()!;
+        return "-";
+    }
+
+    string CourseDisplay() => Model.Course?.Title ?? "-";
+
+    string CreatedByDisplay()
+    {
+        if (Model.CreatedByNavigation == null) return "-";
+        var fullName = $"{Model.CreatedByNavigation.FirstName} {Model.CreatedByNavigation.LastName}".Trim();
+        return !string.IsNullOrWhiteSpace(fullName) ? fullName : Model.CreatedByNavigation.Username ?? $"UserID: {Model.CreatedByNavigation.UserId}";
+    }
+
+    string UpdatedByDisplay()
+    {
+        if (Model.UpdatedByNavigation == null) return "-";
+        var fullName = $"{Model.UpdatedByNavigation.FirstName} {Model.UpdatedByNavigation.LastName}".Trim();
+        return !string.IsNullOrWhiteSpace(fullName) ? fullName : Model.UpdatedByNavigation.Username ?? $"UserID: {Model.UpdatedByNavigation.UserId}";
+    }
+
+    string DurationDisplay(int? duration)
+    {
+        if (!duration.HasValue || duration.Value <= 0) return "-";
+
+        int minutes = duration.Value / 60;
+        int seconds = duration.Value % 60;
+
+        if (minutes > 0)
+            return $"{minutes}m {seconds}s";
+        return $"{seconds}s";
+    }
+
+    string LessonTypeDisplay()
+    {
+        if (string.IsNullOrWhiteSpace(Model.LessonType)) return "-";
+
+        return Model.LessonType.ToLower() switch
+        {
+            "video" => "Video",
+            "text" => "Text",
+            "quiz" => "Quiz",
+            "assignment" => "Assignment",
+            _ => Model.LessonType
+        };
+    }
+
+    string LessonTypeBadgeClass()
+    {
+        if (string.IsNullOrWhiteSpace(Model.LessonType)) return "bg-secondary";
+
+        return Model.LessonType.ToLower() switch
+        {
+            "video" => "bg-danger-subtle text-danger border border-danger-subtle",
+            "text" => "bg-info-subtle text-info border border-info-subtle",
+            "quiz" => "bg-warning-subtle text-warning border border-warning-subtle",
+            "assignment" => "bg-success-subtle text-success border border-success-subtle",
+            _ => "bg-secondary"
+        };
+    }
 }
 
-<h1>Delete</h1>
+<div class="container py-3">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h2 class="mb-1 text-danger">
+                <i class="bi bi-exclamation-triangle"></i> Delete Lesson
+            </h2>
+            <div class="text-muted">
+                You are about to permanently delete:
+                <span class="fw-semibold">@Model.Title</span>
+                (ID: <span class="fw-semibold">@Model.LessonId</span>)
+            </div>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
 
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>Lesson</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Title)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Title)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Content)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Content)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.LessonOrder)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.LessonOrder)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.LessonType)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.LessonType)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.VideoUrl)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.VideoUrl)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.VideoDuration)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.VideoDuration)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsPreviewable)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsPreviewable)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsPublished)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsPublished)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UpdatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UpdatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Course)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Course.CourseId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedByNavigation)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedByNavigation.UserId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UpdatedByNavigation)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UpdatedByNavigation.UserId)
-        </dd>
-    </dl>
-    
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="LessonId" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
-    </form>
+    <div class="alert alert-warning d-flex align-items-center mb-3">
+        <i class="bi bi-exclamation-circle me-2"></i>
+        <div>
+            This action <strong>cannot be undone</strong>.
+            @if (Model.LessonType == "quiz")
+            {
+                <span class="text-danger fw-semibold">All associated quiz questions and answers will also be deleted.</span>
+            }
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- LEFT: PREVIEW CARD -->
+        <div class="col-12 col-lg-4">
+            <div class="card h-100 border-danger-subtle">
+                <div class="card-body">
+                    <!-- Thumbnail/Video Preview -->
+                    <div class="rounded overflow-hidden mb-3" style="width:100%;height:180px;background:#f3f4f6;">
+                        @if (!string.IsNullOrWhiteSpace(Model.VideoUrl))
+                        {
+                            <img src="@Model.VideoUrl"
+                                 class="w-100 h-100 object-fit-cover"
+                                 alt="@Model.Title"
+                                 onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-icon').classList.remove('d-none');" />
+                            <div class="fallback-icon w-100 h-100 d-none align-items-center justify-content-center text-muted">
+                                <i class="bi bi-file-earmark-play fs-1"></i>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
+                                <i class="bi bi-file-earmark-text fs-1"></i>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Lesson Info -->
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-secondary">Lesson #@Model.LessonOrder</span>
+                        @if (Model.IsPublished == true)
+                        {
+                            <span class="badge bg-success">Published</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Draft</span>
+                        }
+                    </div>
+
+                    <h5 class="mb-2">@Model.Title</h5>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Content))
+                    {
+                        <p class="text-muted small mb-3">
+                            @(Model.Content.Length > 100 ? Model.Content.Substring(0, 100) + "..." : Model.Content)
+                        </p>
+                    }
+
+                    <!-- Type Badge -->
+                    @if (!string.IsNullOrWhiteSpace(Model.LessonType))
+                    {
+                        <div class="mb-2">
+                            <span class="badge @LessonTypeBadgeClass()">
+                                <i class="bi bi-tag"></i> @LessonTypeDisplay()
+                            </span>
+                        </div>
+                    }
+
+                    <!-- Preview Badge -->
+                    @if (Model.IsPreviewable == true)
+                    {
+                        <div class="mb-2">
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                <i class="bi bi-eye"></i> Preview enabled
+                            </span>
+                        </div>
+                    }
+
+                    <hr class="my-3" />
+
+                    <!-- Course Info -->
+                    <div class="small text-muted">Course</div>
+                    <div class="fw-semibold mb-2">@CourseDisplay()</div>
+
+                    <!-- Duration -->
+                    @if (Model.VideoDuration.HasValue && Model.VideoDuration.Value > 0)
+                    {
+                        <div class="small text-muted">Duration</div>
+                        <div class="fw-semibold">
+                            <i class="bi bi-clock"></i> @DurationDisplay(Model.VideoDuration)
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: DETAILS CARD -->
+        <div class="col-12 col-lg-8">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h5 class="text-danger mb-3">
+                        <i class="bi bi-info-circle"></i> Lesson Information
+                    </h5>
+
+                    <!-- Content Section -->
+                    @if (!string.IsNullOrWhiteSpace(Model.Content))
+                    {
+                        <div class="mb-3">
+                            <div class="small text-muted mb-1">Content</div>
+                            <div class="border rounded p-3 bg-light-subtle">
+                                @Model.Content
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Media URL -->
+                    @if (!string.IsNullOrWhiteSpace(Model.VideoUrl))
+                    {
+                        <div class="mb-3">
+                            <div class="small text-muted mb-1">Media URL</div>
+                            <div class="border rounded p-3 bg-light-subtle">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-link-45deg"></i>
+                                    <a href="@Model.VideoUrl" target="_blank" class="text-break small">
+                                        @Model.VideoUrl
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Metadata Grid -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100 bg-light-subtle">
+                                <div class="small text-muted mb-1">Created At</div>
+                                <div class="fw-semibold">@SafeDate(Model.CreatedAt)</div>
+
+                                <div class="small text-muted mt-3">Created By</div>
+                                <div class="fw-semibold">@CreatedByDisplay()</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100 bg-light-subtle">
+                                <div class="small text-muted">Updated At</div>
+                                <div class="fw-semibold">@SafeDate(Model.UpdatedAt)</div>
+
+                                <div class="small text-muted mt-3">Updated By</div>
+                                <div class="fw-semibold">@UpdatedByDisplay()</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Info -->
+                    <div class="border rounded p-3 bg-light-subtle mb-3">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="small text-muted">Lesson Order</div>
+                                <div class="fw-semibold text-primary fs-5">
+                                    #@Model.LessonOrder
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="small text-muted">Type</div>
+                                <div class="fw-semibold">@LessonTypeDisplay()</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="small text-muted">Status</div>
+                                <div class="fw-semibold">
+                                    @if (Model.IsPublished == true)
+                                    {
+                                        <span class="text-success">
+                                            <i class="bi bi-check-circle-fill"></i> Published
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-secondary">
+                                            <i class="bi bi-file-earmark-text"></i> Draft
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Delete Confirmation -->
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+                        <div class="text-danger mb-2 mb-md-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Are you sure you want to delete this lesson?
+                        </div>
+                        <form asp-action="Delete" class="d-flex gap-2">
+                            <input type="hidden" asp-for="LessonId" />
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash"></i> Yes, delete it
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+    .card {
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .border-danger-subtle {
+        border-color: #fecaca !important;
+    }
+
+    .border-danger {
+        border-color: #ef4444 !important;
+        border-width: 2px !important;
+    }
+
+    .object-fit-cover {
+        object-fit: cover;
+    }
+
+    .fallback-icon.d-none {
+        display: none !important;
+    }
+
+    img[style*="display:none"] + .fallback-icon {
+        display: flex !important;
+    }
+
+    .bg-light-subtle {
+        background-color: #f9fafb !important;
+    }
+
+    .btn-danger {
+        background-color: #ef4444;
+        border-color: #ef4444;
+        transition: all 0.3s ease;
+    }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+            border-color: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+    .btn-outline-secondary:hover {
+        transform: translateY(-2px);
+    }
+
+    .alert-warning {
+        background-color: #fef3c7;
+        border-color: #fbbf24;
+        color: #92400e;
+    }
+
+    (max-width: 768px) {
+        .d-flex.gap-2
+
+    {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .d-flex.gap-2 button,
+    .d-flex.gap-2 a {
+        width: 100%;
+    }
+
+    }
+</style>

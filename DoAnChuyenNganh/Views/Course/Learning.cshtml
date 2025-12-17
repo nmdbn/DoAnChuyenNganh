@@ -629,7 +629,7 @@
 
                                         <div class="question-card">
                                             <div class="question-header">
-                                                <span class="question-number">Q@questionIndex</span>
+                                                <span class="question-number">Question @(questionIndex)</span>
                                                 <div>
                                                     <div>@q.QuestionText</div>
                                                     <small class="text-muted">(@q.Points points)</small>
@@ -638,10 +638,13 @@
 
                                             @if (q.QuestionType == "multiple_choice")
                                             {
-                                                @foreach (var a in q.Answers)
+                                                var correctIds = q.CorrectAnswerIds ?? new List<int>();
+                                                var selectedIds = q.SelectedAnswerIds ?? new List<int>();
+
+                                                foreach (var a in q.Answers)
                                                 {
-                                                    bool isCorrect = a.AnswerId == q.CorrectAnswerId;
-                                                    bool isSelected = a.AnswerId == q.SelectedAnswerId;
+                                                    bool isCorrect = correctIds.Contains(a.AnswerId);
+                                                    bool isSelected = selectedIds.Contains(a.AnswerId);
 
                                                     string cssClass = "neutral";
                                                     string icon = "bi-circle";
@@ -667,9 +670,17 @@
 
                                                 <div class="mt-3 pt-3 border-top">
                                                     <strong>Your Score:</strong>
-                                                    <span class="badge @(q.IsCorrect == true ? "bg-success" : "bg-danger") ms-2" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                                                    <span class="badge @(q.EarnedPoints == q.Points ? "bg-success" : "bg-danger") ms-2" style="font-size: 1rem; padding: 0.5rem 1rem;">
                                                         @q.EarnedPoints / @q.Points
                                                     </span>
+
+                                                    @if (correctIds.Count > 1)
+                                                    {
+                                                        <div class="text-muted mt-2">
+                                                            <i class="bi bi-info-circle me-1"></i>
+                                                            Câu nhiều đáp án đúng: chỉ được điểm khi chọn đúng <strong>tất cả</strong>.
+                                                        </div>
+                                                    }
                                                 </div>
 
                                                 @if (!string.IsNullOrWhiteSpace(q.Explanation))
@@ -683,20 +694,27 @@
                                             }
                                             else
                                             {
-                                                <div class="alert alert-info">
-                                                    <strong>Your Answer:</strong>
-                                                    <p class="mt-2 mb-0">@(q.EssayAnswer ?? "(No answer provided)")</p>
-                                                    @if (q.GradedAt.HasValue)
+                                                <div class="alert alert-secondary">
+                                                    <strong>Essay Question</strong>
+                                                    <div class="mt-2 text-muted">
+                                                        Câu tự luận hiện chưa có dữ liệu hiển thị trong <code>QuizQuestionResultViewModel</code>
+                                                        (không có EssayAnswer/TeacherFeedback/GradedAt).
+                                                    </div>
+
+                                                    <hr />
+
+                                                    <strong>Score:</strong>
+                                                    <span class="badge @(q.EarnedPoints > 0 ? "bg-success" : "bg-secondary") ms-2">
+                                                        @q.EarnedPoints / @q.Points
+                                                    </span>
+
+                                                    @if (!string.IsNullOrWhiteSpace(q.Explanation))
                                                     {
-                                                        <hr />
-                                                        <strong>Feedback:</strong>
-                                                        <p class="mb-2">@q.TeacherFeedback</p>
-                                                        <strong>Score:</strong> @Convert.ToInt16(q.EarnedPoints / q.Points)
-                                                    }
-                                                    else
-                                                    {
-                                                        <hr />
-                                                        <em class="text-muted">Waiting for teacher to grade...</em>
+                                                        <div class="explanation-box mt-3">
+                                                            <i class="bi bi-lightbulb-fill"></i>
+                                                            <strong>Explanation:</strong>
+                                                            <div class="mt-2">@q.Explanation</div>
+                                                        </div>
                                                     }
                                                 </div>
                                             }
@@ -734,19 +752,49 @@
 
                                                 @if (q.QuestionType == "multiple_choice")
                                                 {
-                                                    @for (var j = 0; j < q.Answers.Count; j++)
+                                                    @if (q.AllowMultipleCorrect)
                                                     {
-                                                        var a = q.Answers[j];
-                                                        <div class="form-check">
-                                                            <input class="form-check-input"
-                                                                   type="radio"
-                                                                   name="model.Answers[@i].SelectedAnswerId"
-                                                                   id="answer_@(i)_@(j)"
-                                                                   value="@a.AnswerId" />
-                                                            <label class="form-check-label" for="answer_@(i)_@(j)">
-                                                                @a.AnswerText
-                                                            </label>
+                                                        <div class="alert alert-warning py-2 px-3 mb-3" style="border-radius:10px;">
+                                                            <i class="bi bi-layers me-2"></i>
+                                                            Câu này có <strong>nhiều đáp án đúng</strong> — chọn <strong>tất cả</strong> đáp án đúng nha.
                                                         </div>
+
+                                                        @for (var j = 0; j < q.Answers.Count; j++)
+                                                        {
+                                                            var a = q.Answers[j];
+                                                            <div class="form-check">
+                                                                <input class="form-check-input"
+                                                                       type="checkbox"
+                                                                       name="model.Answers[@i].SelectedAnswerIds"
+                                                                       id="answer_@(i)_@(j)"
+                                                                       value="@a.AnswerId" />
+                                                                <label class="form-check-label" for="answer_@(i)_@(j)">
+                                                                    @a.AnswerText
+                                                                </label>
+                                                            </div>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="alert alert-info py-2 px-3 mb-3" style="border-radius:10px;">
+                                                            <i class="bi bi-dot me-2"></i>
+                                                            Câu này chỉ có <strong>1 đáp án đúng</strong> — chọn 1 thôi.
+                                                        </div>
+
+                                                        @for (var j = 0; j < q.Answers.Count; j++)
+                                                        {
+                                                            var a = q.Answers[j];
+                                                            <div class="form-check">
+                                                                <input class="form-check-input"
+                                                                       type="radio"
+                                                                       name="model.Answers[@i].SelectedAnswerIds"
+                                                                       id="answer_@(i)_@(j)"
+                                                                       value="@a.AnswerId" />
+                                                                <label class="form-check-label" for="answer_@(i)_@(j)">
+                                                                    @a.AnswerText
+                                                                </label>
+                                                            </div>
+                                                        }
                                                     }
                                                 }
                                                 else

@@ -101,3 +101,107 @@ CREATE INDEX IX_UserQuizAttempt_EnrollmentID ON UserQuizAttempt(EnrollmentID);
 CREATE INDEX IX_UserQuizAttempt_Status ON UserQuizAttempt(Status);
 CREATE INDEX IX_UserQuizAnswer_AttemptID ON UserQuizAnswer(AttemptID);
 CREATE INDEX IX_UserQuizAnswer_QuestionID ON UserQuizAnswer(QuestionID);
+
+
+ALTER TABLE QuizAnswer
+DROP CONSTRAINT IF EXISTS CK_QuizAnswer_AnswerOrder;
+
+-- 2. Add new constraint (1-5 answers)
+ALTER TABLE QuizAnswer
+ADD CONSTRAINT CK_QuizAnswer_AnswerOrder CHECK (AnswerOrder BETWEEN 1 AND 5);
+
+-- 3. Update UserQuizAnswer to support multiple selections
+-- Add new column to track multiple selections
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('UserQuizAnswer') AND name = 'SelectedAnswerIds')
+BEGIN
+    ALTER TABLE UserQuizAnswer
+    ADD SelectedAnswerIds NVARCHAR(100); -- Format: "1,3,5" (comma-separated)
+END
+
+-- 4. Add index for better performance
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_QuizAnswer_QuestionID_Order')
+BEGIN
+    CREATE INDEX IX_QuizAnswer_QuestionID_Order ON QuizAnswer(QuestionID, AnswerOrder);
+END
+
+
+-- 1. Thêm cột AllowMultipleCorrect vào QuizQuestion
+IF NOT EXISTS (
+    SELECT * FROM sys.columns 
+    WHERE object_id = OBJECT_ID('QuizQuestion') 
+    AND name = 'AllowMultipleCorrect'
+)
+BEGIN
+    ALTER TABLE QuizQuestion
+    ADD AllowMultipleCorrect BIT NOT NULL DEFAULT 0;
+    
+    PRINT 'Added AllowMultipleCorrect column to QuizQuestion';
+END
+GO
+
+-- 2. Update existing questions: Đánh dấu những câu có >= 2 đáp án đúng
+UPDATE q
+SET q.AllowMultipleCorrect = 1
+FROM QuizQuestion q
+WHERE (
+    SELECT COUNT(*) 
+    FROM QuizAnswer a 
+    WHERE a.QuestionID = q.QuestionID 
+    AND a.IsCorrect = 1
+) >= 2;
+
+PRINT 'Updated AllowMultipleCorrect for existing questions';
+GO
+
+-- 3. Thêm cột SelectedAnswerIds vào UserQuizAnswer (nếu chưa có)
+IF NOT EXISTS (
+    SELECT * FROM sys.columns 
+    WHERE object_id = OBJECT_ID('UserQuizAnswer') 
+    AND name = 'SelectedAnswerIds'
+)
+BEGIN
+    ALTER TABLE UserQuizAnswer
+    ADD SelectedAnswerIds NVARCHAR(100); -- Format: "1,3,5" (comma-separated)
+    
+    PRINT 'Added SelectedAnswerIds column to UserQuizAnswer';
+END
+GO
+
+-- 4. Migrate dữ liệu cũ từ SelectedAnswerID sang SelectedAnswerIds
+UPDATE UserQuizAnswer
+SET SelectedAnswerIds = CAST(SelectedAnswerID AS NVARCHAR(100))
+WHERE SelectedAnswerID IS NOT NULL 
+AND (SelectedAnswerIds IS NULL OR SelectedAnswerIds = '');
+
+PRINT 'Migrated SelectedAnswerID to SelectedAnswerIds';
+GO
+
+-- 5. Tạo index mới
+IF NOT EXISTS (
+    SELECT * FROM sys.indexes 
+    WHERE name = 'IX_QuizQuestion_QuizID_Order' 
+    AND object_id = OBJECT_ID('QuizQuestion')
+)
+BEGIN
+    CREATE INDEX IX_QuizQuestion_QuizID_Order 
+    ON QuizQuestion(QuizID, QuestionOrder);
+    
+    PRINT 'Created index IX_QuizQuestion_QuizID_Order';
+END
+GO
+
+-- 6. Kiểm tra dữ liệu
+SELECT 
+    q.QuestionID,
+    q.QuizID,
+    q.QuestionOrder,
+    q.QuestionText,
+    q.AllowMultipleCorrect,
+    COUNT(CASE WHEN a.IsCorrect = 1 THEN 1 END) as CorrectAnswersCount
+FROM QuizQuestion q
+LEFT JOIN QuizAnswer a ON q.QuestionID = a.QuestionID
+GROUP BY q.QuestionID, q.QuizID, q.QuestionOrder, q.QuestionText, q.AllowMultipleCorrect
+ORDER BY q.QuizID, q.QuestionOrder;
+
+PRINT 'Migration completed successfully!';
+GO
