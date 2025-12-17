@@ -4,57 +4,258 @@
     ViewData["Title"] = "Create";
 }
 
-<h1>Create</h1>
+<div class="container py-4">
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-primary text-white rounded-top-4">
+            <h4 class="mb-0">
+                <i class="bi bi-upload"></i> Create Course Material
+            </h4>
+        </div>
 
-<h4>CourseMaterial</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="CourseId" class="control-label"></label>
-                <select asp-for="CourseId" class ="form-control" asp-items="ViewBag.CourseId"></select>
-            </div>
-            <div class="form-group">
-                <label asp-for="LessonId" class="control-label"></label>
-                <select asp-for="LessonId" class ="form-control" asp-items="ViewBag.LessonId"></select>
-            </div>
-            <div class="form-group">
-                <label asp-for="MaterialName" class="control-label"></label>
-                <input asp-for="MaterialName" class="form-control" />
-                <span asp-validation-for="MaterialName" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="MaterialType" class="control-label"></label>
-                <input asp-for="MaterialType" class="form-control" />
-                <span asp-validation-for="MaterialType" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="FileUrl" class="control-label"></label>
-                <input asp-for="FileUrl" class="form-control" />
-                <span asp-validation-for="FileUrl" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="FileSize" class="control-label"></label>
-                <input asp-for="FileSize" class="form-control" />
-                <span asp-validation-for="FileSize" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CreatedBy" class="control-label"></label>
-                <select asp-for="CreatedBy" class ="form-control" asp-items="ViewBag.CreatedBy"></select>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+        <div class="card-body">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <form asp-action="Create" method="post" enctype="multipart/form-data">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="CourseId" class="form-label fw-bold">
+                        <i class="bi bi-book"></i> Course <span class="text-danger">*</span>
+                    </label>
+                    <select asp-for="CourseId"
+                            class="form-select"
+                            asp-items="ViewBag.CourseId"
+                            id="courseSelect"
+                            required>
+                        <option value="">-- Select Course --</option>
+                    </select>
+                    <span asp-validation-for="CourseId" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="LessonId" class="form-label fw-bold">
+                        <i class="bi bi-file-text"></i> Lesson <small class="text-muted">(Optional)</small>
+                    </label>
+                    <select asp-for="LessonId"
+                            class="form-select"
+                            id="lessonSelect">
+                        <option value="">-- Select Course First --</option>
+                    </select>
+                    <small class="text-muted d-block mt-1">
+                        <i class="bi bi-info-circle"></i> Chọn bài học cụ thể hoặc để trống nếu tài liệu dành cho cả khóa học
+                    </small>
+                    <span asp-validation-for="LessonId" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="MaterialName" class="form-label fw-bold">
+                        <i class="bi bi-tag"></i> Material Name
+                    </label>
+                    <input asp-for="MaterialName"
+                           class="form-control"
+                           placeholder="Enter material name..."
+                           required />
+                    <span asp-validation-for="MaterialName" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        <i class="bi bi-cloud-upload"></i> Upload File
+                    </label>
+                    <input type="file"
+                           name="uploadedFile"
+                           id="uploadedFile"
+                           class="form-control"
+                           required
+                           onchange="displayFileInfo(this)" />
+                    <small class="text-muted">
+                        Supported formats: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, ZIP, MP4, MP3, JPG, PNG, etc.
+                    </small>
+                </div>
+
+                <div class="mb-3" id="fileInfoDisplay" style="display: none;">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading"><i class="bi bi-info-circle"></i> File Information</h6>
+                        <p class="mb-1"><strong>File Name:</strong> <span id="fileName"></span></p>
+                        <p class="mb-1"><strong>File Size:</strong> <span id="fileSize"></span></p>
+                        <p class="mb-0"><strong>File Type:</strong> <span id="fileType"></span></p>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input type="checkbox"
+                               name="IsPublic"
+                               value="true"
+                               class="form-check-input"
+                               id="isPublicSwitch">
+                        <input type="hidden" name="IsPublic" value="false">
+                        <label class="form-check-label" for="isPublicSwitch">
+                            <i class="bi bi-eye"></i> Make this material public
+                        </label>
+                    </div>
+                    <small class="text-muted">Public materials can be viewed by all enrolled students</small>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left-circle"></i> Back to List
+                    </a>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-cloud-arrow-up"></i> Upload Material
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Load lessons without jQuery - using plain JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, starting to load lessons...');
+
+            const courseSelect = document.getElementById('courseSelect');
+            const lessonSelect = document.getElementById('lessonSelect');
+
+            // Function to load lessons
+            function loadLessons(courseId) {
+                console.log('Loading lessons for courseId:', courseId);
+
+                // Clear and show loading
+                lessonSelect.innerHTML = '<option value="">-- Loading lessons... --</option>';
+
+                const url = '@Url.Action("GetLessonsByCourse", "CourseMaterial")' +
+                           (courseId ? '?courseId=' + courseId : '');
+
+                console.log('Fetching URL:', url);
+
+                fetch(url)
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Lessons loaded successfully:', data);
+
+                        // Clear select
+                        lessonSelect.innerHTML = '';
+
+                        // Add default option
+                        if (courseId) {
+                            lessonSelect.innerHTML = '<option value="">-- Select Lesson (Optional) --</option>';
+                        } else {
+                            lessonSelect.innerHTML = '<option value="">-- Select Lesson --</option>';
+                        }
+
+                        // Add lessons
+                        if (data && data.length > 0) {
+                            data.forEach(function(lesson) {
+                                console.log('Adding lesson:', lesson.title);
+                                const option = document.createElement('option');
+                                option.value = lesson.lessonId;
+                                option.textContent = lesson.title;
+                                lessonSelect.appendChild(option);
+                            });
+                        } else {
+                            console.log('No lessons found');
+                            const option = document.createElement('option');
+                            option.value = '';
+                            if (courseId) {
+                                option.textContent = '-- No lessons in this course --';
+                            } else {
+                                option.textContent = '-- No lessons available --';
+                            }
+                            lessonSelect.appendChild(option);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading lessons:', error);
+                        lessonSelect.innerHTML = '<option value="">-- Error loading lessons --</option>';
+                        alert('Lỗi khi load lessons: ' + error.message);
+                    });
+            }
+
+            // Course selection change event
+            courseSelect.addEventListener('change', function() {
+                const courseId = this.value;
+                console.log('Course changed to:', courseId);
+                loadLessons(courseId || null);
+            });
+
+            // Load all lessons on page load
+            loadLessons(null);
+
+            // Form validation
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(e) {
+                const courseId = courseSelect.value;
+                const lessonId = lessonSelect.value;
+
+                if (!courseId && !lessonId) {
+                    e.preventDefault();
+                    alert('Vui lòng chọn ít nhất Course hoặc Lesson!');
+                    return false;
+                }
+
+                return true;
+            });
+        });
+
+        // Display file information
+        function displayFileInfo(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const fileSize = file.size;
+                const fileSizeKB = (fileSize / 1024).toFixed(2);
+                const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(2);
+
+                const displaySize = fileSize < 1024 * 1024
+                    ? fileSizeKB + ' KB'
+                    : fileSizeMB + ' MB';
+
+                // Get file extension
+                const fileName = file.name;
+                const fileExt = fileName.split('.').pop().toUpperCase();
+
+                // Determine file type category
+                const fileTypeCategory = getFileTypeCategory(fileExt);
+
+                // Update display
+                document.getElementById('fileName').textContent = fileName;
+                document.getElementById('fileSize').textContent = displaySize;
+                document.getElementById('fileType').textContent = fileExt + ' (' + fileTypeCategory + ')';
+                document.getElementById('fileInfoDisplay').style.display = 'block';
+            } else {
+                document.getElementById('fileInfoDisplay').style.display = 'none';
+            }
+        }
+
+        function getFileTypeCategory(ext) {
+            const docTypes = ['PDF', 'DOC', 'DOCX', 'TXT', 'XLS', 'XLSX', 'PPT', 'PPTX'];
+            const imageTypes = ['JPG', 'JPEG', 'PNG', 'GIF', 'BMP', 'SVG'];
+            const videoTypes = ['MP4', 'AVI', 'MOV', 'WMV', 'FLV', 'MKV'];
+            const audioTypes = ['MP3', 'WAV', 'FLAC', 'AAC', 'OGG'];
+
+            if (docTypes.includes(ext)) return 'Document';
+            if (imageTypes.includes(ext)) return 'Image';
+            if (videoTypes.includes(ext)) return 'Video';
+            if (audioTypes.includes(ext)) return 'Audio';
+            return 'Other';
+        }
+    </script>
 }

@@ -1801,6 +1801,90 @@ namespace DoAnChuyenNganh.Controllers
 
             return Json(debugInfo);
         }
+        // =============================================
+        // PAYMENT MANAGEMENT (Admin & Instructor Only)
+        // =============================================
+
+        // GET: Course/ManagePayments
+        public async Task<IActionResult> ManagePayments(
+            string? status,
+            string? method,
+            string? q,
+            DateTime? from,
+            DateTime? to)
+        {
+            if (!IsLoggedIn())
+            {
+                TempData["ErrorMessage"] = "Please login to access this page.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            if (!IsAdminOrInstructor())
+            {
+                TempData["ErrorMessage"] = "Access denied. Only Instructors and Administrators can access payment management.";
+                return RedirectToAction("Public", "Course");
+            }
+
+            var userId = GetCurrentUserId();
+            var isAdmin = IsAdmin();
+
+            IQueryable<Payment> payments = _context.Payments
+                .Include(p => p.Course)
+                    .ThenInclude(c => c.Instructor)
+                .Include(p => p.User);
+
+            // ✅ Instructor chỉ thấy payment của course do mình sở hữu
+            if (!isAdmin)
+            {
+                payments = payments.Where(p => p.Course.InstructorId == userId);
+            }
+
+            // Filters
+            if (!string.IsNullOrWhiteSpace(status))
+                payments = payments.Where(p => p.Status == status);
+
+            if (!string.IsNullOrWhiteSpace(method))
+                payments = payments.Where(p => p.PaymentMethod == method);
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                q = q.Trim();
+                payments = payments.Where(p =>
+                    p.Course.Title.Contains(q) ||
+                    (p.User.Username != null && p.User.Username.Contains(q)) ||
+                    ((p.User.FirstName + " " + p.User.LastName).Contains(q)) ||
+                    (p.TransactionId != null && p.TransactionId.Contains(q)) ||
+                    (p.MoMoOrderId != null && p.MoMoOrderId.Contains(q)) ||
+                    (p.VnPayOrderId != null && p.VnPayOrderId.Contains(q))
+                );
+            }
+
+            if (from.HasValue)
+                payments = payments.Where(p => p.CreatedAt >= from.Value);
+
+            if (to.HasValue)
+                payments = payments.Where(p => p.CreatedAt <= to.Value.AddDays(1).AddTicks(-1));
+
+            // Sort newest first
+            payments = payments.OrderByDescending(p => p.CreatedAt);
+
+            // ViewBags for UI
+            ViewBag.IsAdmin = isAdmin;
+            ViewBag.Status = status ?? "";
+            ViewBag.Method = method ?? "";
+            ViewBag.Q = q ?? "";
+            ViewBag.From = from?.ToString("yyyy-MM-dd") ?? "";
+            ViewBag.To = to?.ToString("yyyy-MM-dd") ?? "";
+
+            // Quick stats (optional nhưng “xịn”)
+            var list = await payments.ToListAsync();
+            ViewBag.TotalCount = list.Count;
+            ViewBag.TotalRevenueCompleted = list
+                .Where(p => p.Status == "Completed")
+                .Sum(p => p.Amount);
+
+            return View(list);
+        }
 
     }
 }

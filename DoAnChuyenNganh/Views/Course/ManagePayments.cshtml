@@ -1,0 +1,150 @@
+﻿@model List<DoAnChuyenNganh.Models.Payment>
+
+@{
+    ViewData["Title"] = "Manage Payments";
+    var isAdmin = (ViewBag.IsAdmin as bool?) ?? false;
+
+    string status = ViewBag.Status ?? "";
+    string method = ViewBag.Method ?? "";
+    string q = ViewBag.Q ?? "";
+    string from = ViewBag.From ?? "";
+    string to = ViewBag.To ?? "";
+
+    int totalCount = (ViewBag.TotalCount as int?) ?? Model.Count;
+    decimal totalRevenueCompleted = (ViewBag.TotalRevenueCompleted as decimal?) ?? 0m;
+}
+
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h3 class="mb-1">Manage Payments</h3>
+            <div class="text-muted">
+                @(isAdmin ? "Admin: xem tất cả thanh toán" : "Instructor: chỉ xem thanh toán của khóa học của bạn")
+            </div>
+        </div>
+        <div class="text-end">
+            <div><strong>Total:</strong> @totalCount</div>
+            <div><strong>Revenue (Completed):</strong> @totalRevenueCompleted.ToString("N0")</div>
+        </div>
+    </div>
+
+    <form method="get" class="card card-body mb-3">
+        <div class="row g-2">
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    <option value="" selected="@(string.IsNullOrEmpty(status))">All</option>
+                    <option value="Pending" selected="@(status=="Pending")">Pending</option>
+                    <option value="Completed" selected="@(status=="Completed")">Completed</option>
+                    <option value="Failed" selected="@(status=="Failed")">Failed</option>
+                    <option value="Cancelled" selected="@(status=="Cancelled")">Cancelled</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Method</label>
+                <select class="form-select" name="method">
+                    <option value="" selected="@(string.IsNullOrEmpty(method))">All</option>
+                    <option value="COD" selected="@(method=="COD")">COD</option>
+                    <option value="MoMo" selected="@(method=="MoMo")">MoMo</option>
+                    <option value="VNPay" selected="@(method=="VNPay")">VNPay</option>
+                    <option value="PayPal" selected="@(method=="PayPal")">PayPal</option>
+                    <option value="Free" selected="@(method=="Free")">Free</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <input class="form-control" name="q" value="@q" placeholder="Course / user / txnId / orderId..." />
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">From</label>
+                <input class="form-control" type="date" name="from" value="@from" />
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">To</label>
+                <input class="form-control" type="date" name="to" value="@to" />
+            </div>
+
+            <div class="col-md-1 d-flex align-items-end">
+                <button class="btn btn-primary w-100" type="submit">Filter</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Course</th>
+                        <th>Student</th>
+                        <th class="text-end">Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Paid</th>
+                        <th>Txn / Order</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model == null || !Model.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                No payments found.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var p in Model)
+                        {
+                            var studentName = p.User != null
+                            ? $"{p.User.FirstName} {p.User.LastName} (@{p.User.Username})".Trim()
+                            : $"UserId: {p.UserId}";
+
+                            var courseTitle = p.Course?.Title ?? $"CourseId: {p.CourseId}";
+                            var txn = !string.IsNullOrEmpty(p.TransactionId) ? p.TransactionId
+                            : !string.IsNullOrEmpty(p.MoMoOrderId) ? ("MoMo: " + p.MoMoOrderId)
+                            : !string.IsNullOrEmpty(p.VnPayOrderId) ? ("VNPay: " + p.VnPayOrderId)
+                            : "-";
+
+                            <tr>
+                                <td>@p.PaymentId</td>
+                                <td>
+                                    <div class="fw-semibold">@courseTitle</div>
+                                    @if (p.Course?.Instructor != null)
+                                    {
+                                        <div class="text-muted small">
+                                            Instructor: @($"{p.Course.Instructor.FirstName} {p.Course.Instructor.LastName} (@{p.Course.Instructor.Username})")
+                                        </div>
+                                    }
+                                </td>
+                                <td>@studentName</td>
+                                <td class="text-end">@p.Amount.ToString("N0")</td>
+                                <td>@p.PaymentMethod</td>
+                                <td>
+                                    @{
+                                        var badge = p.Status == "Completed" ? "bg-success"
+                                        : p.Status == "Pending" ? "bg-warning text-dark"
+                                        : p.Status == "Failed" ? "bg-danger"
+                                        : p.Status == "Cancelled" ? "bg-secondary"
+                                        : "bg-info";
+                                    }
+                                    <span class="badge @badge">@p.Status</span>
+                                </td>
+                                <td>@p.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@(p.PaidAt.HasValue ? p.PaidAt.Value.ToString("dd/MM/yyyy HH:mm") : "-")</td>
+                                <td class="text-muted small">@txn</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

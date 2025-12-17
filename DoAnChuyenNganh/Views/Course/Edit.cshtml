@@ -30,6 +30,14 @@
         </div>
     }
 
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
     <div class="row g-4">
         <!-- Left Column: Form -->
         <div class="col-lg-8">
@@ -108,21 +116,23 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label class="form-label fw-semibold text-primary">
-                                    Instructor
-                                </label>
-                                <div class="p-3 bg-light border rounded-3 border-primary border-opacity-25">
-                                    <i class="bi bi-person-fill text-primary"></i>
-                                    <strong>@ViewData["CurrentInstructorName"]</strong>
-                                    <br />
-                                    <small class="text-muted">
-                                        <i class="bi bi-info-circle"></i>
-                                        The course creator cannot be changed after creation.
-                                    </small>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-semibold text-primary">
+                                        Instructor
+                                    </label>
+                                    <div class="p-3 bg-light border rounded-3 border-primary border-opacity-25">
+                                        <i class="bi bi-person-fill text-primary"></i>
+                                        <strong>@ViewData["CurrentInstructorName"]</strong>
+                                        <br />
+                                        <small class="text-muted">
+                                            <i class="bi bi-info-circle"></i>
+                                            The course creator cannot be changed after creation.
+                                        </small>
+                                    </div>
+                                    <input type="hidden" asp-for="InstructorId" />
                                 </div>
-                                <input type="hidden" asp-for="InstructorId" />
                             </div>
 
                             <div class="col-md-6">
@@ -167,11 +177,13 @@
                             </div>
                         </div>
 
-                        <!-- ✅ THUMBNAIL UPLOAD & PREVIEW -->
+                        <!-- THUMBNAIL UPLOAD & PREVIEW -->
                         <div class="form-group mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-image"></i> Thumbnail Image
-                            </label>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-semibold mb-0">
+                                    <i class="bi bi-image"></i> Thumbnail Image
+                                </label>
+                            </div>
 
                             <!-- Current Thumbnail -->
                             @if (!string.IsNullOrEmpty(Model.ThumbnailUrl))
@@ -295,6 +307,107 @@
                     </div>
                 </div>
             </form>
+
+            <!-- ✅ ADD LESSON SECTION - EMBEDDED CREATE FORM -->
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-plus-circle"></i> Quick Add Lesson
+                        </h5>
+                        <button type="button" class="btn btn-light btn-sm" id="toggleLessonFormBtn">
+                            <i class="bi bi-chevron-down" id="toggleIcon"></i>
+                            <span id="toggleText">Show</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" id="lessonFormContainer" style="display: none;">
+                    <form id="quickLessonForm">
+                        <input type="hidden" name="courseId" value="@Model.CourseId" />
+
+                        <!-- Basic Info -->
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-semibold">
+                                Lesson Title <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="title" class="form-control" required
+                                   placeholder="Enter lesson title" />
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Lesson Type</label>
+                                <select name="lessonType" id="quickLessonType" class="form-select">
+                                    <option value="text">📝 Text Lesson</option>
+                                    <option value="video">🎥 Video Lesson</option>
+                                    <option value="quiz">📋 Quiz (Advanced)</option>
+                                </select>
+                                <small class="text-muted">For Quiz, use full Create page</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Lesson Order</label>
+                                <input type="number" name="lessonOrder" class="form-control"
+                                       placeholder="Auto" min="1" />
+                                <small class="text-muted">Leave empty for auto</small>
+                            </div>
+                        </div>
+
+                        <!-- Content Field -->
+                        <div class="form-group mb-3" id="quickContentField">
+                            <label class="form-label fw-semibold">Content</label>
+                            <textarea name="content" class="form-control" rows="4"
+                                      placeholder="Enter lesson content..."></textarea>
+                        </div>
+
+                        <!-- Video URL Field -->
+                        <div class="form-group mb-3" id="quickVideoField" style="display: none;">
+                            <label class="form-label fw-semibold">Video URL</label>
+                            <input type="url" name="videoUrl" class="form-control"
+                                   placeholder="https://example.com/video.mp4" />
+                            <small class="text-muted">YouTube, Vimeo, or direct video link</small>
+                        </div>
+
+                        <!-- Options -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox"
+                                           name="isPublished" value="true" checked
+                                           id="quickIsPublished" />
+                                    <label class="form-check-label" for="quickIsPublished">
+                                        Published
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox"
+                                           name="isPreviewable" value="true"
+                                           id="quickIsPreviewable" />
+                                    <label class="form-check-label" for="quickIsPreviewable">
+                                        Allow Preview
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Create Lesson
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="clearFormBtn">
+                                <i class="bi bi-x-circle"></i> Clear
+                            </button>
+                            <a asp-controller="Lesson" asp-action="Create"
+                               asp-route-courseId="@Model.CourseId"
+                               class="btn btn-outline-primary ms-auto">
+                                <i class="bi bi-arrow-right-circle"></i> Full Create Page
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -341,48 +454,43 @@
                 });
             }
 
-            // ✅ FILE UPLOAD PREVIEW
+            // FILE UPLOAD PREVIEW
             if (fileInput) {
                 fileInput.addEventListener('change', function (e) {
                     const file = e.target.files[0];
                     if (file) {
-                        // Validate file type
                         if (!file.type.startsWith('image/')) {
                             alert('Please select an image file');
                             fileInput.value = '';
                             return;
                         }
 
-                        // Validate file size (5MB)
                         if (file.size > 5 * 1024 * 1024) {
                             alert('File size must be less than 5MB');
                             fileInput.value = '';
                             return;
                         }
 
-                        // Preview image
                         const reader = new FileReader();
                         reader.onload = function (e) {
                             previewImg.src = e.target.result;
                             previewContainer.style.display = 'block';
-                            urlInput.value = file.name; // Show filename
+                            urlInput.value = file.name;
                         };
                         reader.readAsDataURL(file);
                     }
                 });
             }
 
-            // ✅ URL INPUT PREVIEW
+            // URL INPUT PREVIEW
             if (urlInput) {
                 urlInput.addEventListener('input', function () {
                     const url = urlInput.value.trim();
                     if (url && url !== currentThumbnail?.src) {
-                        // Clear file input if user is pasting URL
                         if (fileInput) {
                             fileInput.value = '';
                         }
 
-                        // Preview image from URL
                         previewImg.src = url;
                         previewImg.onerror = function () {
                             previewContainer.style.display = 'none';
@@ -396,7 +504,7 @@
                 });
             }
 
-            // ✅ REMOVE BUTTON
+            // REMOVE BUTTON
             if (removeBtn) {
                 removeBtn.addEventListener('click', function () {
                     previewContainer.style.display = 'none';
@@ -405,6 +513,95 @@
                     fileInput.value = '';
                 });
             }
+
+            // ===== QUICK LESSON FORM =====
+
+            // Toggle lesson form
+            const toggleBtn = document.getElementById('toggleLessonFormBtn');
+            const formContainer = document.getElementById('lessonFormContainer');
+            const toggleIcon = document.getElementById('toggleIcon');
+            const toggleText = document.getElementById('toggleText');
+
+            toggleBtn.addEventListener('click', function () {
+                if (formContainer.style.display === 'none') {
+                    formContainer.style.display = 'block';
+                    toggleIcon.className = 'bi bi-chevron-up';
+                    toggleText.textContent = 'Hide';
+                } else {
+                    formContainer.style.display = 'none';
+                    toggleIcon.className = 'bi bi-chevron-down';
+                    toggleText.textContent = 'Show';
+                }
+            });
+
+            // Lesson type toggle
+            const lessonTypeSelect = document.getElementById('quickLessonType');
+            const contentField = document.getElementById('quickContentField');
+            const videoField = document.getElementById('quickVideoField');
+
+            lessonTypeSelect.addEventListener('change', function () {
+                const type = this.value;
+
+                contentField.style.display = 'none';
+                videoField.style.display = 'none';
+
+                if (type === 'text') {
+                    contentField.style.display = 'block';
+                } else if (type === 'video') {
+                    videoField.style.display = 'block';
+                } else if (type === 'quiz') {
+                    alert('For Quiz lessons, please use the Full Create Page for advanced features.');
+                }
+            });
+
+            // Clear form
+            document.getElementById('clearFormBtn').addEventListener('click', function () {
+                document.getElementById('quickLessonForm').reset();
+                lessonTypeSelect.dispatchEvent(new Event('change'));
+            });
+
+            // Submit quick lesson form
+            document.getElementById('quickLessonForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const formData = new FormData(this);
+
+                // Validate quiz type
+                if (formData.get('lessonType') === 'quiz') {
+                    alert('Please use the Full Create Page for Quiz lessons.');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/Lesson/CreateInline', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert(`✅ Lesson "${result.title}" created successfully!\n\nOrder: ${result.lessonOrder}\nType: ${result.lessonType}`);
+
+                        // Clear form
+                        this.reset();
+                        lessonTypeSelect.dispatchEvent(new Event('change'));
+
+                        // Optional: reload page to show in course
+                        if (confirm('Reload page to see the new lesson?')) {
+                            location.reload();
+                        }
+                    } else {
+                        alert('❌ Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('❌ An error occurred while creating the lesson.');
+                }
+            });
         });
 
         function slugify(text) {
@@ -434,6 +631,10 @@
         padding: 1rem 1.25rem;
     }
 
+        .card-header.bg-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        }
+
     .form-control:focus,
     .form-select:focus {
         border-color: #667eea;
@@ -452,6 +653,16 @@
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
 
+    .btn-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: none;
+    }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+
     #thumbnailPreview,
     #currentThumbnail {
         transition: transform 0.3s ease;
@@ -461,4 +672,14 @@
         #currentThumbnail:hover {
             transform: scale(1.02);
         }
+
+    #lessonFormContainer {
+        background: #f9fafb;
+        padding: 1.5rem;
+        border-radius: 8px;
+    }
+
+    .border-success {
+        border: 2px solid #10b981 !important;
+    }
 </style>
