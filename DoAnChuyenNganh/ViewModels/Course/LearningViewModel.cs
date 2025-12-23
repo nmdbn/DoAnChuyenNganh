@@ -14,7 +14,8 @@ namespace DoAnChuyenNganh.ViewModels.CoursesViewModels
         public int? QuizId { get; set; }
         public DoAnChuyenNganh.ViewModels.Course.TakeQuizViewModel? QuizToTake { get; set; }
         public DoAnChuyenNganh.ViewModels.Course.QuizResultViewModel? QuizResult { get; set; }
-
+        public CourseRatingInfo? UserRating { get; set; }
+        public bool CanRate { get; set; }
         public Lesson CurrentLesson =>
             Lessons?.FirstOrDefault(l => l.LessonId == (CurrentLessonId ?? 0))
             ?? Lessons.FirstOrDefault();

@@ -145,6 +145,8 @@ namespace DoAnChuyenNganh.Models
         public int AttemptId { get; set; }
         public int QuestionId { get; set; }
         public int? SelectedAnswerId { get; set; } // NULL nếu essay
+        [StringLength(100)]
+        public string? SelectedAnswerIds { get; set; }
         public string? EssayAnswer { get; set; }
         public bool? IsCorrect { get; set; }
         public decimal EarnedPoints { get; set; }
