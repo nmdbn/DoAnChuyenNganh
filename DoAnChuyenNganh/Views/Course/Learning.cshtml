@@ -710,6 +710,179 @@
         writing-mode: horizontal-tb;
         margin: 0;
     }
+    /* ✅ THÊM/SỬA CSS TRONG PHẦN <style> CỦA Learning.cshtml */
+
+    .answer-option {
+        display: flex;
+        align-items: center;
+        padding: 1.25rem;
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        position: relative;
+    }
+
+        /* ✅ Đáp án đúng - màu xanh rõ ràng */
+        .answer-option.correct {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border-color: #2f855a;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+
+        /* ✅ Đáp án sai user chọn - màu đỏ rõ ràng */
+        .answer-option.incorrect {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+            color: white;
+            border-color: #c53030;
+            box-shadow: 0 4px 15px rgba(245, 101, 101, 0.3);
+        }
+
+        /* ✅ Đáp án không chọn - màu xám nhạt */
+        .answer-option.neutral {
+            background: #f7fafc;
+            border-color: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .answer-option:hover:not(.correct):not(.incorrect) {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+    /* ✅ Icon trong đáp án */
+    .answer-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    /* Icon cho đáp án đúng */
+    .answer-option.correct .answer-icon {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+    }
+
+    /* Icon cho đáp án sai */
+    .answer-option.incorrect .answer-icon {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+    }
+
+    /* Icon cho đáp án neutral */
+    .answer-option.neutral .answer-icon {
+        background: #e2e8f0;
+        color: #718096;
+    }
+
+    /* ✅ Badge trong đáp án */
+    .answer-option .badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    /* ✅ Explanation box */
+    .explanation-box {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-top: 1rem;
+        border-left: 4px solid #f59e0b;
+        color: #78350f;
+    }
+
+        .explanation-box i {
+            color: #f59e0b;
+            font-size: 1.2rem;
+            margin-right: 0.5rem;
+        }
+
+        .explanation-box strong {
+            color: #92400e;
+        }
+
+    /* ✅ Quiz result header styles */
+    .quiz-result-header {
+        text-align: center;
+        padding: 3rem 2rem;
+        border-radius: 16px;
+        margin-bottom: 2rem;
+    }
+
+        .quiz-result-header.pass {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+        .quiz-result-header.fail {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+            color: white;
+        }
+
+    .score-display {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin: 1rem 0;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ✅ Question card */
+    .question-card {
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .question-header {
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .question-number {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+
+    /* ✅ Responsive adjustments */
+         (max-width: 768px) {
+        .answer-option
+
+    {
+        padding: 1rem;
+    }
+
+    .answer-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+
+    .score-display {
+        font-size: 2.5rem;
+    }
+
+    }
     }
 </style>
 
@@ -951,35 +1124,48 @@
                         }
 
                         <!-- QUIZ SECTION -->
-                        @if (isQuizLesson)
-                        {
+                            @* ✅ THAY THẾ PHẦN HIỂN THỊ KẾT QUẢ QUIZ TRONG Learning.cshtml *@
+                            @* Tìm phần "@if (isQuizLesson)" và thay thế phần hiển thị kết quả *@
+
+                            @if (isQuizLesson)
+                            {
                             <div class="quiz-container">
-                                @if (Model.QuizResult != null)
-                                {
-                                    var r = Model.QuizResult;
-                                    var isPass = r.PercentageScore >= 60;
+                                    @if (Model.QuizResult != null)
+                                    {
+                                        var r = Model.QuizResult;
+                                        var isPass = r.PercentageScore >= 60;
 
                                     <div class="quiz-result-header @(isPass ? "pass" : "fail")">
                                         <h3>@(isPass ? "Congratulations! 🎉" : "Keep Trying! 💪")</h3>
                                         <div class="score-display">
-                                            @r.TotalScore / @r.MaxScore
+                                                @r.TotalScore / @r.MaxScore
                                         </div>
                                         <h4>@r.PercentageScore.ToString("F1")%</h4>
                                         <p class="lead mb-0">
-                                            @if (isPass)
-                                            {
+                                                @if (isPass)
+                                                {
                                                 <span>You've passed this quiz!</span>
-                                            }
-                                            else
-                                            {
+                                                }
+                                                else
+                                                {
                                                 <span>Don't give up, try again!</span>
-                                            }
+                                                }
                                         </p>
                                     </div>
 
-                                    @foreach (var q in r.Questions)
-                                    {
-                                        var questionIndex = r.Questions.IndexOf(q) + 1;
+                                        @* ✅ LEGEND: Giải thích màu sắc *@
+                                    <div class="alert alert-info mb-4" style="border-radius: 12px;">
+                                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                                            <strong><i class="bi bi-info-circle me-2"></i>Legend:</strong>
+                                            <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Correct Answer</span>
+                                            <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Your Wrong Answer</span>
+                                            <span class="badge bg-secondary"><i class="bi bi-circle me-1"></i>Not Selected</span>
+                                        </div>
+                                    </div>
+
+                                        @foreach (var q in r.Questions)
+                                        {
+                                            var questionIndex = r.Questions.IndexOf(q) + 1;
 
                                         <div class="question-card">
                                             <div class="question-header">
@@ -990,108 +1176,123 @@
                                                 </div>
                                             </div>
 
-                                            @if (q.QuestionType == "multiple_choice")
-                                            {
-                                                var correctIds = q.CorrectAnswerIds ?? new List<int>();
-                                                var selectedIds = q.SelectedAnswerIds ?? new List<int>();
-
-                                                foreach (var a in q.Answers)
+                                                @if (q.QuestionType == "multiple_choice")
                                                 {
-                                                    bool isCorrect = correctIds.Contains(a.AnswerId);
-                                                    bool isSelected = selectedIds.Contains(a.AnswerId);
+                                                    var correctIds = q.CorrectAnswerIds ?? new List<int>();
+                                                    var selectedIds = q.SelectedAnswerIds ?? new List<int>();
 
-                                                    string cssClass = "neutral";
-                                                    string icon = "bi-circle";
+                                                    @foreach (var a in q.Answers)
+                                                    {
+                                                        bool isCorrect = correctIds.Contains(a.AnswerId);
+                                                        bool isSelected = selectedIds.Contains(a.AnswerId);
 
-                                                    if (isCorrect)
-                                                    {
-                                                        cssClass = "correct";
-                                                        icon = "bi-check-circle-fill";
-                                                    }
-                                                    else if (isSelected && !isCorrect)
-                                                    {
-                                                        cssClass = "incorrect";
-                                                        icon = "bi-x-circle-fill";
-                                                    }
+                                                        string cssClass = "neutral";
+                                                        string icon = "bi-circle";
+                                                        string badge = "";
+
+                                                        if (isCorrect)
+                                                        {
+                                                            // ✅ Đáp án đúng luôn màu xanh
+                                                            cssClass = "correct";
+                                                            icon = "bi-check-circle-fill";
+                                                            badge = isSelected
+                                                            ? "<span class='badge bg-success ms-2'>✓ Your Answer (Correct)</span>"
+                                                            : "<span class='badge bg-success ms-2'>✓ Correct Answer</span>";
+                                                        }
+                                                        else if (isSelected)
+                                                        {
+                                                            // ❌ User chọn sai → màu đỏ
+                                                            cssClass = "incorrect";
+                                                            icon = "bi-x-circle-fill";
+                                                            badge = "<span class='badge bg-danger ms-2'>✗ Your Answer (Wrong)</span>";
+                                                        }
 
                                                     <div class="answer-option @cssClass">
                                                         <div class="answer-icon">
                                                             <i class="bi @icon"></i>
                                                         </div>
-                                                        <span>@a.AnswerText</span>
+                                                        <span>@a.AnswerText @Html.Raw(badge)</span>
                                                     </div>
-                                                }
+                                                    }
 
                                                 <div class="mt-3 pt-3 border-top">
                                                     <strong>Your Score:</strong>
                                                     <span class="badge @(q.EarnedPoints == q.Points ? "bg-success" : "bg-danger") ms-2" style="font-size: 1rem; padding: 0.5rem 1rem;">
-                                                        @q.EarnedPoints / @q.Points
+                                                            @q.EarnedPoints / @q.Points
                                                     </span>
 
-                                                    @if (correctIds.Count > 1)
-                                                    {
-                                                        <div class="text-muted mt-2">
+                                                        @if (correctIds.Count > 1)
+                                                        {
+                                                        <div class="alert alert-warning mt-3 mb-0" style="border-radius: 10px;">
                                                             <i class="bi bi-info-circle me-1"></i>
-                                                            Câu nhiều đáp án đúng: chỉ được điểm khi chọn đúng <strong>tất cả</strong>.
+                                                            <strong>Note:</strong> This question has multiple correct answers.
+                                                            You must select <strong>all correct answers</strong> to earn points.
+                                                                @if (selectedIds.Count != correctIds.Count || selectedIds.Except(correctIds).Any())
+                                                                {
+                                                                <br />
+                                                                <small class="text-muted">
+                                                                    You selected @selectedIds.Count answer(s), but @correctIds.Count answer(s) are correct.
+                                                                </small>
+                                                                }
                                                         </div>
-                                                    }
+                                                        }
                                                 </div>
 
-                                                @if (!string.IsNullOrWhiteSpace(q.Explanation))
-                                                {
+                                                    @if (!string.IsNullOrWhiteSpace(q.Explanation))
+                                                    {
                                                     <div class="explanation-box">
                                                         <i class="bi bi-lightbulb-fill"></i>
                                                         <strong>Explanation:</strong>
                                                         <div class="mt-2">@q.Explanation</div>
                                                     </div>
+                                                    }
                                                 }
-                                            }
-                                            else
-                                            {
+                                                else
+                                                {
+                                                    @* Essay Question Display *@
                                                 <div class="alert alert-secondary">
                                                     <strong>Essay Question</strong>
                                                     <div class="mt-2 text-muted">
-                                                        Câu tự luận hiện chưa có dữ liệu hiển thị trong <code>QuizQuestionResultViewModel</code>
-                                                        (không có EssayAnswer/TeacherFeedback/GradedAt).
+                                                        Essay questions require manual grading by the instructor.
                                                     </div>
 
                                                     <hr />
 
                                                     <strong>Score:</strong>
                                                     <span class="badge @(q.EarnedPoints > 0 ? "bg-success" : "bg-secondary") ms-2">
-                                                        @q.EarnedPoints / @q.Points
+                                                            @q.EarnedPoints / @q.Points
                                                     </span>
 
-                                                    @if (!string.IsNullOrWhiteSpace(q.Explanation))
-                                                    {
+                                                        @if (!string.IsNullOrWhiteSpace(q.Explanation))
+                                                        {
                                                         <div class="explanation-box mt-3">
                                                             <i class="bi bi-lightbulb-fill"></i>
                                                             <strong>Explanation:</strong>
                                                             <div class="mt-2">@q.Explanation</div>
                                                         </div>
-                                                    }
+                                                        }
                                                 </div>
-                                            }
+                                                }
                                         </div>
+                                        }
                                     }
-                                }
-                                else if (Model.QuizToTake != null)
-                                {
+                                    else if (Model.QuizToTake != null)
+                                    {
                                     <div class="alert alert-info mb-4">
                                         <i class="bi bi-info-circle me-2"></i>
                                         This quiz has <strong>@Model.QuizToTake.Questions.Count questions</strong>. Good luck!
                                     </div>
 
                                     <form asp-action="SubmitQuizFromLearning" method="post" class="quiz-form">
-                                        @Html.AntiForgeryToken()
+                                            @Html.AntiForgeryToken()
 
                                         <input type="hidden" name="courseId" value="@Model.Course.CourseId" />
                                         <input type="hidden" name="lessonId" value="@currentLesson.LessonId" />
                                         <input type="hidden" name="model.AttemptId" value="@Model.QuizToTake.AttemptId" />
 
-                                        @for (var i = 0; i < Model.QuizToTake.Questions.Count; i++)
-                                        {
-                                            var q = Model.QuizToTake.Questions[i];
+                                            @for (var i = 0; i < Model.QuizToTake.Questions.Count; i++)
+                                            {
+                                                var q = Model.QuizToTake.Questions[i];
 
                                             <div class="question-card">
                                                 <div class="question-header">
@@ -1104,18 +1305,13 @@
 
                                                 <input type="hidden" name="model.Answers[@i].QuestionId" value="@q.QuestionId" />
 
-                                                @if (q.QuestionType == "multiple_choice")
-                                                {
-                                                    @if (q.AllowMultipleCorrect)
+                                                    @if (q.QuestionType == "multiple_choice")
                                                     {
-                                                        @* <div class="alert alert-warning py-2 px-3 mb-3" style="border-radius:10px;"> *@
-                                                        @*     <i class="bi bi-layers me-2"></i> *@
-                                                        @*     Câu này có <strong>nhiều đáp án đúng</strong> — chọn <strong>tất cả</strong> đáp án đúng nha. *@
-                                                        @* </div> *@
-
-                                                        @for (var j = 0; j < q.Answers.Count; j++)
+                                                        @if (q.AllowMultipleCorrect)
                                                         {
-                                                            var a = q.Answers[j];
+                                                            @for (var j = 0; j < q.Answers.Count; j++)
+                                                            {
+                                                                var a = q.Answers[j];
                                                             <div class="form-check">
                                                                 <input class="form-check-input"
                                                                        type="checkbox"
@@ -1123,21 +1319,16 @@
                                                                        id="answer_@(i)_@(j)"
                                                                        value="@a.AnswerId" />
                                                                 <label class="form-check-label" for="answer_@(i)_@(j)">
-                                                                    @a.AnswerText
+                                                                        @a.AnswerText
                                                                 </label>
                                                             </div>
+                                                            }
                                                         }
-                                                    }
-                                                    else
-                                                    {
-                                                        @* <div class="alert alert-info py-2 px-3 mb-3" style="border-radius:10px;"> *@
-                                                        @*     <i class="bi bi-dot me-2"></i> *@
-                                                        @*     Câu này chỉ có <strong>1 đáp án đúng</strong> — chọn 1 thôi. *@
-                                                        @* </div> *@
-
-                                                        @for (var j = 0; j < q.Answers.Count; j++)
+                                                        else
                                                         {
-                                                            var a = q.Answers[j];
+                                                            @for (var j = 0; j < q.Answers.Count; j++)
+                                                            {
+                                                                var a = q.Answers[j];
                                                             <div class="form-check">
                                                                 <input class="form-check-input"
                                                                        type="radio"
@@ -1145,22 +1336,22 @@
                                                                        id="answer_@(i)_@(j)"
                                                                        value="@a.AnswerId" />
                                                                 <label class="form-check-label" for="answer_@(i)_@(j)">
-                                                                    @a.AnswerText
+                                                                        @a.AnswerText
                                                                 </label>
                                                             </div>
+                                                            }
                                                         }
                                                     }
-                                                }
-                                                else
-                                                {
+                                                    else
+                                                    {
                                                     <textarea name="model.Answers[@i].EssayAnswer"
                                                               class="form-control"
                                                               rows="5"
                                                               placeholder="Enter your answer here..."
                                                               style="border-radius: 10px;"></textarea>
-                                                }
+                                                    }
                                             </div>
-                                        }
+                                            }
 
                                         <div class="text-center mt-4">
                                             <button type="submit" class="submit-btn">
@@ -1168,16 +1359,16 @@
                                             </button>
                                         </div>
                                     </form>
-                                }
-                                else
-                                {
+                                    }
+                                    else
+                                    {
                                     <div class="alert alert-warning">
                                         <i class="bi bi-exclamation-triangle me-2"></i>
                                         Quiz is not configured or loading...
                                     </div>
-                                }
+                                    }
                             </div>
-                        }
+                            }
 
                         <!-- NAVIGATION BUTTONS -->
                         <div class="navigation-buttons">
