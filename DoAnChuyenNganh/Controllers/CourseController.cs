@@ -1528,48 +1528,53 @@ namespace DoAnChuyenNganh.Controllers
                             Status = attempt.Status,
 
                             Questions = attempt.UserQuizAnswers
-        .GroupBy(ua => ua.QuestionId)
-        .Select(g =>
-        {
-            var any = g.First();
-            var q = any.Question;
+                                .GroupBy(ua => ua.QuestionId)
+                                .Select(g =>
+                                {
+                                    var any = g.First();
+                                    var q = any.Question;
 
-            var selectedIds = g.Where(x => x.SelectedAnswerId.HasValue)
-                               .Select(x => x.SelectedAnswerId!.Value)
-                               .Distinct()
-                               .ToList();
+                                    // ✅ FIXED: Parse SelectedAnswerIds từ chuỗi comma-separated
+                                    var selectedIds = new List<int>();
+                                    if (!string.IsNullOrWhiteSpace(any.SelectedAnswerIds))
+                                    {
+                                        selectedIds = any.SelectedAnswerIds
+                                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                            .Select(s => int.Parse(s.Trim()))
+                                            .Distinct()
+                                            .ToList();
+                                    }
 
-            var correctIds = q.QuizAnswers
-                              .Where(a => a.IsCorrect)
-                              .Select(a => a.AnswerId)
-                              .ToList();
+                                    var correctIds = q.QuizAnswers
+                                        .Where(a => a.IsCorrect)
+                                        .Select(a => a.AnswerId)
+                                        .ToList();
 
-            // điểm: lấy max EarnedPoints trong group (vì mình set 1 row đại diện)
-            var earned = g.Max(x => x.EarnedPoints);
+                                    // Điểm: lấy từ UserQuizAnswer
+                                    var earned = any.EarnedPoints;
 
-
-            return new CourseQuizVM.QuizQuestionResultViewModel
-            {
-                QuestionId = q.QuestionId,
-                QuestionText = q.QuestionText,
-                QuestionType = q.QuestionType,
-                Points = q.Points,
-                EarnedPoints = earned,
-                SelectedAnswerIds = selectedIds,
-                CorrectAnswerIds = correctIds,
-                Explanation = q.Explanation,
-                Answers = q.QuizAnswers
-                    .OrderBy(a => a.AnswerOrder)
-                    .Select(a => new CourseQuizVM.QuizAnswerTakeViewModel
-                    {
-                        AnswerId = a.AnswerId,
-                        AnswerText = a.AnswerText
-                    }).ToList()
-            };
-        })
-        .ToList()
+                                    return new CourseQuizVM.QuizQuestionResultViewModel
+                                    {
+                                        QuestionId = q.QuestionId,
+                                        QuestionText = q.QuestionText,
+                                        QuestionType = q.QuestionType,
+                                        Points = q.Points,
+                                        EarnedPoints = earned,
+                                        AllowMultipleCorrect = q.QuizAnswers.Count(a => a.IsCorrect) > 1,
+                                        SelectedAnswerIds = selectedIds, // ✅ List<int> đã parse
+                                        CorrectAnswerIds = correctIds,
+                                        Explanation = q.Explanation,
+                                        Answers = q.QuizAnswers
+                                            .OrderBy(a => a.AnswerOrder)
+                                            .Select(a => new CourseQuizVM.QuizAnswerTakeViewModel
+                                            {
+                                                AnswerId = a.AnswerId,
+                                                AnswerText = a.AnswerText
+                                            }).ToList()
+                                    };
+                                })
+                                .ToList()
                         };
-
                     }
                 }
                 else
