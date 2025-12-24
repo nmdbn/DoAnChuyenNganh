@@ -535,9 +535,10 @@ namespace DoAnChuyenNganh.Controllers
         // PUBLIC ACTIONS (All authenticated users)
         // =============================================
 
+        // Trong CourseController.cs, sửa action Public như sau:
+
         // GET: Course/Public - Public course list (Requires login: User, Instructor, Admin)
-        // GET: Course/Public - Public course list (Requires login: User, Instructor, Admin)
-        public async Task<IActionResult> Public(string searchString, int? subjectId, int? gradeId)
+        public async Task<IActionResult> Public(string searchString, int? subjectId, int? gradeId, int pageNumber = 1)
         {
             // REQUIRE LOGIN
             if (!IsLoggedIn())
@@ -545,6 +546,8 @@ namespace DoAnChuyenNganh.Controllers
                 TempData["ErrorMessage"] = "Please login to view courses.";
                 return RedirectToAction("Login", "Account");
             }
+
+            const int pageSize = 9; // Số khóa học mỗi trang
 
             // Base query - CHỈ HIỂN THỊ COURSE ĐÃ PUBLISHED
             IQueryable<Course> courses = _context.Courses
@@ -577,8 +580,14 @@ namespace DoAnChuyenNganh.Controllers
                 ViewData["SelectedGrade"] = gradeId;
             }
 
+            // Tính tổng số khóa học trước khi phân trang
+            var totalCourses = await courses.CountAsync();
+
             // Sort: ưu tiên PublishedAt, fallback CreatedAt
             courses = courses.OrderByDescending(c => c.PublishedAt ?? c.CreatedAt);
+
+            // Áp dụng phân trang
+            courses = courses.Skip((pageNumber - 1) * pageSize).Take(pageSize);
 
             // Dropdowns
             ViewData["Subjects"] = new SelectList(
@@ -598,6 +607,14 @@ namespace DoAnChuyenNganh.Controllers
             );
 
             var model = await courses.ToListAsync();
+
+            // Truyền thông tin phân trang qua ViewBag
+            ViewBag.PageNumber = pageNumber;
+            ViewBag.TotalPages = (int)Math.Ceiling(totalCourses / (double)pageSize);
+            ViewBag.HasPreviousPage = pageNumber > 1;
+            ViewBag.HasNextPage = pageNumber < ViewBag.TotalPages;
+            ViewBag.TotalCourses = totalCourses;
+
             return View(model);
         }
 
@@ -1696,7 +1713,7 @@ namespace DoAnChuyenNganh.Controllers
                 }
 
                 await _context.SaveChangesAsync();
-
+                
                 // Chấm điểm
                 await GradeQuizAnswers(model.AttemptId);
 
@@ -2143,8 +2160,10 @@ namespace DoAnChuyenNganh.Controllers
 
             var hasPaid = await _context.Payments
                 .AnyAsync(p => p.UserId == userId && p.CourseId == courseId && p.Status == "Completed");
+            var hasPrice = await _context.Courses
+                .AnyAsync(p => p.Price > 0);
 
-            if (!hasPaid)
+            if (!hasPaid && !hasPrice)
             {
                 return Json(new { success = false, message = "You must purchase this course before rating it." });
             }
