@@ -29,21 +29,23 @@ namespace DoAnChuyenNganh.ViewModels.Course
         public string AnswerText { get; set; } = null!;
     }
 
-    // ViewModel submit quiz
+    // ✅ ViewModel submit quiz
     public class SubmitQuizViewModel
     {
         public int AttemptId { get; set; }
         public List<QuizAnswerSubmitViewModel> Answers { get; set; } = new();
     }
 
+    // ✅ ViewModel cho TỪNG câu trả lời
     public class QuizAnswerSubmitViewModel
     {
         public int QuestionId { get; set; }
-        public int? SelectedAnswerId { get; set; }
-        // ✅ CHANGED: Hỗ trợ nhiều đáp án (cho câu hỏi AllowMultipleCorrect = true)
-        public List<int>? SelectedAnswerIds { get; set; }
 
-        // Cho essay
+        [Obsolete("Use SelectedAnswerIds instead")]
+        public int? SelectedAnswerId { get; set; } // Giữ lại cho compatibility
+
+        public List<int>? SelectedAnswerIds { get; set; } // ✅ Field chính
+
         public string? EssayAnswer { get; set; }
     }
 

@@ -205,3 +205,7 @@ ORDER BY q.QuizID, q.QuestionOrder;
 
 PRINT 'Migration completed successfully!';
 GO
+
+
+ALTER TABLE UserQuizAnswer
+DROP CONSTRAINT IF EXISTS UQ_UserQuizAnswer_AttemptQuestion;    

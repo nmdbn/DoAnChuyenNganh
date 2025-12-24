@@ -445,9 +445,314 @@
         .lesson-list::-webkit-scrollbar-thumb:hover {
             background: #764ba2;
         }
+
+    .rating-card {
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        width: 360px;
+        max-width: calc(100vw - 40px);
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.15);
+        z-index: 1000;
+        animation: slideInRight 0.5s ease-out;
+    }
+
+    slideInRight {
+        from
+
+    {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    }
+
+    .rating-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 20px 20px 0 0;
+    }
+
+        .rating-header h5 {
+            font-size: 1.25rem;
+            font-weight: 200;
+            margin: 0;
+        }
+
+    .course-rating-stats {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .rating-number {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .stars-display {
+        display: flex;
+        gap: 2px;
+    }
+
+        .stars-display i {
+            font-size: 1rem;
+        }
+
+    .rating-count {
+        font-size: 0.85rem;
+        opacity: 0.9;
+    }
+
+    .rating-body {
+        padding: 1.5rem;
+    }
+
+    .star-rating-input {
+        margin-bottom: 1.25rem;
+    }
+
+    .stars-input {
+        display: flex;
+        gap: 0.5rem;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        margin-top: 0.5rem;
+    }
+
+        .stars-input input[type="radio"] {
+            display: none;
+        }
+
+    .star-label {
+        font-size: 2rem;
+        color: #e2e8f0;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin: 0;
+    }
+
+        .star-label:hover,
+        .star-label:hover ~ .star-label,
+        .stars-input input[type="radio"]:checked ~ .star-label {
+            color: #fbbf24;
+            transform: scale(1.1);
+        }
+
+    .btn-submit-rating {
+        width: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.875rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+        .btn-submit-rating:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-submit-rating:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+    /* Responsive */
+    (max-width: 1400px) {
+        .rating-card
+
+    {
+        width: 320px;
+    }
+
+    }
+
+    (max-width: 1200px) {
+        .rating-card
+
+    {
+        position: static;
+        width: 100%;
+        max-width: 100%;
+        margin-bottom: 1rem;
+        animation: none;
+    }
+
+    }
+
+    .rating-card.collapsed .rating-header {
+        padding: 1rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .rating-toggle-btn {
+        position: absolute;
+        left: -15px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 30px;
+        height: 60px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px 0 0 8px;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: -2px 0 10px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s ease;
+        z-index: 1;
+    }
+
+    .rating-card.collapsed {
+        width: 60px;
+        transform: translateX(0);
+    }
+
+        .rating-card.collapsed .rating-title-main,
+        .rating-card.collapsed .course-rating-stats,
+        .rating-card.collapsed .rating-body {
+            display: none;
+        }
+
+        .rating-card.collapsed .rating-title-collapsed {
+            display: block;
+        }
+        /* Khi collapsed: đổi icon thành right (mời mở) */
+        .rating-card.collapsed .rating-toggle-btn i.bi-chevron-left {
+            transform: rotate(180deg); /* hoặc dùng JS đổi class */
+        }
+
+    .rating-card.collapsed {
+        width: 220px !important; /* đủ cho "Rate This Course" + icon */
+        border-radius: 20px;
+    }
+    .rating-title-collapsed {
+        display: none; /* ẩn mặc định */
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1rem;
+        font-weight: 700;
+        white-space: nowrap;
+        text-align: center;
+    }
+    }
 </style>
 
 <div class="learning-container">
+    @if (Model.CanRate)
+    {
+        <div class="rating-card" id="ratingCard">
+            <button type="button" class="rating-toggle-btn" id="ratingToggle" aria-label="Toggle rating card">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <div class="rating-header">
+                <h5>
+                    <i class="bi bi-star-fill me-2"></i>
+                    Rate This Course
+                </h5>
+                @* <div class="rating-title-collapsed"> *@
+                @*     <i class="bi bi-star-fill me-2"></i> *@
+                @*     Rate This Course *@
+                @* </div> *@
+                <div class="course-rating-stats">
+                    <span class="rating-number">@Model.Course.AverageRating?.ToString("F1")</span>
+                    <div class="stars-display">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            var fullStars = Math.Floor(Model.Course.AverageRating ?? 0);
+                            if (i <= fullStars)
+                            {
+                                <i class="bi bi-star-fill text-warning"></i>
+                            }
+                            else if (i == fullStars + 1 && (Model.Course.AverageRating ?? 0m) % 1m >= 0.5m)
+                            {
+                                <i class="bi bi-star-half text-warning"></i>
+                            }
+                            else
+                            {
+                                <i class="bi bi-star text-warning"></i>
+                            }
+                        }
+                    </div>
+                    <span class="rating-count">(@(Model.Course.RatingCount ?? 0) ratings)</span>
+                </div>
+            </div>
+
+            <div class="rating-body">
+                @if (Model.UserRating != null)
+                {
+                    <div class="alert alert-success mb-3">
+                        <i class="bi bi-check-circle me-2"></i>
+                        You rated <strong>@Model.UserRating.Rating ⭐</strong>
+                        @if (Model.UserRating.CreatedAt.HasValue)
+                        {
+                            <span class="text-muted d-block mt-1" style="font-size: 0.85rem;">
+                                @Model.UserRating.CreatedAt.Value.ToString("MMM dd, yyyy")
+                            </span>
+                        }
+                    </div>
+                }
+
+                <form id="ratingForm" class="rating-form">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="courseId" value="@Model.Course.CourseId" />
+
+                    <div class="star-rating-input">
+                        <label class="form-label fw-semibold">Your Rating:</label>
+                        <div class="stars-input">
+                            @for (int i = 5; i >= 1; i--)
+                            {
+                                var isChecked = Model.UserRating?.Rating == i ? "checked" : "";
+                                <input type="radio" name="rating" id="star@(i)" value="@i" @isChecked />
+                                <label for="star@(i)" class="star-label">
+                                    <i class="bi bi-star-fill"></i>
+                                </label>
+                            }
+                        </div>
+                        <span id="ratingError" class="text-danger small d-none">Please select a rating</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="review" class="form-label fw-semibold">Review (Optional):</label>
+                        <textarea id="review" name="review" class="form-control" rows="3" maxlength="1000" placeholder="Share your thoughts...">@(Model.UserRating?.Review ?? "")</textarea>
+                        <small class="text-muted">Max 1000 characters</small>
+                    </div>
+
+                    <button type="submit" class="btn-submit-rating">
+                        <i class="bi bi-send-fill"></i>
+                        @(Model.UserRating != null ? "Update Rating" : "Submit Rating")
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
     <div class="container-fluid">
         <div class="row g-4">
             <!-- SIDEBAR: Lesson list -->
@@ -507,6 +812,7 @@
 
             <!-- MAIN CONTENT -->
             <div class="col-lg-9">
+                
                 @if (currentLesson == null)
                 {
                     <div class="main-content-card">
@@ -754,10 +1060,10 @@
                                                 {
                                                     @if (q.AllowMultipleCorrect)
                                                     {
-                                                        <div class="alert alert-warning py-2 px-3 mb-3" style="border-radius:10px;">
-                                                            <i class="bi bi-layers me-2"></i>
-                                                            Câu này có <strong>nhiều đáp án đúng</strong> — chọn <strong>tất cả</strong> đáp án đúng nha.
-                                                        </div>
+                                                        @* <div class="alert alert-warning py-2 px-3 mb-3" style="border-radius:10px;"> *@
+                                                        @*     <i class="bi bi-layers me-2"></i> *@
+                                                        @*     Câu này có <strong>nhiều đáp án đúng</strong> — chọn <strong>tất cả</strong> đáp án đúng nha. *@
+                                                        @* </div> *@
 
                                                         @for (var j = 0; j < q.Answers.Count; j++)
                                                         {
@@ -776,10 +1082,10 @@
                                                     }
                                                     else
                                                     {
-                                                        <div class="alert alert-info py-2 px-3 mb-3" style="border-radius:10px;">
-                                                            <i class="bi bi-dot me-2"></i>
-                                                            Câu này chỉ có <strong>1 đáp án đúng</strong> — chọn 1 thôi.
-                                                        </div>
+                                                        @* <div class="alert alert-info py-2 px-3 mb-3" style="border-radius:10px;"> *@
+                                                        @*     <i class="bi bi-dot me-2"></i> *@
+                                                        @*     Câu này chỉ có <strong>1 đáp án đúng</strong> — chọn 1 thôi. *@
+                                                        @* </div> *@
 
                                                         @for (var j = 0; j < q.Answers.Count; j++)
                                                         {
@@ -863,4 +1169,99 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
 }
+<script>
+        document.getElementById('ratingToggle')?.addEventListener('click', function() {
+        const card = document.querySelector('.rating-card'); // tìm theo class
+        if (card) {
+            card.classList.toggle('collapsed');
+            const isCollapsed = card.classList.contains('collapsed');
+            localStorage.setItem('ratingCardCollapsed', isCollapsed);
+
+            // Bonus: đổi icon mũi tên khi thu gọn/mở
+            const icon = this.querySelector('i');
+            if (isCollapsed) {
+                icon.classList.replace('bi-chevron-left', 'bi-chevron-right');
+            } else {
+                icon.classList.replace('bi-chevron-right', 'bi-chevron-left');
+            }
+        }
+    });
+
+    // Restore collapsed state on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const card = document.getElementById('ratingCard');
+        const isCollapsed = localStorage.getItem('ratingCardCollapsed') === 'true';
+
+        if (isCollapsed && card) {
+            card.classList.add('collapsed');
+        }
+    });
+
+    // Existing rating form submission code...
+    document.getElementById('ratingForm')?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const courseId = document.getElementById('courseId').value;
+        const ratingInput = document.querySelector('input[name="rating"]:checked');
+        const review = document.getElementById('review').value;
+        const errorSpan = document.getElementById('ratingError');
+        const submitBtn = e.target.querySelector('.btn-submit-rating');
+
+        if (!ratingInput) {
+            errorSpan.classList.remove('d-none');
+            return;
+        }
+        errorSpan.classList.add('d-none');
+
+        const rating = parseInt(ratingInput.value);
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Submitting...';
+
+        try {
+            const formData = new FormData();
+            formData.append('courseId', courseId);
+            formData.append('rating', rating);
+            formData.append('review', review);
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            const response = await fetch('/Course/SubmitRatingInline', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token
+                },
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <i class="bi bi-check-circle me-2"></i>
+                    ${result.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.rating-body').insertBefore(alertDiv, document.querySelector('.rating-form'));
+
+                document.querySelector('.rating-number').textContent = result.averageRating.toFixed(1);
+                document.querySelector('.rating-count').textContent = `(${result.ratingCount} ratings)`;
+
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 5000);
+            } else {
+                alert(result.message || 'An error occurred');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while submitting your rating');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-send-fill me-2"></i>Submit Rating';
+        }
+    });
+</script>

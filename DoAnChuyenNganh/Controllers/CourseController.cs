@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Security.Cryptography;
 using CourseQuizVM = DoAnChuyenNganh.ViewModels.Course;
+using DoAnChuyenNganh.ViewModels.Course; // ✅ CRITICAL
 
 namespace DoAnChuyenNganh.Controllers
 {
@@ -1423,7 +1424,62 @@ namespace DoAnChuyenNganh.Controllers
             var hasProgressDict = lessonProgresses
                 .GroupBy(p => p.LessonId)
                 .ToDictionary(g => g.Key, g => g.Any());
+            bool canRate = false;
 
+            // Kiểm tra có enrollment active
+            if (enrollment != null && enrollment.IsActive == true)
+            {
+                // Đối với khóa học miễn phí: chỉ cần có enrollment
+                if (price <= 0)
+                {
+                    canRate = true;
+                }
+                else
+                {
+                    // Đối với khóa học có phí: phải có payment completed
+                    canRate = await _context.Payments
+                        .AnyAsync(p => p.UserId == userId && p.CourseId == id && p.Status == "Completed");
+                }
+            }
+
+            // ✅ DEBUG LOG
+            Console.WriteLine($"===== RATING DEBUG =====");
+            Console.WriteLine($"UserId: {userId}");
+            Console.WriteLine($"CourseId: {id}");
+            Console.WriteLine($"Price: {price}");
+            Console.WriteLine($"Has Enrollment: {enrollment != null}");
+            Console.WriteLine($"CanRate: {canRate}");
+
+            // Kiểm tra payment chi tiết
+            var paymentCheck = await _context.Payments
+                .FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == id);
+
+            if (paymentCheck != null)
+            {
+                Console.WriteLine($"Payment found - Status: {paymentCheck.Status}, Method: {paymentCheck.PaymentMethod}");
+            }
+            else
+            {
+                Console.WriteLine("No payment found for this user and course");
+            }
+
+            CourseRatingInfo? userRating = null;
+            if (canRate)
+            {
+                var existingRating = await _context.CourseRatings
+                    .FirstOrDefaultAsync(r => r.CourseId == id && r.UserId == userId);
+
+                if (existingRating != null)
+                {
+                    userRating = new CourseRatingInfo
+                    {
+                        RatingId = existingRating.RatingId,
+                        Rating = existingRating.Rating,
+                        Review = existingRating.Review,
+                        CreatedAt = existingRating.CreatedAt
+                    };
+                }
+            }
             // Quiz logic (giữ nguyên như cũ)
             CourseQuizVM.TakeQuizViewModel? quizToTake = null;
             CourseQuizVM.QuizResultViewModel? quizResult = null;
@@ -1557,7 +1613,9 @@ namespace DoAnChuyenNganh.Controllers
                 CurrentMaterials = currentMaterials,
                 HasProgressForLesson = hasProgressDict,
                 QuizToTake = quizToTake,
-                QuizResult = quizResult
+                QuizResult = quizResult,
+                CanRate = canRate,          
+                UserRating = userRating
             };
 
             return View(vm);
@@ -1572,14 +1630,27 @@ namespace DoAnChuyenNganh.Controllers
     int lessonId,
     CourseQuizVM.SubmitQuizViewModel model)
         {
+            Console.WriteLine($"=== SUBMIT QUIZ DEBUG ===");
+            Console.WriteLine($"AttemptId: {model.AttemptId}");
+            Console.WriteLine($"Answers count: {model.Answers?.Count ?? 0}");
+
             if (model.Answers == null || model.Answers.Count == 0)
             {
                 TempData["ErrorMessage"] = "Vui lòng trả lời ít nhất 1 câu hỏi.";
                 return RedirectToAction("Learning", new { id = courseId, lessonId });
             }
 
+            foreach (var ans in model.Answers)
+            {
+                var selectedStr = ans.SelectedAnswerIds != null && ans.SelectedAnswerIds.Any()
+                    ? string.Join(",", ans.SelectedAnswerIds)
+                    : "NONE";
+                Console.WriteLine($"Q{ans.QuestionId}: Selected=[{selectedStr}], Essay={ans.EssayAnswer ?? "NULL"}");
+            }
+
             try
             {
+                // ✅ XÓA TẤT CẢ câu trả lời cũ
                 var existing = await _context.UserQuizAnswers
                     .Where(x => x.AttemptId == model.AttemptId)
                     .ToListAsync();
@@ -1590,9 +1661,10 @@ namespace DoAnChuyenNganh.Controllers
                     await _context.SaveChangesAsync();
                 }
 
+                // ✅ LƯU CÂU TRẢ LỜI MỚI - MỖI QUESTION CHỈ 1 DÒNG
                 foreach (var ans in model.Answers)
                 {
-                    // Essay
+                    // Essay question
                     if (!string.IsNullOrWhiteSpace(ans.EssayAnswer))
                     {
                         _context.UserQuizAnswers.Add(new UserQuizAnswer
@@ -1600,36 +1672,41 @@ namespace DoAnChuyenNganh.Controllers
                             AttemptId = model.AttemptId,
                             QuestionId = ans.QuestionId,
                             EssayAnswer = ans.EssayAnswer,
+                            SelectedAnswerIds = null, // ✅ Không dùng cho essay
                             CreatedAt = DateTime.Now
                         });
                         continue;
                     }
 
-                    // Multiple choice (single/multi)
+                    // Multiple choice question
                     if (ans.SelectedAnswerIds != null && ans.SelectedAnswerIds.Any())
                     {
-                        foreach (var selectedId in ans.SelectedAnswerIds.Distinct())
+                        // ✅ LƯU TẤT CẢ AnswerIDs VÀO 1 DÒNG (format: "1592,1593,1594,1595")
+                        var selectedIdsString = string.Join(",", ans.SelectedAnswerIds.Distinct().OrderBy(x => x));
+
+                        _context.UserQuizAnswers.Add(new UserQuizAnswer
                         {
-                            _context.UserQuizAnswers.Add(new UserQuizAnswer
-                            {
-                                AttemptId = model.AttemptId,
-                                QuestionId = ans.QuestionId,
-                                SelectedAnswerId = selectedId,
-                                CreatedAt = DateTime.Now
-                            });
-                        }
+                            AttemptId = model.AttemptId,
+                            QuestionId = ans.QuestionId,
+                            SelectedAnswerIds = selectedIdsString, // ✅ Lưu chuỗi comma-separated
+                            EssayAnswer = null,
+                            CreatedAt = DateTime.Now
+                        });
                     }
                 }
 
                 await _context.SaveChangesAsync();
 
+                // Chấm điểm
                 await GradeQuizAnswers(model.AttemptId);
 
-                TempData["SuccessMessage"] = "Quiz đã được nộp thành công! Xem kết quả bên dưới.";
+                TempData["SuccessMessage"] = "Quiz đã được nộp thành công!";
                 return RedirectToAction("Learning", new { id = courseId, lessonId, attemptId = model.AttemptId });
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"❌ Error: {ex.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
                 TempData["ErrorMessage"] = "Lỗi khi nộp quiz: " + ex.Message;
                 return RedirectToAction("Learning", new { id = courseId, lessonId });
             }
@@ -1639,23 +1716,18 @@ namespace DoAnChuyenNganh.Controllers
         /// </summary>
         private async Task GradeQuizAnswers(int attemptId)
         {
-            // Lấy toàn bộ câu trả lời user (nhiều dòng / 1 question cho multi)
-            var userRows = await _context.UserQuizAnswers
+            // Lấy tất cả câu trả lời của user (giờ mỗi question chỉ 1 dòng)
+            var userAnswers = await _context.UserQuizAnswers
                 .Include(ua => ua.Question)
                 .Where(ua => ua.AttemptId == attemptId)
                 .ToListAsync();
 
-            // Group theo câu hỏi
-            var byQuestion = userRows
-                .GroupBy(x => x.QuestionId)
-                .ToList();
-
             decimal totalScore = 0;
             int maxScore = 0;
 
-            foreach (var g in byQuestion)
+            foreach (var userAnswer in userAnswers)
             {
-                var question = g.First().Question;
+                var question = userAnswer.Question;
                 if (question == null) continue;
 
                 maxScore += question.Points;
@@ -1663,29 +1735,30 @@ namespace DoAnChuyenNganh.Controllers
                 // Essay: chưa tự chấm
                 if (question.QuestionType == "essay")
                 {
-                    foreach (var row in g)
-                    {
-                        row.IsCorrect = null;
-                        row.EarnedPoints = 0;
-                    }
+                    userAnswer.IsCorrect = null;
+                    userAnswer.EarnedPoints = 0;
                     continue;
                 }
 
-                // Multiple choice
-                var selectedIds = g
-                    .Where(x => x.SelectedAnswerId.HasValue)
-                    .Select(x => x.SelectedAnswerId!.Value)
-                    .Distinct()
-                    .OrderBy(x => x)
-                    .ToList();
+                // Multiple choice: Parse SelectedAnswerIds
+                var selectedIds = new List<int>();
+                if (!string.IsNullOrWhiteSpace(userAnswer.SelectedAnswerIds))
+                {
+                    selectedIds = userAnswer.SelectedAnswerIds
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.Parse(s.Trim()))
+                        .OrderBy(x => x)
+                        .ToList();
+                }
 
+                // Lấy đáp án đúng từ DB
                 var correctIds = await _context.QuizAnswers
                     .Where(a => a.QuestionId == question.QuestionId && a.IsCorrect)
                     .Select(a => a.AnswerId)
                     .OrderBy(x => x)
                     .ToListAsync();
 
-                // FULL MATCH: đúng tất cả và không chọn dư
+                // ✅ FULL MATCH: User phải chọn đúng TẤT CẢ và KHÔNG CHỌN DƯ
                 bool isCorrect =
                     selectedIds.Count == correctIds.Count &&
                     !selectedIds.Except(correctIds).Any();
@@ -1693,29 +1766,20 @@ namespace DoAnChuyenNganh.Controllers
                 if (isCorrect)
                 {
                     totalScore += question.Points;
-
-                    // set điểm cho 1 row đại diện, các row khác 0 để khỏi cộng dồn
-                    bool first = true;
-                    foreach (var row in g)
-                    {
-                        row.IsCorrect = true;
-                        row.EarnedPoints = first ? question.Points : 0;
-                        first = false;
-                    }
+                    userAnswer.IsCorrect = true;
+                    userAnswer.EarnedPoints = question.Points;
                 }
                 else
                 {
-                    foreach (var row in g)
-                    {
-                        row.IsCorrect = false;
-                        row.EarnedPoints = 0;
-                    }
+                    userAnswer.IsCorrect = false;
+                    userAnswer.EarnedPoints = 0;
                 }
             }
 
-            _context.UserQuizAnswers.UpdateRange(userRows);
+            _context.UserQuizAnswers.UpdateRange(userAnswers);
             await _context.SaveChangesAsync();
 
+            // Cập nhật UserQuizAttempt
             var attempt = await _context.UserQuizAttempts.FirstOrDefaultAsync(a => a.AttemptId == attemptId);
             if (attempt != null)
             {
@@ -1723,7 +1787,7 @@ namespace DoAnChuyenNganh.Controllers
                 attempt.MaxScore = maxScore;
                 attempt.PercentageScore = maxScore > 0 ? (totalScore * 100 / maxScore) : 0;
 
-                bool hasEssay = byQuestion.Any(g => g.First().Question?.QuestionType == "essay");
+                bool hasEssay = userAnswers.Any(ua => ua.Question?.QuestionType == "essay");
                 attempt.Status = hasEssay ? "submitted" : "graded";
                 attempt.SubmittedAt = DateTime.Now;
 
@@ -1885,6 +1949,251 @@ namespace DoAnChuyenNganh.Controllers
 
             return View(list);
         }
+        [HttpGet]
+        public async Task<IActionResult> RateCourse(int id)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0)
+            {
+                TempData["ErrorMessage"] = "Please login to rate this course.";
+                return RedirectToAction("Login", "Account");
+            }
 
+            var course = await _context.Courses
+                .FirstOrDefaultAsync(c => c.CourseId == id && c.IsPublished == true);
+
+            if (course == null)
+                return NotFound();
+
+            // Kiểm tra user đã mua khóa học chưa
+            var hasPaid = await _context.Payments
+                .AnyAsync(p => p.UserId == userId
+                            && p.CourseId == id
+                            && p.Status == "Completed");
+
+            if (!hasPaid)
+            {
+                TempData["ErrorMessage"] = "You must purchase this course before rating it.";
+                return RedirectToAction("PublicDetails", new { id });
+            }
+
+            // Kiểm tra đã đánh giá chưa
+            var existingRating = await _context.CourseRatings
+                .FirstOrDefaultAsync(r => r.CourseId == id && r.UserId == userId);
+
+            var vm = new CourseRatingViewModel
+            {
+                CourseId = course.CourseId,
+                CourseTitle = course.Title,
+                AverageRating = course.AverageRating ?? 0,
+                RatingCount = course.RatingCount ?? 0,
+                HasRated = existingRating != null
+            };
+
+            if (existingRating != null)
+            {
+                vm.ExistingRating = new CourseRatingInfo
+                {
+                    RatingId = existingRating.RatingId,
+                    Rating = existingRating.Rating,
+                    Review = existingRating.Review,
+                    CreatedAt = existingRating.CreatedAt
+                };
+            }
+
+            return View(vm);
+        }
+
+        /// <summary>
+        /// Xử lý submit đánh giá
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubmitRating(SubmitRatingViewModel model)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0)
+            {
+                TempData["ErrorMessage"] = "Please login to rate this course.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Validate Rating
+            if (model.Rating < 1 || model.Rating > 5)
+            {
+                TempData["ErrorMessage"] = "Rating must be between 1 and 5 stars.";
+                return RedirectToAction("RateCourse", new { id = model.CourseId });
+            }
+
+            // Kiểm tra đã mua khóa học
+            var hasPaid = await _context.Payments
+                .AnyAsync(p => p.UserId == userId
+                            && p.CourseId == model.CourseId
+                            && p.Status == "Completed");
+
+            if (!hasPaid)
+            {
+                TempData["ErrorMessage"] = "You must purchase this course before rating it.";
+                return RedirectToAction("PublicDetails", new { id = model.CourseId });
+            }
+
+            try
+            {
+                var existingRating = await _context.CourseRatings
+                    .FirstOrDefaultAsync(r => r.CourseId == model.CourseId && r.UserId == userId);
+
+                if (existingRating != null)
+                {
+                    // Cập nhật rating cũ
+                    existingRating.Rating = model.Rating;
+                    existingRating.Review = model.Review?.Trim();
+                    existingRating.UpdatedAt = DateTime.Now;
+
+                    _context.CourseRatings.Update(existingRating);
+                }
+                else
+                {
+                    // Tạo rating mới
+                    var newRating = new CourseRating
+                    {
+                        CourseId = model.CourseId,
+                        UserId = userId,
+                        Rating = model.Rating,
+                        Review = model.Review?.Trim(),
+                        IsApproved = true,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now
+                    };
+
+                    _context.CourseRatings.Add(newRating);
+                }
+
+                await _context.SaveChangesAsync();
+
+                // ✅ CẬP NHẬT AverageRating VÀ RatingCount CHO COURSE
+                await UpdateCourseRatingStats(model.CourseId);
+
+                TempData["SuccessMessage"] = existingRating != null
+                    ? "Your rating has been updated successfully!"
+                    : "Thank you for rating this course!";
+
+                return RedirectToAction("PaymentSuccess", new { paymentId = await GetPaymentId(userId, model.CourseId) });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error submitting rating: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while submitting your rating.";
+                return RedirectToAction("RateCourse", new { id = model.CourseId });
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật AverageRating và RatingCount cho Course
+        /// </summary>
+        private async Task UpdateCourseRatingStats(int courseId)
+        {
+            var course = await _context.Courses.FindAsync(courseId);
+            if (course == null) return;
+
+            var ratings = await _context.CourseRatings
+                .Where(r => r.CourseId == courseId && r.IsApproved == true)
+                .ToListAsync();
+
+            if (ratings.Any())
+            {
+                course.RatingCount = ratings.Count;
+                course.AverageRating = Math.Round((decimal)ratings.Average(r => r.Rating), 2);
+            }
+            else
+            {
+                course.RatingCount = 0;
+                course.AverageRating = 0;
+            }
+
+            _context.Courses.Update(course);
+            await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Lấy PaymentId để redirect
+        /// </summary>
+        private async Task<int> GetPaymentId(int userId, int courseId)
+        {
+            var payment = await _context.Payments
+                .Where(p => p.UserId == userId && p.CourseId == courseId && p.Status == "Completed")
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            return payment?.PaymentId ?? 0;
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubmitRatingInline(int courseId, byte rating, string? review)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0)
+            {
+                return Json(new { success = false, message = "Please login to rate this course." });
+            }
+
+            if (rating < 1 || rating > 5)
+            {
+                return Json(new { success = false, message = "Rating must be between 1 and 5 stars." });
+            }
+
+            var hasPaid = await _context.Payments
+                .AnyAsync(p => p.UserId == userId && p.CourseId == courseId && p.Status == "Completed");
+
+            if (!hasPaid)
+            {
+                return Json(new { success = false, message = "You must purchase this course before rating it." });
+            }
+
+            try
+            {
+                var existingRating = await _context.CourseRatings
+                    .FirstOrDefaultAsync(r => r.CourseId == courseId && r.UserId == userId);
+
+                if (existingRating != null)
+                {
+                    existingRating.Rating = rating;
+                    existingRating.Review = review?.Trim();
+                    existingRating.UpdatedAt = DateTime.Now;
+                    _context.CourseRatings.Update(existingRating);
+                }
+                else
+                {
+                    var newRating = new CourseRating
+                    {
+                        CourseId = courseId,
+                        UserId = userId,
+                        Rating = rating,
+                        Review = review?.Trim(),
+                        IsApproved = true,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now
+                    };
+                    _context.CourseRatings.Add(newRating);
+                }
+
+                await _context.SaveChangesAsync();
+                await UpdateCourseRatingStats(courseId);
+
+                var course = await _context.Courses.FindAsync(courseId);
+
+                return Json(new
+                {
+                    success = true,
+                    message = existingRating != null ? "Rating updated successfully!" : "Thank you for rating!",
+                    averageRating = course?.AverageRating ?? 0,
+                    ratingCount = course?.RatingCount ?? 0
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error: {ex.Message}");
+                return Json(new { success = false, message = "An error occurred while submitting your rating." });
+            }
+        }
     }
 }
