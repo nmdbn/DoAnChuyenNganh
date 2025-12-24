@@ -600,13 +600,63 @@
     }
 
     }
-
-    .rating-card.collapsed .rating-header {
-        padding: 1rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+    /* ===== COLLAPSED: giống ảnh 2 (header ngang + nút bên trái) ===== */
+    .rating-card.collapsed {
+        width: fit-content !important;
+        min-width: 0;
+        border-radius: 12px;
+        overflow: hidden;
+        transform: none;
     }
+
+        /* Header trong collapsed là 1 thanh ngang */
+        .rating-card.collapsed .rating-header {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            height: 54px; /* chỉnh cho giống ảnh 2 */
+            padding: 0 .9rem 0 2.2rem; /* chừa chỗ cho nút bên trái */
+            border-radius: 12px;
+        }
+
+        /* Nút toggle trở thành ô bên trái nằm TRONG header */
+        .rating-card.collapsed .rating-toggle-btn {
+            left: 0;
+            right: auto;
+            top: 0;
+            transform: none;
+            width: 28px; /* ô vuông/ chữ nhật bên trái */
+            height: 54px;
+            border-radius: 12px 0 0 12px; /* bo góc y chang ảnh 2 */
+            box-shadow: none; /* ảnh 2 nhìn phẳng hơn */
+            z-index: 2;
+        }
+
+            /* Nếu bạn muốn icon nằm giữa đẹp hơn */
+            .rating-card.collapsed .rating-toggle-btn i {
+                font-size: 1.1rem;
+                line-height: 1;
+            }
+
+        /* Ẩn phần không cần khi collapsed */
+        .rating-card.collapsed .rating-title-main,
+        .rating-card.collapsed .course-rating-stats,
+        .rating-card.collapsed .rating-body {
+            display: none !important;
+        }
+
+        /* Hiện title collapsed ngang giống ảnh 2 */
+        .rating-card.collapsed .rating-title-collapsed {
+            display: inline-flex !important;
+            align-items: center;
+            gap: .5rem;
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            white-space: nowrap;
+            writing-mode: horizontal-tb;
+        }
 
     .rating-toggle-btn {
         position: absolute;
@@ -633,34 +683,32 @@
         transform: translateX(0);
     }
 
-        .rating-card.collapsed .rating-title-main,
-        .rating-card.collapsed .course-rating-stats,
-        .rating-card.collapsed .rating-body {
-            display: none;
         }
 
         .rating-card.collapsed .rating-title-collapsed {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
         /* Khi collapsed: đổi icon thành right (mời mở) */
-        .rating-card.collapsed .rating-toggle-btn i.bi-chevron-left {
-            transform: rotate(180deg); /* hoặc dùng JS đổi class */
-        }
+        /* .rating-card.collapsed .rating-toggle-btn i.bi-chevron-left { */
+        /*     transform: rotate(180deg); /* hoặc dùng JS đổi class */ */
+        /* } */
 
     .rating-card.collapsed {
-        width: 220px !important; /* đủ cho "Rate This Course" + icon */
-        border-radius: 20px;
+        width: auto !important;
+        min-width: fit-content;
+        border-radius: 12px;
+        overflow: hidden;
     }
     .rating-title-collapsed {
-        display: none; /* ẩn mặc định */
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+        display: none;
         font-size: 1rem;
-        font-weight: 700;
+        font-weight: 600;
         white-space: nowrap;
-        text-align: center;
+        text-align: left;
+        writing-mode: horizontal-tb;
+        margin: 0;
     }
     }
 </style>
@@ -670,7 +718,7 @@
     {
         <div class="rating-card" id="ratingCard">
             <button type="button" class="rating-toggle-btn" id="ratingToggle" aria-label="Toggle rating card">
-                <i class="bi bi-chevron-left"></i>
+                <i class="bi bi-chevron-right"></i>
             </button>
             <div class="rating-header">
                 <h5>
@@ -1182,20 +1230,25 @@
             // Bonus: đổi icon mũi tên khi thu gọn/mở
             const icon = this.querySelector('i');
             if (isCollapsed) {
-                icon.classList.replace('bi-chevron-left', 'bi-chevron-right');
-            } else {
+                // Thu gọn → hiển thị mũi tên TRÁI (mời mở ra)
                 icon.classList.replace('bi-chevron-right', 'bi-chevron-left');
+            } else {
+                icon.classList.replace('bi-chevron-left', 'bi-chevron-right');
             }
         }
     });
 
-    // Restore collapsed state on page load
+    // ✅ Restore: Khôi phục icon khi load trang
     document.addEventListener('DOMContentLoaded', function() {
         const card = document.getElementById('ratingCard');
+        const toggleBtn = document.getElementById('ratingToggle');
         const isCollapsed = localStorage.getItem('ratingCardCollapsed') === 'true';
 
-        if (isCollapsed && card) {
+        if (isCollapsed && card && toggleBtn) {
             card.classList.add('collapsed');
+            // Khi đã collapsed → icon phải là chevron-left
+            const icon = toggleBtn.querySelector('i');
+            icon.classList.replace('bi-chevron-right', 'bi-chevron-left');
         }
     });
 

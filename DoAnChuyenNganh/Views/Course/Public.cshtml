@@ -1,4 +1,5 @@
-﻿@model List<DoAnChuyenNganh.Models.Course>
+﻿
+@model List<DoAnChuyenNganh.Models.Course>
 
 @{
     ViewData["Title"] = "Courses";
@@ -89,11 +90,18 @@
     {
         <div class="alert alert-info mb-4">
             <i class="bi bi-info-circle"></i>
-            Showing <strong>@Model.Count</strong> course(s)
+            Showing <strong>@Model.Count</strong> course(s) of <strong>@ViewBag.TotalCourses</strong>
             @if (ViewData["CurrentFilter"] != null)
             {
                 <span> matching "<strong>@ViewData["CurrentFilter"]</strong>"</span>
             }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info mb-4">
+            <i class="bi bi-info-circle"></i>
+            Showing <strong>@Model.Count</strong> course(s) of <strong>@ViewBag.TotalCourses</strong>
         </div>
     }
 
@@ -146,7 +154,7 @@
                         <div class="card-body d-flex flex-column">
                             <!-- Title -->
                             <h5 class="card-title fw-bold mb-3">
-                                <a asp-action="PublicDetails"
+                                <a asp-action="Checkout"
                                    asp-route-id="@course.CourseId"
                                    class="text-decoration-none text-dark hover-primary">
                                     @course.Title
@@ -246,6 +254,39 @@
             </div>
         }
     </div>
+
+    <!-- Pagination -->
+    @if (ViewBag.TotalPages > 1)
+    {
+        <nav aria-label="Course pagination" class="mt-5">
+            <ul class="pagination justify-content-center">
+                @if (ViewBag.HasPreviousPage)
+                {
+                    <li class="page-item">
+                        <a class="page-link" asp-action="Public" asp-route-pageNumber="@(ViewBag.PageNumber - 1)" asp-route-searchString="@ViewData["CurrentFilter"]" asp-route-subjectId="@ViewData["SelectedSubject"]" asp-route-gradeId="@ViewData["SelectedGrade"]">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </a>
+                    </li>
+                }
+
+                @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                {
+                    <li class="page-item @(i == ViewBag.PageNumber ? "active" : "")">
+                        <a class="page-link" asp-action="Public" asp-route-pageNumber="@i" asp-route-searchString="@ViewData["CurrentFilter"]" asp-route-subjectId="@ViewData["SelectedSubject"]" asp-route-gradeId="@ViewData["SelectedGrade"]">@i</a>
+                    </li>
+                }
+
+                @if (ViewBag.HasNextPage)
+                {
+                    <li class="page-item">
+                        <a class="page-link" asp-action="Public" asp-route-pageNumber="@(ViewBag.PageNumber + 1)" asp-route-searchString="@ViewData["CurrentFilter"]" asp-route-subjectId="@ViewData["SelectedSubject"]" asp-route-gradeId="@ViewData["SelectedGrade"]">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
 </div>
 
 <style>
@@ -317,5 +358,28 @@
         border-color: #b3d9ff;
         color: #004085;
         border-radius: 8px;
+    }
+
+    /* Pagination Styles */
+    .pagination .page-item .page-link {
+        color: #667eea;
+        border: 1px solid #dee2e6;
+        margin: 0 2px;
+        border-radius: 4px;
+        padding: 8px 16px;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #667eea;
+        border-color: #667eea;
+        color: white;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+    }
+
+    .pagination .page-link:hover {
+        background-color: #e9ecef;
     }
 </style>
