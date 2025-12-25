@@ -58,7 +58,11 @@ builder.Services.AddScoped<IVnPayService, VnPayService>();
 
 // Add News Service
 builder.Services.AddScoped<INewsService, NewsService>();
+// ✅ Configure Email Settings
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("MailSettings"));
 
+// ✅ Register Email Service
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
