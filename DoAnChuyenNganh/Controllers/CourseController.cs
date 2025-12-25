@@ -307,8 +307,8 @@ namespace DoAnChuyenNganh.Controllers
         public async Task<IActionResult> Edit(
             int id,
             [Bind("CourseId,Title,Slug,Description,ShortDescription,SubjectId,GradeId,ThumbnailUrl,DifficultyLevel,EstimatedHours,Price,IsPublished,IsFeatured")]
-            Course course,
-            IFormFile ThumbnailFile) // ✅ Thêm parameter
+    Course course,
+            IFormFile ThumbnailFile)
         {
             if (!IsLoggedIn())
             {
@@ -318,7 +318,10 @@ namespace DoAnChuyenNganh.Controllers
 
             if (id != course.CourseId) return NotFound();
 
-            var existingCourse = await _context.Courses.AsNoTracking().FirstOrDefaultAsync(c => c.CourseId == id);
+            // ✅ Lấy course hiện tại KHÔNG dùng AsNoTracking (để có thể update)
+            var existingCourse = await _context.Courses
+                .FirstOrDefaultAsync(c => c.CourseId == id);
+
             if (existingCourse == null) return NotFound();
 
             if (!CanEditCourse(existingCourse))
@@ -326,8 +329,6 @@ namespace DoAnChuyenNganh.Controllers
                 TempData["ErrorMessage"] = "You do not have permission to edit this course.";
                 return RedirectToAction(nameof(Index));
             }
-
-            course.InstructorId = existingCourse.InstructorId;
 
             // Remove validations
             ModelState.Remove("InstructorId");
@@ -341,77 +342,144 @@ namespace DoAnChuyenNganh.Controllers
             ModelState.Remove("UpdatedBy");
             ModelState.Remove("UpdatedAt");
             ModelState.Remove("PublishedAt");
+            ModelState.Remove("ThumbnailFile"); // ✅ Thêm dòng này
 
-            if (ModelState.IsValid)
+            // ✅ Debug ModelState
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    var currentUserId = GetCurrentUserId();
+                var errors = ModelState
+                    .Where(x => x.Value.Errors.Count > 0)
+                    .Select(x => new {
+                        Field = x.Key,
+                        Errors = x.Value.Errors.Select(e => e.ErrorMessage).ToList()
+                    })
+                    .ToList();
 
-                    // ✅ XỬ LÝ UPLOAD FILE MỚI
-                    if (ThumbnailFile != null && ThumbnailFile.Length > 0)
+                foreach (var error in errors)
+                {
+                    Console.WriteLine($"❌ Field: {error.Field}");
+                    foreach (var msg in error.Errors)
                     {
-                        var uploadResult = await UploadThumbnailFile(ThumbnailFile);
-                        if (uploadResult.success)
-                        {
-                            course.ThumbnailUrl = uploadResult.url;
-
-                            // ✅ LƯU VÀO COURSEMATERIALS
-                            var material = new CourseMaterial
-                            {
-                                CourseId = course.CourseId,
-                                LessonId = null,
-                                MaterialName = "Course Thumbnail - Updated",
-                                MaterialType = "image",
-                                FileUrl = uploadResult.url,
-                                FileSize = ThumbnailFile.Length,
-                                IsPublic = true,
-                                CreatedAt = DateTime.Now,
-                                CreatedBy = currentUserId
-                            };
-
-                            _context.CourseMaterials.Add(material);
-                        }
-                        else
-                        {
-                            TempData["ErrorMessage"] = uploadResult.error;
-                            PopulateDropDownLists(course);
-                            return View(course);
-                        }
+                        Console.WriteLine($"   - {msg}");
                     }
-
-                    course.CreatedAt = existingCourse.CreatedAt;
-                    course.CreatedBy = existingCourse.CreatedBy;
-                    course.ViewCount = existingCourse.ViewCount;
-                    course.EnrollmentCount = existingCourse.EnrollmentCount;
-                    course.AverageRating = existingCourse.AverageRating;
-                    course.RatingCount = existingCourse.RatingCount;
-
-                    course.UpdatedAt = DateTime.Now;
-                    course.UpdatedBy = currentUserId;
-
-                    if (course.IsPublished && !existingCourse.IsPublished)
-                        course.PublishedAt = DateTime.Now;
-                    else if (!course.IsPublished)
-                        course.PublishedAt = null;
-                    else
-                        course.PublishedAt = existingCourse.PublishedAt;
-
-                    _context.Update(course);
-                    await _context.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Course updated successfully!";
-                    return RedirectToAction(nameof(Index));
                 }
-                catch (Exception ex)
-                {
-                    ModelState.AddModelError("", "Error saving: " + ex.Message);
-                }
+
+                TempData["ErrorMessage"] = "Please fix the errors in the form.";
+                PopulateDropDownLists(course);
+
+                var instructor = await _context.Users.FindAsync(existingCourse.InstructorId);
+                ViewData["CurrentInstructorName"] = instructor != null
+                    ? $"{instructor.FirstName} {instructor.LastName} (@{instructor.Username})"
+                    : "Unknown";
+
+                return View(course);
             }
 
-            var instructor = await _context.Users.FindAsync(course.InstructorId);
-            ViewData["CurrentInstructorName"] = instructor != null
-                ? $"{instructor.FirstName} {instructor.LastName} (@{instructor.Username})"
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+
+                // ✅ XỬ LÝ UPLOAD FILE MỚI
+                if (ThumbnailFile != null && ThumbnailFile.Length > 0)
+                {
+                    var uploadResult = await UploadThumbnailFile(ThumbnailFile);
+                    if (uploadResult.success)
+                    {
+                        existingCourse.ThumbnailUrl = uploadResult.url;
+
+                        // Lưu vào CourseMaterials
+                        var material = new CourseMaterial
+                        {
+                            CourseId = existingCourse.CourseId,
+                            LessonId = null,
+                            MaterialName = "Course Thumbnail - Updated",
+                            MaterialType = "image",
+                            FileUrl = uploadResult.url,
+                            FileSize = ThumbnailFile.Length,
+                            IsPublic = true,
+                            CreatedAt = DateTime.Now,
+                            CreatedBy = currentUserId
+                        };
+
+                        _context.CourseMaterials.Add(material);
+                    }
+                    else
+                    {
+                        TempData["ErrorMessage"] = uploadResult.error;
+                        PopulateDropDownLists(course);
+
+                        var instructor = await _context.Users.FindAsync(existingCourse.InstructorId);
+                        ViewData["CurrentInstructorName"] = instructor != null
+                            ? $"{instructor.FirstName} {instructor.LastName} (@{instructor.Username})"
+                            : "Unknown";
+
+                        return View(course);
+                    }
+                }
+                else if (!string.IsNullOrEmpty(course.ThumbnailUrl))
+                {
+                    // ✅ Nếu user thay đổi URL (không upload file)
+                    existingCourse.ThumbnailUrl = course.ThumbnailUrl;
+                }
+
+                // ✅ CẬP NHẬT CÁC TRƯỜNG CƠ BẢN
+                existingCourse.Title = course.Title;
+                existingCourse.Slug = course.Slug;
+                existingCourse.Description = course.Description;
+                existingCourse.ShortDescription = course.ShortDescription;
+                existingCourse.SubjectId = course.SubjectId;
+                existingCourse.GradeId = course.GradeId;
+                existingCourse.DifficultyLevel = course.DifficultyLevel;
+                existingCourse.EstimatedHours = course.EstimatedHours;
+                existingCourse.Price = course.Price;
+                existingCourse.IsPublished = course.IsPublished;
+                existingCourse.IsFeatured = course.IsFeatured;
+
+                // Cập nhật metadata
+                existingCourse.UpdatedAt = DateTime.Now;
+                existingCourse.UpdatedBy = currentUserId;
+
+                // ✅ Xử lý PublishedAt
+                if (course.IsPublished && !existingCourse.IsPublished)
+                {
+                    existingCourse.PublishedAt = DateTime.Now;
+                }
+                else if (!course.IsPublished)
+                {
+                    existingCourse.PublishedAt = null;
+                }
+                // Nếu đã published trước đó và vẫn published → giữ nguyên PublishedAt
+
+                // ✅ KHÔNG CẦN gọi _context.Update(existingCourse) 
+                // vì existingCourse đã được tracked
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "✅ Course updated successfully!";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                if (!CourseExists(course.CourseId))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    Console.WriteLine($"❌ Concurrency Error: {ex.Message}");
+                    ModelState.AddModelError("", "The course was modified by another user. Please refresh and try again.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error: {ex.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+                ModelState.AddModelError("", "Error saving: " + ex.Message);
+            }
+
+            var instructorForView = await _context.Users.FindAsync(existingCourse.InstructorId);
+            ViewData["CurrentInstructorName"] = instructorForView != null
+                ? $"{instructorForView.FirstName} {instructorForView.LastName} (@{instructorForView.Username})"
                 : "Unknown";
 
             PopulateDropDownLists(course);
