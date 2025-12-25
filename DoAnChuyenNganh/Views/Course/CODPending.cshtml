@@ -1,0 +1,53 @@
+﻿@model Payment
+
+@{
+    ViewData["Title"] = "Đơn hàng COD - Chờ duyệt";
+}
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white text-center">
+                    <h4>⏳ COD order awaiting approval</h4>
+                </div>
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-4x text-warning mb-4"></i>
+
+                    <h5>Thank you for your order!</h5>
+
+                    <p>Your Cash on Delivery (COD) order has been recorded.</p>
+
+                    <p>We will contact you within <strong>24-48 hours</strong> to confirm and deliver the course.</p>
+
+                    <hr />
+
+                    <h6>Order Information</h6>
+
+                    <p><strong>Course:</strong> @Model.Course?.Title</p>
+
+                    <p><strong>Order ID:</strong> #@Model.PaymentId</p>
+
+                    <p><strong>Amount:</strong> @Model.Amount.ToString("N0") ₫</p>
+
+                    <p><strong>Setting time:</strong> @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+
+                    <div class="mt-4">
+
+                        <a asp-action="Public" asp-controller="Course" class="btn btn-primary me-2">
+                            View my course list
+
+                        </a>
+
+                        <a asp-action="Index" asp-controller="Home" class="btn btn-secondary">
+
+                            Back to homepage
+
+                        </a>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

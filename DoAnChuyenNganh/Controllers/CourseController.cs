@@ -25,8 +25,9 @@ namespace DoAnChuyenNganh.Controllers
         private readonly IMomoService _momoService;
         private readonly IVnPayService _vnPayService;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IEmailService _emailService;
 
-        public CourseController(DoAnChuyenNganhContext context, IMomoService momoService, IPaypalService paypalService, IConfiguration config, IVnPayService vnPayService, IWebHostEnvironment webHostEnvironment)
+        public CourseController(DoAnChuyenNganhContext context, IMomoService momoService, IPaypalService paypalService, IConfiguration config, IVnPayService vnPayService, IWebHostEnvironment webHostEnvironment, IEmailService emailService)
         {
             _context = context;
             _momoService = momoService;
@@ -34,6 +35,7 @@ namespace DoAnChuyenNganh.Controllers
             _config = config;
             _vnPayService = vnPayService;
             _webHostEnvironment = webHostEnvironment;
+            _emailService = emailService;
         }
 
         // =============================================
@@ -531,14 +533,8 @@ namespace DoAnChuyenNganh.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // =============================================
-        // PUBLIC ACTIONS (All authenticated users)
-        // =============================================
-
-        // Trong CourseController.cs, sửa action Public như sau:
-
         // GET: Course/Public - Public course list (Requires login: User, Instructor, Admin)
-        public async Task<IActionResult> Public(string searchString, int? subjectId, int? gradeId, int pageNumber = 1)
+        public async Task<IActionResult> Public(string searchString, int? subjectId, int? gradeId, bool myCourses = false, int pageNumber = 1)
         {
             // REQUIRE LOGIN
             if (!IsLoggedIn())
@@ -548,13 +544,27 @@ namespace DoAnChuyenNganh.Controllers
             }
 
             const int pageSize = 9; // Số khóa học mỗi trang
+            var userId = GetCurrentUserId();
 
             // Base query - CHỈ HIỂN THỊ COURSE ĐÃ PUBLISHED
             IQueryable<Course> courses = _context.Courses
                 .Include(c => c.Subject)
                 .Include(c => c.Grade)
                 .Include(c => c.Instructor)
-                .Where(c => c.IsPublished == true);   // 👈 thêm dòng này
+                .Where(c => c.IsPublished == true);
+
+            // ✅ FILTER MY COURSES - User đã thanh toán (Completed hoặc CODPending)
+            if (myCourses)
+            {
+                var myPaidCourseIds = await _context.Payments
+                    .Where(p => p.UserId == userId &&
+                               (p.Status == "Completed" || p.Status == "CODPending"))
+                    .Select(p => p.CourseId)
+                    .Distinct()
+                    .ToListAsync();
+
+                courses = courses.Where(c => myPaidCourseIds.Contains(c.CourseId));
+            }
 
             // Search by title / short description
             if (!string.IsNullOrWhiteSpace(searchString))
@@ -605,6 +615,9 @@ namespace DoAnChuyenNganh.Controllers
                 "GradeId",
                 "GradeName"
             );
+
+            // ✅ Truyền trạng thái My Courses
+            ViewData["MyCourses"] = myCourses;
 
             var model = await courses.ToListAsync();
 
@@ -979,15 +992,41 @@ namespace DoAnChuyenNganh.Controllers
 
             var price = course.Price ?? 0m;
 
-            // Nếu free hoặc đã thanh toán thì vào học luôn
             bool isFree = price <= 0m;
-            bool hasPaid = await _context.Payments
-                .AnyAsync(p => p.UserId == userId && p.CourseId == id && p.Status == "Completed");
 
-            if (isFree || hasPaid)
+            if (isFree)
+            {
                 return RedirectToAction("Learning", new { id = course.CourseId });
+            }
 
+            // Check existing payments
+            var latestPayment = await _context.Payments
+                .Where(p => p.UserId == userId && p.CourseId == id)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
 
+            if (latestPayment != null)
+            {
+                switch (latestPayment.Status)
+                {
+                    case "Completed":
+                        return RedirectToAction("Learning", new { id = course.CourseId });
+
+                    case "CODPending":
+                        return RedirectToAction("CODPending", new { paymentId = latestPayment.PaymentId });
+
+                    case "Failed":
+                    case "Pending":
+                        // Show checkout, perhaps with message
+                        TempData["InfoMessage"] = "Your previous payment is " + latestPayment.Status + ". You can try again.";
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            // If no payment or Failed/Pending, show checkout
             var user = await _context.Users.FindAsync(userId);
 
             var vm = new CheckoutViewModel
@@ -1152,14 +1191,15 @@ namespace DoAnChuyenNganh.Controllers
                 switch (model.PaymentMethod)
                 {
                     case "COD":
-                        payment.Status = "Completed";
-                        payment.PaidAt = DateTime.Now;
+                        payment.Status = "CODPending";
                         payment.TransactionId = "COD_" + DateTime.Now.Ticks;
-                        course.EnrollmentCount++;
                         await _context.SaveChangesAsync();
 
-                        TempData["SuccessMessage"] = "Đặt hàng COD thành công, khóa học đã được mở.";
-                        return RedirectToAction("PaymentSuccess", new { paymentId = payment.PaymentId });
+                        Console.WriteLine($"✅ COD order created - Status: CODPending - PaymentID: {payment.PaymentId}");
+
+                        TempData["SuccessMessage"] = "Đặt hàng COD thành công! Đơn hàng của bạn đang chờ được duyệt. Chúng tôi sẽ liên hệ sớm để xác nhận.";
+
+                        return RedirectToAction("CODPending", new { paymentId = payment.PaymentId });
 
                     case "MoMo":
                         {
@@ -1244,6 +1284,27 @@ namespace DoAnChuyenNganh.Controllers
                 TempData["ErrorMessage"] = "Có lỗi xảy ra trong quá trình thanh toán.";
                 return RedirectToAction("Public");
             }
+        }
+        public async Task<IActionResult> CODPending(long paymentId)
+        {
+            var payment = await _context.Payments
+                .Include(p => p.Course)
+                .FirstOrDefaultAsync(p => p.PaymentId == paymentId);
+
+            if (payment == null || payment.Status != "CODPending")
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy đơn hàng COD hoặc đơn hàng đã được xử lý.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            // Kiểm tra quyền sở hữu (tùy chọn, nên kiểm tra userId)
+            var userId = GetCurrentUserId();
+            if (payment.UserId != userId)
+            {
+                return Forbid();
+            }
+
+            return View(payment);
         }
 
         public async Task<IActionResult> PayPalReturn(string token, int paymentId)
@@ -1346,7 +1407,6 @@ namespace DoAnChuyenNganh.Controllers
                 return NotFound();
 
             var price = course.Price.GetValueOrDefault(0m);
-
             // ✅ Kiểm tra quyền truy cập
             if (price > 0)
             {
@@ -1636,7 +1696,7 @@ namespace DoAnChuyenNganh.Controllers
                 HasProgressForLesson = hasProgressDict,
                 QuizToTake = quizToTake,
                 QuizResult = quizResult,
-                CanRate = canRate,          
+                CanRate = canRate,
                 UserRating = userRating
             };
 
@@ -2217,6 +2277,124 @@ namespace DoAnChuyenNganh.Controllers
             {
                 Console.WriteLine($"❌ Error: {ex.Message}");
                 return Json(new { success = false, message = "An error occurred while submitting your rating." });
+            }
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ApproveCODPayment(long paymentId)
+        {
+            try
+            {
+                // ✅ Kiểm tra đăng nhập và quyền
+                if (!IsLoggedIn())
+                {
+                    TempData["ErrorMessage"] = "Please login to access this page.";
+                    return RedirectToAction("Login", "Account");
+                }
+
+                if (!IsAdminOrInstructor())
+                {
+                    TempData["ErrorMessage"] = "Access denied. Only Instructors and Administrators can approve payments.";
+                    return RedirectToAction("Public", "Course");
+                }
+
+                var userId = GetCurrentUserId();
+                var isAdmin = IsAdmin();
+
+                // ✅ Lấy payment với các thông tin liên quan
+                var payment = await _context.Payments
+                    .Include(p => p.Course)
+                        .ThenInclude(c => c.Instructor)
+                    .Include(p => p.User)
+                    .FirstOrDefaultAsync(p => p.PaymentId == paymentId);
+
+                if (payment == null)
+                {
+                    TempData["ErrorMessage"] = "Payment not found.";
+                    return RedirectToAction("ManagePayments");
+                }
+
+                // ✅ Kiểm tra quyền: Instructor chỉ approve payment của course của mình
+                if (!isAdmin && payment.Course?.InstructorId != userId)
+                {
+                    TempData["ErrorMessage"] = "You can only approve payments for your own courses.";
+                    return RedirectToAction("ManagePayments");
+                }
+
+                // ✅ Kiểm tra status hiện tại
+                if (payment.Status != "CODPending")
+                {
+                    TempData["ErrorMessage"] = $"Cannot approve payment. Current status: {payment.Status}";
+                    return RedirectToAction("ManagePayments");
+                }
+
+                // ✅ Cập nhật payment status
+                payment.Status = "Completed";
+                payment.PaidAt = DateTime.Now;
+                payment.TransactionId = $"COD_APPROVED_{DateTime.Now.Ticks}";
+
+                // ✅ Tăng EnrollmentCount cho course
+                if (payment.Course != null)
+                {
+                    payment.Course.EnrollmentCount++;
+                }
+
+                // ✅ Tạo Enrollment nếu chưa có
+                var enrollment = await _context.Enrollments
+                    .FirstOrDefaultAsync(e => e.UserId == payment.UserId && e.CourseId == payment.CourseId);
+
+                if (enrollment == null)
+                {
+                    enrollment = new Enrollment
+                    {
+                        UserId = payment.UserId,
+                        CourseId = payment.CourseId,
+                        EnrolledAt = DateTime.Now,
+                        IsActive = true
+                    };
+                    _context.Enrollments.Add(enrollment);
+                }
+
+                await _context.SaveChangesAsync();
+
+                // ✅ Gửi email thông báo
+                try
+                {
+                    if (payment.User != null && !string.IsNullOrEmpty(payment.User.Email))
+                    {
+                        var studentName = $"{payment.User.FirstName} {payment.User.LastName}".Trim();
+                        var courseTitle = payment.Course?.Title ?? "Your Course";
+
+                        await _emailService.SendCODApprovalEmailAsync(
+                            payment.User.Email,
+                            studentName,
+                            courseTitle,
+                            payment.Amount
+                        );
+
+                        Console.WriteLine($"✅ Email sent to {payment.User.Email}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("⚠️ User email not found, skipping email notification");
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    // Log lỗi email nhưng không fail toàn bộ transaction
+                    Console.WriteLine($"⚠️ Email sending failed: {emailEx.Message}");
+                    TempData["WarningMessage"] = "Payment approved successfully, but email notification failed.";
+                }
+
+                TempData["SuccessMessage"] = $"✅ COD Payment #{paymentId} has been approved successfully! Email notification sent to student.";
+                return RedirectToAction("ManagePayments");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error approving COD payment: {ex.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+                TempData["ErrorMessage"] = $"An error occurred while approving payment: {ex.Message}";
+                return RedirectToAction("ManagePayments");
             }
         }
     }
